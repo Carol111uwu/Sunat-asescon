@@ -1,0 +1,22 @@
+.page-header:has(.sync-dashboard-mini){justify-content:flex-start;align-items:center;column-gap:26px;row-gap:14px;flex-wrap:wrap}
+.page-header:has(.sync-dashboard-mini)>.date{flex:0 0 auto;order:3;margin-left:auto;white-space:nowrap}
+                                                                              
+.sync-dashboard-mini{flex:0 1 470px;order:2;min-width:350px;max-width:470px;padding:5px 11px;background:linear-gradient(110deg,#fff,#f2f8ff);border:1px solid #d9e3ef;border-radius:9px;box-shadow:0 3px 12px rgba(26,46,75,.045)}
+.sync-dashboard-mini-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sync-dashboard-mini-top strong{font-size:12px;color:#183557}
+.sync-dashboard-mini-top small{font-size:11px;color:#476381;white-space:nowrap}
+.sync-dashboard-mini progress{display:block;width:100%;height:4px;accent-color:#2a75c2;margin:3px 0;border-radius:6px;overflow:hidden;background:#e3e9f0}
+.sync-dashboard-mini progress::-webkit-progress-bar{background:#e3e9f0;border-radius:6px}
+.sync-dashboard-mini progress::-webkit-progress-value{background:#2a75c2;border-radius:6px}
+.sync-dashboard-mini progress::-moz-progress-bar{background:#2a75c2;border-radius:6px}
+.sync-dashboard-mini p#syncMiniEstado{font-size:10.5px;line-height:1.2;margin:2px 0 3px;color:#465d78}
+.sync-dashboard-mini .sync-mini-mensaje{font-size:11px;color:#0e6b48;background:#e8f7ee;padding:4px 7px;border-radius:6px}
+.sync-dashboard-mini-acciones{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
+.sync-dashboard-mini-acciones form{display:inline;margin:0}
+.sync-dashboard-mini-acciones button,.sync-mini-ver{display:inline-block;border:1px solid #c4d5e8;background:#fff;border-radius:6px;color:#19456e;font-size:10.5px;font-weight:700;line-height:1.2;text-decoration:none;padding:3px 9px;cursor:pointer}
+.sync-dashboard-mini-acciones button{background:#164778;color:white;border-color:#164778}
+.sync-dashboard-mini-acciones button:disabled{opacity:.5;cursor:not-allowed}
+.sync-dashboard-mini-acciones button:hover:not(:disabled),.sync-mini-ver:hover{filter:brightness(.94)}
+.sync-dashboard-mini-acciones button:focus-visible,.sync-mini-ver:focus-visible{outline:3px solid #79acf1;outline-offset:2px}
+@media(max-width:1100px){.sync-dashboard-mini{min-width:0;width:100%;max-width:none;flex-basis:100%}}
+@media(max-width:650px){.sync-dashboard-mini{padding:6px 10px}.sync-dashboard-mini-top{flex-wrap:wrap}}

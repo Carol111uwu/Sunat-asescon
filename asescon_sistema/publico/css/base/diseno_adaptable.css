@@ -1,0 +1,150 @@
+@import url("tablas_adaptables.css?v=20261013_2");
+
+@import url("componentes_adaptables.css?v=20261013_2");
+
+
+
+.topbar-menu-toggle {
+    display: none;
+    width: 42px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--borde);
+    border-radius: 9px;
+    background: var(--blanco);
+    color: var(--azul);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.sidebar-overlay[hidden] { display: none !important; }
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 18, 34, .48);
+    z-index: 990;
+}
+
+.table-container,
+.reference-table-wrap,
+.permissions-table,
+.menu-perm-list,
+.assign-clients-list {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+img, svg, canvas, video { max-width: 100%; }
+input, select, textarea, button { font: inherit; }
+
+@media (max-width: 1050px) {
+    .content { padding-left: 20px; padding-right: 20px; }
+}
+
+@media (max-width: 800px) {
+    body.menu-movil-abierto,
+    body.busqueda-abierta { overflow: hidden; }
+
+    .sidebar {
+        width: min(86vw, 320px) !important;
+        max-width: 320px;
+        transform: translateX(-102%);
+        transition: transform .24s ease;
+        z-index: 1000;
+    }
+    .sidebar.show { transform: translateX(0); }
+    .topbar-menu-toggle { display: inline-flex; }
+    .topbar-left { gap: 8px; min-width: 0; }
+    .topbar-search-trigger { min-width: 0; width: min(360px, 48vw); }
+    .topbar-right { gap: 10px; }
+    .quick-links { display: none; }
+    .main-content { min-width: 0; overflow-x: hidden; }
+    .content { padding: 20px 16px; }
+
+    .table-container,
+    .reference-table-wrap,
+    .permissions-table { overflow-x: auto !important; }
+    table { min-width: 680px; }
+
+    .page-header,
+    .panel-header,
+    .reference-head-actions,
+    .form-actions,
+    .sire-actions,
+    .search-row {
+        align-items: stretch;
+    }
+    .page-header .primary-btn,
+    .page-header .mini-btn,
+    .form-actions > *,
+    .sire-actions > * { max-width: 100%; }
+
+    dialog.team-dialog {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        max-height: calc(100dvh - 24px);
+        margin: auto;
+    }
+    dialog.team-dialog form { max-height: calc(100dvh - 24px); overflow-y: auto; }
+}
+
+@media (max-width: 600px) {
+    .topbar { min-height: 64px; height: auto; padding: 10px 12px; gap: 8px; }
+    .topbar-left { flex: 1 1 auto; }
+    .topbar-search-trigger { width: 42px !important; min-width: 42px !important; height: 40px; padding: 0; justify-content: center; }
+    .topbar-search-trigger .search-copy { display: none; }
+    .topbar-menu-toggle { width: 42px; height: 40px; }
+    .notification-top { flex: 0 0 auto; }
+    .user-area { flex: 0 0 auto; }
+    .user-area > span:not(.user-arrow) { display: none; }
+
+    .content { padding: 16px 12px; }
+    .page-header h1 { font-size: clamp(23px, 7vw, 30px); }
+    .panel, .reference-panel, .form-card { border-radius: 12px; }
+
+    .form-grid.two,
+    .form-grid.three,
+    .reference-filter-grid,
+    .reference-filter-grid.two,
+    .reference-filter-grid.three,
+    .reference-filter-grid.four,
+    .reference-metrics,
+    .reference-metrics.five,
+    .client-summary-grid,
+    .riesgo-resumen-grid,
+    .utility-grid,
+    .tax-options-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .span-2, .span-3 { grid-column: auto !important; }
+    .search-row, .form-actions, .sire-actions, .reference-actions { flex-direction: column; }
+    .search-row > *, .form-actions > *, .sire-actions > *, .reference-actions > * { width: 100%; }
+
+    .quick-search { padding: 70px 10px 10px !important; align-items: flex-start; }
+    .quick-search-box { width: 100% !important; max-height: calc(100dvh - 82px); }
+    .quick-search-results { max-height: calc(100dvh - 210px); }
+
+    .team-actions { flex-wrap: wrap; justify-content: flex-start; }
+    .team-icon-btn, .team-admin-btn { min-height: 40px; }
+
+    input, select, textarea, .mini-btn, .primary-btn, .reference-btn { min-height: 44px; }
+}
+
+@media (max-width: 380px) {
+    .content { padding-left: 9px; padding-right: 9px; }
+    .topbar { padding-left: 8px; padding-right: 8px; }
+    .avatar { width: 34px; height: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

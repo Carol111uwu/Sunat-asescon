@@ -1,0 +1,75 @@
+{
+  "entrega": "ASESCON_INTEGRADO_20261029",
+  "fecha_lima": "2026-10-29",
+  "fuentes": [
+    "asescon_sistema (1)(2).zip",
+    "ASESCON_SISTEMA_UNIFICADO_DISENO_Y_FUNCIONES_20261028_V3(1).zip"
+  ],
+  "videos_revisados": [
+    {
+      "archivo": "msedge_Xj3lNmOzmB.mp4",
+      "duracion_segundos": 27.933333
+    },
+    {
+      "archivo": "msedge_drxVPF3Y3D.mp4",
+      "duracion_segundos": 313.5
+    }
+  ],
+  "sintaxis": {
+    "php_version_prueba": "8.2.33 WebAssembly",
+    "php_archivos": 373,
+    "javascript": 59,
+    "python": 15,
+    "shell": 10,
+    "errores": 0
+  },
+  "comprobaciones_estaticas_v3": {
+    "pasaron": 16,
+    "fallaron": 0
+  },
+  "comportamiento_php": {
+    "pasaron": [
+      "resumen por empresa y nombre/RUC",
+      "orden de módulos y meses",
+      "filtros de fecha Lima",
+      "120 empresas y 720 tareas sin truncar",
+      "avisos PDF vigentes",
+      "descarte de mensajes fallidos anteriores",
+      "cola idempotente",
+      "pausa y reanudación",
+      "rechazo de resultados de intentos antiguos",
+      "orden real de ejecución",
+      "archivo personal y restauración",
+      "edición de notas con control de revisión",
+      "no reutilización de ID de nota borrada"
+    ]
+  },
+  "navegador": {
+    "motor_prueba_local": "Chrome Headless Shell 151.0.7922.34",
+    "comprobaciones": 10,
+    "errores_javascript": 0,
+    "escritorio": "1366x900",
+    "movil": "390x844",
+    "datos": "simulados",
+    "no_reemplaza_runtime_del_hosting": true
+  },
+  "conservados_sin_cambios": [
+    "configuracion/conexion.php",
+    "configuracion/conexiones_bases_datos.php",
+    "configuracion/cargador_configuracion_privada.php",
+    "configuracion/rutas_configuracion_privada.php",
+    "configuracion/rutas_privadas.php",
+    "procesos/entorno_comun.sh",
+    "procesos/sincronizacion/cron_nocturno.sh",
+    "servicios/archivos/ServicioArchivosPrivados.php",
+    "servicios/sunat/InspectorArchivosSire.php",
+    "servicios/textos/ArchivoTextos.php",
+    "python/requirements.txt"
+  ],
+  "limites": [
+    "No se accedió al hosting ni a MySQL de producción.",
+    "Las operaciones SQL de edición de V3 requieren validación posterior en el hosting; no se ejecutaron contra sus bases.",
+    "No se inició sesión SUNAT/SUNAFIL ni se verificó una descarga oficial nueva.",
+    "No se incluyen documentos históricos, claves privadas ni binarios del entorno instalado."
+  ]
+}

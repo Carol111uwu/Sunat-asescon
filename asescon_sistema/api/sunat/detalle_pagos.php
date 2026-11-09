@@ -1,0 +1,8 @@
+<?php
+declare(strict_types=1);require_once __DIR__.'/../../configuracion/inicializacion.php';require_once __DIR__.'/../../modelos/sunat/DeclaracionSunat.php';require_once __DIR__.'/../../modelos/sunat/PagoTributario.php';require_once __DIR__.'/../../servicios/archivos/ServicioArchivosPrivados.php';
+asesconExigirPermiso($conexion,'DECLARACIONES','ver');header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');
+try{
+ $id=(int)($_GET['id']??0);$d=(new DeclaracionSunat($conexion))->obtener($id,asesconFiltroClientesSql($conexion,'c'));if(!$d){http_response_code(404);throw new DomainException('Declaración no disponible.');}
+ $repo=new PagoTributario($conexion);$pagos=$repo->listar($id);$archivo=new ServicioArchivosPrivados();foreach($pagos as &$p){$p['archivo_url']=$archivo->resolver((string)($p['archivo_constancia']??''),'PAGOS')?asesconUrl('api/sunat/archivo_pago.php').'?id='.(int)$p['id_pago']:null;unset($p['archivo_constancia']);}unset($p);
+ echo json_encode(['ok'=>true,'data'=>['id_declaracion'=>$id,'idempotencia'=>bin2hex(random_bytes(16)),'cliente'=>$d['razon_social'],'ruc'=>$d['ruc'],'formulario'=>$d['formulario'],'periodo'=>$d['periodo'],'resumen'=>CalculoPagoTributario::resumen((string)$d['monto_declarado'],(string)$d['monto_pagado']),'pagos'=>$pagos,'disponible'=>$repo->disponible(),'puede_editar'=>asesconTienePermiso($conexion,'DECLARACIONES','editar')&&asesconPuedeGestionarCliente($conexion,(int)$d['id_cliente'])]],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
+}catch(Throwable $e){if(http_response_code()<400)http_response_code(400);echo json_encode(['ok'=>false,'mensaje'=>$e instanceof DomainException?$e->getMessage():'No se pudo cargar el historial.']);}

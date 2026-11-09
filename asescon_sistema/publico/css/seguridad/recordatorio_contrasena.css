@@ -1,0 +1,10 @@
+.password-reminder{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 20px;padding:14px 16px;border:1px solid #d9b76d;border-radius:12px;background:#fffaf0;box-shadow:0 4px 14px rgba(11,35,65,.06)}
+.password-reminder-copy{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;color:#17324f}
+.password-reminder-copy strong{color:#0b2341}
+.password-reminder-copy span{line-height:1.45}
+.password-reminder-copy a{font-weight:700;color:#0b4f86;text-decoration:none}
+.password-reminder-copy a:hover{text-decoration:underline}
+.password-reminder-close{margin:0}
+.password-reminder-close button{width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:#5f6f80;font-size:20px;line-height:24px;cursor:pointer}
+.password-reminder-close button:hover{background:rgba(11,35,65,.08);color:#0b2341}
+@media(max-width:720px){.password-reminder{gap:10px}.password-reminder-copy{display:block}.password-reminder-copy span,.password-reminder-copy a{display:block;margin-top:6px}}

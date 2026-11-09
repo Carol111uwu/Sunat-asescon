@@ -1,0 +1,21 @@
+ASISTENTE ASESCON PARA CHROME Y EDGE (ESCRITORIO)
+1. Extrae el ZIP.
+2. Abre Administrar extensiones, activa Modo de desarrollador y Cargar descomprimida.
+3. Selecciona esta carpeta, que contiene manifest.json.
+4. En Detalles, activa Permitir en incógnito.
+5. Vuelve a ASESCON y pulsa SUNAT junto al cliente.
+
+Solo atiende solicitudes desde https://sistema.asescon.net.
+Si se cambia de dominio, el administrador debe cambiar esa dirección en
+manifest.json, coordinador.js y puente_asescon.js y recargar la extensión.
+
+Cierra las otras ventanas privadas antes de iniciar. Solo admite un cliente
+por ventana privada aislada; no reutiliza otra sesión. Cierra esa ventana
+para cambiar de cliente. El usuario revisa el RUC y confirma declaraciones,
+rectificaciones y pagos directamente en SUNAT.
+
+Las claves se reciben en el contexto aislado de la extensión, no se envían
+por URL, no se guardan en storage.local/sync y se eliminan después de
+entregarlas al formulario o a los 90 segundos. No confirma acuses ni pagos.
+Si SUNAT pide una verificación, debes completarla en su portal.
+No lee cuentas bancarias, no modifica declaraciones ni descarga tus documentos.

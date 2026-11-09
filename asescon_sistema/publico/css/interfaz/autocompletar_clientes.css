@@ -1,0 +1,9 @@
+.autocompletar-cliente{position:relative;min-width:0;width:100%;box-sizing:border-box}
+.autocompletar-cliente>input{width:100%;max-width:100%;box-sizing:border-box}
+.autocompletar-cliente-lista{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #cbd6e4;border-radius:8px;box-shadow:0 7px 22px #10264024;z-index:120}
+.autocompletar-cliente-lista[hidden]{display:none!important}
+.autocompletar-cliente-lista button{display:block;width:100%;padding:12px;border:0;border-bottom:1px solid #edf1f6;background:#fff;color:#18334f;cursor:pointer;text-align:left;white-space:normal;overflow-wrap:anywhere;font:inherit;font-size:12px}
+.autocompletar-cliente-lista button:hover,.autocompletar-cliente-lista button[aria-selected=true]{background:#eaf1f8}
+.autocompletar-cliente>input{padding-right:32px!important}
+.autocompletar-cliente-desplegar{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#34516c;cursor:pointer;padding:5px 8px;font-size:16px}
+.autocompletar-cliente-nota{padding:8px;font-size:11px;color:#64748b}

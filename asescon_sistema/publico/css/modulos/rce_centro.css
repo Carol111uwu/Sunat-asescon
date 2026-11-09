@@ -1,0 +1,50 @@
+                                                                                      
+.rce-query [hidden],
+.rce-inventario[hidden],
+.rce-proceso[hidden],
+.rce-proceso [hidden],
+#rceResultados [hidden] { display: none !important; }
+.rce-query-header,
+.rce-proceso-encabezado { display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+.rce-query-header h2 { margin-top:0; }
+.rce-top-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
+.rce-filtros { align-items:start; }
+.rce-consulta-actions { display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;margin-top:15px; }
+.rce-dos-botones { display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
+.rce-dos-botones .reference-btn { min-width:132px; }
+.rce-consulta-actions .reference-btn.primary { min-width:144px; }
+#rceEstadoGuardado { scroll-margin-top:22px; }
+.rce-inventario { margin-top:16px;padding:16px;border:1px solid #d8e2ed;border-radius:12px;background:#f8fbff; }
+.rce-inventario h3 { margin:0 0 8px;font-size:16px; }
+.rce-inventario table { width:100%; }
+.rce-inventario td, .rce-inventario th { padding:10px 12px;vertical-align:top; }
+.rce-inventario td:nth-child(2) { font-variant-numeric:tabular-nums;white-space:nowrap; }
+.rce-proceso { margin-top:14px; }
+.rce-proceso progress { width:100%;height:17px;accent-color:#1d5bb3;margin:14px 0 8px; }
+.rce-proceso-contadores { font-size:13px;color:#30445d; }
+.rce-proceso-lista { max-height:230px;overflow:auto;padding-left:24px;margin:12px 0 0; }
+.rce-proceso-lista li { padding:8px 0;border-bottom:1px solid #e7edf5;overflow-wrap:anywhere;font-size:13px; }
+.rce-proceso-lista .rce-ok { color:#11643b; }
+.rce-proceso-lista .rce-error { color:#a52a36; }
+.rce-proceso-lista .rce-pendiente { color:#9a6500; }
+.rce-paginacion { display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:14px; }
+.rce-paginacion [aria-disabled="true"] { opacity:.45;pointer-events:none; }
+.rce-query .reference-subtle { margin:5px 0; }
+.rce-reparacion { margin-top:16px;padding-top:12px;border-top:1px solid #e3eaf3;display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.rce-filtro-periodo .reference-switch { position:relative;flex:none; }
+.rce-filtro-periodo .reference-switch input { display:block;position:absolute;opacity:0;width:1px;height:1px; }
+.rce-filtro-periodo .reference-switch input:focus-visible + .track { outline:3px solid #77a6df;outline-offset:3px; }
+.rce-metricas .reference-metric strong { overflow-wrap:anywhere;font-variant-numeric:tabular-nums; }
+@media (max-width:1200px) { .rce-metricas { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:720px) {
+  .rce-query-header,.rce-proceso-encabezado { flex-direction:column; }
+  .rce-top-actions { width:100%; }
+  .rce-consulta-actions { justify-content:flex-start; }
+  .rce-dos-botones { width:100%; }
+  .rce-dos-botones .reference-btn { flex:1 1 145px; }
+}
+@media (max-width:600px) { .rce-metricas { grid-template-columns:1fr; } }
+.sire-pendientes-anuales:not([hidden]) { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:9px 12px;border:1px solid #f0d5a1;border-radius:9px;background:#fffaf0;color:#60430a;font-size:12px;line-height:1.45; }
+.sire-boton-recuperar { padding:6px 11px!important;font-size:11px!important;white-space:normal; }
+.sire-boton-pausa { padding:7px 12px!important;font-size:12px!important;white-space:normal; }
+.sire-pendientes-anuales[hidden],.sire-boton-pausa[hidden] { display:none!important; }

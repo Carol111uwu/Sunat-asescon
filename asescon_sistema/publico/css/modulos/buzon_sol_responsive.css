@@ -1,0 +1,295 @@
+                                                                               
+.buzon-sol-page-header{
+    gap:18px;
+}
+
+.buzon-sol-head-actions{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:0;
+}
+
+.buzon-sol-sync-form,
+.buzon-sol-review-form{
+    margin:0;
+}
+
+.buzon-sol-table-container{
+    width:100%;
+    max-width:100%;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-gutter:stable;
+}
+
+#tablaBuzonSol{
+    width:100%;
+    min-width:970px;
+    border-collapse:collapse;
+    table-layout:auto;
+}
+
+#tablaBuzonSol th,
+#tablaBuzonSol td{
+    vertical-align:top;
+    word-break:normal;
+    overflow-wrap:break-word;
+    hyphens:none;
+}
+
+#tablaBuzonSol th{
+    white-space:nowrap;
+}
+
+#tablaBuzonSol td:nth-child(1),
+#tablaBuzonSol td:nth-child(4){min-width:120px;white-space:nowrap}
+#tablaBuzonSol td:nth-child(2){min-width:200px}
+#tablaBuzonSol td:nth-child(3){min-width:110px}
+#tablaBuzonSol td:nth-child(5){min-width:110px}
+#tablaBuzonSol td:nth-child(6){min-width:260px;line-height:1.5}
+#tablaBuzonSol td:nth-child(7){min-width:90px}
+#tablaBuzonSol td:nth-child(8){min-width:220px}
+
+#tablaBuzonSol td strong,
+#tablaBuzonSol td small{
+    word-break:normal;
+    overflow-wrap:break-word;
+}
+
+#tablaBuzonSol .mini-btn{
+    white-space:normal;
+    line-height:1.25;
+}
+
+@media (max-width: 980px){
+    .buzon-sol-page-header{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .buzon-sol-page-header > div:first-child{
+        width:100%;
+        min-width:0;
+    }
+
+    .buzon-sol-head-actions{
+        width:100%;
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:8px;
+    }
+
+    .buzon-sol-head-actions > *,
+    .buzon-sol-head-actions .reference-btn,
+    .buzon-sol-sync-form,
+    .buzon-sol-sync-form .reference-btn{
+        width:100%;
+        min-width:0;
+    }
+
+    .buzon-sol-head-actions .reference-btn{
+        white-space:normal;
+        text-align:center;
+        line-height:1.3;
+    }
+
+    .buzon-sol-notificaciones-panel{
+        overflow:visible;
+    }
+
+    .buzon-sol-table-container{
+        overflow:visible!important;
+        padding:0!important;
+    }
+
+    #tablaBuzonSol.buzon-sol-responsive-table{
+        display:block!important;
+        width:100%!important;
+        min-width:0!important;
+        border-collapse:separate!important;
+    }
+
+    #tablaBuzonSol thead{
+        display:none!important;
+    }
+
+    #tablaBuzonSol tbody{
+        display:block!important;
+        width:100%!important;
+    }
+
+    #tablaBuzonSol tbody tr{
+        display:grid!important;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:0 18px;
+        width:100%!important;
+        min-width:0!important;
+        margin:0 0 14px!important;
+        padding:14px 16px!important;
+        border:1px solid var(--borde)!important;
+        border-radius:12px!important;
+        background:#fff!important;
+        box-shadow:0 3px 12px rgba(11,35,65,.045);
+    }
+
+    #tablaBuzonSol tbody tr:last-child{
+        margin-bottom:0!important;
+    }
+
+    #tablaBuzonSol tbody td{
+        display:block!important;
+        width:100%!important;
+        min-width:0!important;
+        padding:9px 0!important;
+        border:0!important;
+        white-space:normal!important;
+        word-break:normal!important;
+        overflow-wrap:break-word!important;
+        hyphens:none!important;
+        text-align:left!important;
+        line-height:1.45;
+    }
+
+    #tablaBuzonSol tbody td::before{
+        content:attr(data-label);
+        display:block;
+        margin:0 0 5px;
+        color:var(--texto-secundario);
+        font-size:10px;
+        font-weight:800;
+        line-height:1.2;
+        letter-spacing:.035em;
+        text-transform:uppercase;
+    }
+
+    #tablaBuzonSol tbody td:nth-child(4),
+    #tablaBuzonSol tbody td:nth-child(6),
+    #tablaBuzonSol tbody td:nth-child(8),
+    #tablaBuzonSol tbody td[colspan]{
+        grid-column:1 / -1;
+    }
+
+    #tablaBuzonSol tbody td[colspan]::before{
+        display:none;
+    }
+
+    #tablaBuzonSol tbody td strong{
+        display:block;
+        line-height:1.4;
+    }
+
+    #tablaBuzonSol tbody td small{
+        display:block;
+        margin-top:4px;
+        line-height:1.35;
+    }
+
+
+    #tablaBuzonSol .reference-empty{
+        padding:14px 4px;
+    }
+}
+
+@media (max-width: 600px){
+    .buzon-sol-head-actions{
+        grid-template-columns:1fr;
+    }
+
+    .buzon-sol-notificaciones-panel{
+        padding:14px!important;
+    }
+
+    .buzon-sol-notificaciones-panel .reference-table-title{
+        padding:0 0 12px!important;
+        margin:0!important;
+    }
+
+    #tablaBuzonSol tbody tr{
+        grid-template-columns:1fr;
+        gap:0;
+        padding:12px 14px!important;
+    }
+
+    #tablaBuzonSol tbody td,
+    #tablaBuzonSol tbody td:nth-child(4),
+    #tablaBuzonSol tbody td:nth-child(6),
+    #tablaBuzonSol tbody td:nth-child(8){
+        grid-column:1;
+    }
+
+    #tablaBuzonSol tbody td + td{
+        border-top:1px solid #edf1f5!important;
+    }
+
+    #tablaBuzonSol tbody td[colspan]{
+        grid-column:1;
+    }
+}
+
+@media (max-width: 380px){
+    .buzon-sol-notificaciones-panel{
+        padding:11px!important;
+    }
+
+    #tablaBuzonSol tbody tr{
+        padding:10px 12px!important;
+        border-radius:10px!important;
+    }
+}
+
+
+                                                                                   
+.buzon-sol-aviso-breve{margin:10px 0 16px;color:var(--texto-secundario);font-size:13px;line-height:1.5}
+#tablaBuzonSol .buzon-sol-cliente-nombre{display:block;font-size:12px;line-height:1.45}
+#tablaBuzonSol .buzon-sol-cliente-ruc{display:block;margin-top:7px;color:var(--texto-secundario);font-size:12px;white-space:nowrap}
+#tablaBuzonSol .buzon-sol-row-actions{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px;max-width:100%}
+#tablaBuzonSol .buzon-sol-review-form{display:inline-flex!important;width:auto!important;margin:0}
+#tablaBuzonSol .buzon-sol-accion-icono{display:inline-flex!important;align-items:center;justify-content:center;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important;line-height:1!important;border:1px solid #d9e1ea;border-radius:8px;background:#fff;color:#0b294d;cursor:pointer;text-decoration:none;box-sizing:border-box;transition:background .15s ease}
+#tablaBuzonSol .buzon-sol-accion-icono:hover,#tablaBuzonSol .buzon-sol-accion-icono:focus-visible{background:#e8f1fb;outline:2px solid transparent}
+#tablaBuzonSol .buzon-sol-accion-ver{background:#092a51;color:white}
+#tablaBuzonSol .buzon-sol-accion-ver:hover,#tablaBuzonSol .buzon-sol-accion-ver:focus-visible{background:#17477d}
+#tablaBuzonSol tbody tr{height:auto}
+#tablaBuzonSol tbody td{height:auto;vertical-align:middle}
+@media(max-width:980px){
+ #tablaBuzonSol tbody td:nth-child(8){grid-column:1 / -1}
+ #tablaBuzonSol tbody td:last-child::before{margin-bottom:9px}
+ #tablaBuzonSol tbody tr{height:auto!important}
+}
+@media(max-width:600px){
+ #tablaBuzonSol tbody td:nth-child(8){grid-column:1}
+ #tablaBuzonSol .buzon-sol-accion-icono{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important}
+}
+
+.buzon-sol-ayuda{display:inline-block;margin-left:8px;color:#183b60;font-size:12px}
+.buzon-sol-ayuda summary{cursor:pointer;display:inline-block;text-decoration:underline;text-underline-offset:2px}
+.buzon-sol-ayuda a{display:block;margin-top:6px}
+@media(max-width:980px){
+ #tablaBuzonSol tbody tr,
+ #tablaBuzonSol tbody td,
+ .buzon-sol-notificaciones-panel,
+ .buzon-sol-table-container{box-sizing:border-box;max-width:100%}
+}
+
+                                                                      
+.buzon-sol-row-actions{display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important;flex-wrap:nowrap!important}
+.buzon-sol-row-actions button{flex:0 0 auto;cursor:pointer}
+.buzon-sol-accion-icono{position:relative}
+.buzon-sol-accion-icono:focus-visible{outline:3px solid #1768b9;outline-offset:3px}
+.buzon-sol-accion-icono:hover{background:#e7effb}
+.buzon-sol-cerrar-caso{border-color:#e0ccd0;color:#802f41}
+.buzon-sol-cliente-ruc{display:block;color:#64748b;font-size:12px;margin-top:4px}
+@media(max-width:980px){#tablaBuzonSol .buzon-sol-row-actions{justify-content:flex-start;flex-wrap:wrap!important}}
+
+.buzon-sol-cerrar-caso{display:inline-flex;align-items:center;gap:6px;padding-inline:9px!important;width:auto!important;min-width:max-content!important;font-size:12px;white-space:nowrap}
+.buzon-sol-cerrar-caso span{font-weight:600}
+
+#tablaBuzonSol .buzon-sol-cerrar-caso{width:auto!important;min-width:116px!important;padding:0 9px!important;white-space:nowrap!important}
+@media(max-width:980px){#tablaBuzonSol tbody td:nth-child(2){grid-column:1 / -1}#tablaBuzonSol tbody td:nth-child(4){grid-column:auto}}
+@media(max-width:600px){#tablaBuzonSol tbody td:nth-child(2),#tablaBuzonSol tbody td:nth-child(4){grid-column:1}}
+
+.buzon-sol-paginacion{display:flex;gap:12px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin:16px 0 0}
+.buzon-sol-paginacion span{font-size:13px;color:#567}

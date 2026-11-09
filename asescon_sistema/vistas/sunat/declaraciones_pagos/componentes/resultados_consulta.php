@@ -1,0 +1,1 @@
+        <div class="table-container"><table id="tablaOficial" hidden><thead><tr><th>Período</th><th>Formulario</th><th>Descripción</th><th>N.º orden</th><th>Presentación</th><th>Banco</th><th>Pago informado</th><th>Documentos</th></tr></thead><tbody></tbody></table></div>

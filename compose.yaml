@@ -1,0 +1,50 @@
+services:
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "${ASESCON_HTTP_PORT:-8080}:80"
+    environment:
+      ASESCON_DB_HOST: db
+      ASESCON_DB_PORT: 3306
+      ASESCON_DB_NAME: ${ASESCON_DB_NAME:-asescon}
+      ASESCON_DB_USER: ${ASESCON_DB_USER:-asescon}
+      ASESCON_DB_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
+      ASESCON_DB_SUNAT_HOST: db
+      ASESCON_DB_SUNAT_PORT: 3306
+      ASESCON_DB_SUNAT_NAME: ${ASESCON_DB_SUNAT_NAME:-asescon_sunat}
+      ASESCON_DB_SUNAT_USER: ${ASESCON_DB_USER:-asescon}
+      ASESCON_DB_SUNAT_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
+      ASESCON_FORCE_HTTPS: ${ASESCON_FORCE_HTTPS:-0}
+      ASESCON_URL_PUBLICA: ${ASESCON_URL_PUBLICA:-http://localhost:8080}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - asescon_private_data:/var/www/html/asescon_datos_privados
+      - asescon_secure_data:/var/www/html/asescon_secure
+
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${ASESCON_DB_ROOT_PASSWORD:?Define ASESCON_DB_ROOT_PASSWORD in .env}
+      MARIADB_DATABASE: ${ASESCON_DB_NAME:-asescon}
+      MARIADB_USER: ${ASESCON_DB_USER:-asescon}
+      MARIADB_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
+      ASESCON_DB_SUNAT_NAME: ${ASESCON_DB_SUNAT_NAME:-asescon_sunat}
+    volumes:
+      - asescon_db_data:/var/lib/mysql
+      - ./docker/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  asescon_db_data:
+  asescon_private_data:
+  asescon_secure_data:
+

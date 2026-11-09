@@ -1,0 +1,66 @@
+.sync-panel{padding:22px;margin:16px 0;min-width:0}
+.sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.sync-heading h2{margin:0 0 6px}.sync-heading p{margin:0 0 12px}
+.sync-cron{font-size:12px;color:var(--texto-secundario);max-width:300px}
+.sync-filtros{display:grid;grid-template-columns:190px minmax(180px,1fr) minmax(210px,1fr);gap:14px;margin:15px 0 22px}
+.sync-filtros input,.sync-filtros select{min-height:42px}
+.sync-panel progress{width:100%;height:18px;accent-color:#2563b7}
+.sync-metricas{margin:12px 0 18px}.sync-contadores{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sync-etiqueta{display:inline-flex;align-items:center;font-size:11px;font-weight:600;line-height:1.4;padding:4px 8px;border-radius:7px;background:#edf1f6;color:#405169;white-space:normal}
+.sync-etiqueta.ok{background:#e8f5ee;color:#206745}.sync-etiqueta.error{background:#fcecec;color:#a92b37}
+.sync-etiqueta.proceso{background:#e7f0ff;color:#2359a0}.sync-etiqueta.aviso{background:#fff3db;color:#83560d}
+.sync-aviso{padding:13px;border-radius:8px;background:#fff5e0;color:#79521b;font-size:13px}
+.sync-empresas{display:flex;flex-direction:column;gap:12px}.sync-empresa{border:1px solid #dce4ef;border-radius:12px;background:white;overflow:hidden}
+.sync-empresa>summary{padding:18px;cursor:pointer;list-style-position:inside;background:#f8faff}
+.sync-empresa>summary:focus-visible,.sync-modulo>summary:focus-visible{outline:3px solid #80acf1;outline-offset:-3px}
+.sync-empresa-titulo{display:inline-grid;grid-template-columns:minmax(190px,1fr) minmax(180px,1fr) 100px;gap:15px;align-items:center;width:calc(100% - 22px);vertical-align:middle}
+.sync-identidad{min-width:0}.sync-identidad strong{display:block;font-size:14px;overflow-wrap:anywhere;color:#163554}
+.sync-identidad small{display:block;margin-top:5px;font-size:12px;color:#5d6f85}
+.sync-empresa-avance{text-align:right}.sync-empresa-avance strong{font-size:18px;white-space:nowrap}.sync-empresa-avance small{display:block;font-size:10px;color:#617085}
+.sync-empresa-contenido{padding:4px 18px 18px}.sync-modulo{margin-top:12px;border:1px solid #e2e8f1;border-radius:9px;overflow:hidden}
+.sync-modulo>summary{cursor:pointer;padding:13px;background:#fcfdff;list-style-position:inside}
+.sync-modulo-titulo{display:inline-flex;align-items:center;justify-content:space-between;gap:12px;width:calc(100% - 22px);vertical-align:middle;flex-wrap:wrap}
+.sync-modulo-titulo strong{font-size:13px}.sync-modulo-contenido{padding:12px}.sync-abrir{font-size:12px;margin-bottom:10px}
+.sync-tabla-scroll{overflow-x:auto;max-width:100%}.sync-tabla-scroll table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
+.sync-tabla-scroll th{background:#f4f7fc;white-space:nowrap;font-size:11px;color:#45556d}
+.sync-tabla-scroll td,.sync-tabla-scroll th{padding:12px 10px;border-bottom:1px solid #e6ebf3;vertical-align:top}
+.sync-tabla-scroll td:first-child{min-width:120px}.sync-tabla-scroll td:nth-child(5){min-width:145px}.sync-detalle{min-width:200px;max-width:420px;overflow-wrap:anywhere}
+.sync-codigo{display:block;margin-top:5px;color:#64748b;font-size:10px}.sync-nota{display:block;margin-top:20px;color:#617085;line-height:1.6}
+.sync-panel [hidden]{display:none!important}
+@media(max-width:1000px){.sync-filtros{grid-template-columns:1fr 1fr}.sync-filtros label:last-child{grid-column:1/-1}.sync-empresa-titulo{grid-template-columns:1fr 90px}.sync-empresa-titulo>.sync-contadores{grid-row:2;grid-column:1/-1}.sync-empresa-avance{grid-column:2;grid-row:1}}
+@media(max-width:600px){.sync-panel{padding:15px}.sync-filtros{grid-template-columns:1fr}.sync-filtros label:last-child{grid-column:auto}.sync-empresa>summary{padding:13px}.sync-empresa-contenido{padding:1px 10px 10px}.sync-modulo-titulo{gap:8px}.sync-empresa-titulo{gap:10px}.sync-identidad strong{font-size:13px}.sync-modulo-contenido{padding:8px}}
+
+                                                                               
+.sync-tabla-scroll table{min-width:760px}
+.sync-tabla-scroll .sync-etiqueta{white-space:nowrap;overflow-wrap:normal}
+.sync-empresa>summary,.sync-modulo>summary{position:relative;list-style:none;padding-left:34px}
+.sync-empresa>summary::-webkit-details-marker,.sync-modulo>summary::-webkit-details-marker{display:none}
+.sync-empresa>summary::before,.sync-modulo>summary::before{content:'▸';position:absolute;left:14px;top:18px;color:#173651}
+.sync-modulo>summary::before{top:12px}
+.sync-empresa[open]>summary::before,.sync-modulo[open]>summary::before{content:'▾'}
+.sync-empresa-titulo,.sync-modulo-titulo{width:100%}
+
+                                                                        
+.sync-programacion{border:1px solid #dae5f0;background:linear-gradient(120deg,#fff,#f8fbff)}
+.sync-programacion h2{color:#122d4f;font-size:20px}
+.sync-programacion p{line-height:1.65;color:#485b71}
+.sync-orden{list-style:decimal;padding:0 0 0 24px;margin:14px 0 21px;color:#33465e;line-height:1.6}
+.sync-orden li{padding:5px 0 5px 4px}
+.sync-orden strong{color:#142e51}
+.sync-filtros{grid-template-columns:minmax(220px,1.2fr) minmax(180px,1fr) minmax(190px,1fr);align-items:end}
+.sync-empresa-selector{position:relative;display:flex;flex-direction:column;gap:5px;min-width:0;z-index:3}
+.sync-empresa-selector>span{font-weight:600;font-size:12px;color:#213850}
+.sync-selector-boton{width:100%;background:#fff;color:#1d3755;border:1px solid #d3dfed;border-radius:9px;min-height:43px;text-align:left;padding:10px 13px;cursor:pointer;font:inherit;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sync-selector-boton:hover{border-color:#7da2d3}
+.sync-selector-boton:focus-visible,.sync-empresa-opcion:focus-visible,.sync-opcion-todas:focus-visible{outline:3px solid #80acf1;outline-offset:2px}
+.sync-selector-panel{position:absolute;z-index:11;top:calc(100% + 6px);left:0;width:min(470px,95vw);padding:12px;background:white;border:1px solid #d3dfed;border-radius:11px;box-shadow:0 16px 35px rgba(17,38,70,.16)}
+.sync-selector-panel[hidden]{display:none!important}
+.sync-selector-panel input{width:100%;min-height:42px;margin-bottom:10px;border:1px solid #cbd7e6;border-radius:8px;padding:8px 12px}
+.sync-opcion-todas,.sync-empresa-opcion{display:block;width:100%;background:transparent;border:0;border-radius:7px;color:#1f3755;cursor:pointer;text-align:left;font:inherit;font-size:12px;padding:10px 9px}
+.sync-opcion-todas{font-weight:700;background:#eff5fc;margin-bottom:5px}
+.sync-empresa-opcion:hover,.sync-empresa-opcion[aria-selected="true"]{background:#eef4ff}
+.sync-opciones-empresa{max-height:270px;overflow:auto;overscroll-behavior:contain}
+.sync-tabla-scroll .sync-detalle{max-width:440px}
+.sync-panel .reference-field{min-width:0}
+@media(max-width:1000px){.sync-filtros{grid-template-columns:1fr 1fr}.sync-filtros>*:last-child{grid-column:1/-1}}
+@media(max-width:600px){.sync-filtros{grid-template-columns:1fr}.sync-filtros>*:last-child{grid-column:auto}.sync-programacion{padding:15px!important}.sync-selector-panel{width:min(460px,88vw)}}

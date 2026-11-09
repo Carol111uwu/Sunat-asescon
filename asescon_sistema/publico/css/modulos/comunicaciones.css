@@ -1,0 +1,29 @@
+.comunicaciones-contenido{display:grid;gap:18px;min-width:0}
+.comunicaciones-contenido .reference-panel{margin:0;min-width:0}
+.comunicaciones-formulario{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.comunicaciones-formulario .ancho-completo{grid-column:1/-1}
+.comunicaciones-formulario input,.comunicaciones-formulario select,.comunicaciones-formulario textarea{box-sizing:border-box;max-width:100%}
+.comunicaciones-formulario textarea{min-height:170px;resize:vertical}
+.comunicaciones-check{display:flex;gap:9px;align-items:flex-start;font-size:14px;overflow-wrap:anywhere}
+.comunicaciones-check input{flex:0 0 auto;margin-top:3px}
+.comunicaciones-catalogo{padding:0;list-style:none;display:grid;gap:8px}
+.comunicaciones-catalogo li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;background:#f5f7fa;border-radius:8px;overflow-wrap:anywhere}
+.comunicaciones-catalogo li span{min-width:0}
+.comunicaciones-variables{display:flex;flex-wrap:wrap;gap:12px;font-size:13px}
+.comunicaciones-aviso{padding:12px;border-radius:8px;background:#eef6ee;color:#24542b;overflow-wrap:anywhere}
+.comunicaciones-aviso.error{background:#fff1f0;color:#a32420}
+.correo-vista-previa{margin:14px 0;padding:15px;background:#f5f7fa;border:1px solid #dde5ef;border-radius:9px;overflow-wrap:anywhere}
+.correo-vista-previa pre{white-space:pre-wrap;font:inherit;line-height:1.6}
+.ssco-acciones{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:14px 0}
+.ssco-acciones form{display:flex;flex-wrap:wrap;align-items:end;gap:10px;min-width:0;max-width:100%}
+.ssco-acciones input{max-width:100%;box-sizing:border-box}
+.consultas-oficiales{position:relative;font-size:12px}
+.consultas-oficiales summary{cursor:pointer;list-style:none;padding:8px;border:1px solid #dce2ea;border-radius:8px;white-space:nowrap}
+.consultas-oficiales nav{position:absolute;right:0;top:100%;width:min(285px,calc(100vw - 28px));padding:8px;background:white;border:1px solid #dce2ea;border-radius:9px;box-shadow:0 5px 20px #0002;z-index:120}
+.consultas-oficiales nav a{display:block;padding:9px;font-size:13px;text-decoration:none;color:#17304c;white-space:normal}
+.consultas-oficiales nav a:hover{background:#f1f4f8}
+.alertas-ssco-menu summary{padding:6px;color:#ae352b;min-width:28px}
+.alertas-ssco-menu nav{max-height:65vh;overflow-y:auto;overflow-wrap:anywhere}
+.alertas-ssco-menu nav>strong,.alertas-ssco-menu nav>p{display:block;padding:8px}
+.alertas-ssco-menu small{display:block;margin-top:4px;color:#5e6e82}
+@media(max-width:600px){.comunicaciones-formulario{grid-template-columns:minmax(0,1fr)}.comunicaciones-catalogo li{align-items:flex-start}.ssco-acciones,.ssco-acciones form{width:100%}.ssco-acciones .reference-field{width:100%}.consultas-oficiales summary{font-size:11px;padding:7px 5px}.consultas-oficiales nav{position:fixed;left:14px;right:14px;top:70px;width:auto;max-height:calc(100dvh - 100px);overflow-y:auto}.topbar-right{gap:5px}}

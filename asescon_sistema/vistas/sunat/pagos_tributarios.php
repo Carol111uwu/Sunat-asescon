@@ -1,0 +1,26 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../../configuracion/inicializacion.php';
+require_once __DIR__.'/../../modelos/sunat/DeclaracionSunat.php';
+require_once __DIR__.'/../../servicios/clientes/BusquedaClientes.php';
+require_once __DIR__.'/../../servicios/sunat/PeriodosSire.php';
+asesconExigirPermiso($conexion,'DECLARACIONES','ver');
+$moduloActivo='DECLARACIONES';
+$periodo=(string)($_GET['periodo']??date('Ym'));
+if(isset($_GET['anio'])||isset($_GET['mes'])){
+    $periodo=(string)($_GET['anio']??date('Y')).(string)($_GET['mes']??date('m'));
+}
+if(!PeriodosSire::permitido($periodo))$periodo=PeriodosSire::ahoraPeru()->format('Ym');
+$mesUi=substr($periodo,4,2);
+$anioUi=substr($periodo,0,4);
+$mesesUi=['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril','05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto','09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'];
+$aniosUi=PeriodosSire::anios($conexion,0);
+$q=(string)($_GET['q']??'');
+$filas=(new DeclaracionSunat($conexion))->listar(asesconFiltroClientesSql($conexion,'c'),$periodo);
+$filas=array_values(array_filter($filas,fn($d)=>BusquedaClientes::coincide($d,$q)));
+$esc=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+?>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Control interno de pagos tributarios - ASESCON</title><link rel="stylesheet" href="../../publico/css/base/estructura_panel.css"><link rel="stylesheet" href="../../publico/css/modulos/sunat.css"></head><body><div class="app"><?php require __DIR__.'/../componentes/menu_lateral.php';?><main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?><section class="content"><?php $avisoModulo = ['etiqueta'=> 'Seguimiento interno de pagos', 'descripcion'=> 'El registro o conciliación de un pago en ASESCON no realiza una operación bancaria ni confirma deuda o pago ante SUNAT.']; require __DIR__ . '/../componentes/estado_integracion.php'; ?><div class="page-header"><div><h1>Control interno de pagos tributarios</h1><p>Declaraciones, pagos registrados, saldos y constancias por cliente.</p></div><a class="reference-btn" href="control_declaraciones.php?periodo=<?=$esc($periodo)?>">Control de declaraciones</a></div>
+<?php foreach(['mensaje_pago'=>'ok','error_pago'=>'bad'] as $k=>$clase):if(isset($_SESSION[$k])):?><p class="notice <?=$clase?>"><?=$esc($_SESSION[$k])?></p><?php unset($_SESSION[$k]);endif;endforeach;?>
+<section class="reference-panel"><form method="get" class="reference-filter-grid three"><label class="reference-field"><span>Cliente o RUC</span><input type="search" name="q" value="<?=$esc($q)?>" data-autocompletar-cliente placeholder="Todos los clientes"></label><label class="reference-field"><span>Mes</span><select name="mes"><option value="00" <?=$mesUi==='00'?'selected':''?>>Todos los meses / Anual</option><?php foreach($mesesUi as $clave=>$nombre):?><option value="<?=$clave?>" <?=$mesUi===$clave?'selected':''?>><?=$esc($nombre)?></option><?php endforeach;?></select><small class="field-hint">Anual consulta los períodos registrados del año elegido.</small></label><label class="reference-field"><span>Año</span><select name="anio"><?php foreach($aniosUi as $anioOpcion):?><option value="<?=$anioOpcion?>" <?=(string)$anioOpcion===$anioUi?'selected':''?>><?=$anioOpcion?></option><?php endforeach;?></select></label><div class="reference-actions" style="grid-column:1/-1"><button class="reference-btn primary">Consultar</button></div></form><p>Para pagar o presentar una declaración abre SUNAT con el cliente de la fila. Después puedes registrar el resultado y adjuntar la constancia. Aquí no se solicitan datos de tarjetas ni cuentas bancarias.</p></section>
+<?php require __DIR__.'/componentes/nota_no_domiciliados.php';?><section class="panel module-panel"><div class="table-container"><table><thead><tr><th>Cliente</th><th>Período</th><th>Formulario</th><th>Declaración</th><th>Declarado</th><th>Pagado registrado</th><th>Saldo</th><th>Acciones</th></tr></thead><tbody><?php foreach($filas as $d):?><tr><td><?=$esc($d['razon_social'])?><small><?=$esc($d['ruc'])?></small></td><td><?=$esc($d['periodo'])?></td><td><?=$esc($d['formulario'])?></td><td><?=$esc($d['estado_presentacion'])?></td><td>S/ <?=number_format((float)$d['monto_declarado'],2)?></td><td>S/ <?=number_format((float)$d['monto_pagado'],2)?></td><td>S/ <?=number_format(max(0,(float)$d['monto_declarado']-(float)$d['monto_pagado']),2)?></td><td><?php require __DIR__.'/componentes/acciones_declaracion.php';?></td></tr><?php endforeach;?><?php if(!$filas):?><tr><td colspan="8">No hay declaraciones registradas para estos filtros. Genera o revisa el control del período.</td></tr><?php endif;?></tbody></table></div></section><?php require __DIR__.'/componentes/detalle_pagos.php';?><footer>© <?= (int)(new DateTimeImmutable("now", new DateTimeZone("America/Lima")))->format("Y") ?> ASESCON</footer></section></main></div><script src="../../publico/js/navegacion/menu_lateral.js"></script><script src="../../publico/js/navegacion/menu_movil.js"></script><script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?= (int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js') ?>"></script></body></html>

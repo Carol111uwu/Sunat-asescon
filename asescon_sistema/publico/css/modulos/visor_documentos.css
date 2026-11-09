@@ -1,0 +1,88 @@
+.visor-documento{width:min(1020px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:22px;border:1px solid #d9e1ea;border-radius:14px;color:#17304c;box-sizing:border-box;overflow-y:auto}
+.visor-documento::backdrop{background:#071a35aa}
+.visor-documento-cabecera{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #e1e6ef;padding-bottom:14px}
+.visor-documento-cabecera h2{margin:5px 0;font-size:23px;overflow-wrap:anywhere}
+.visor-documento-cabecera button{flex:0 0 38px;height:38px;border:1px solid #d9e1ea;border-radius:8px;font-size:24px;background:#f5f7fa;cursor:pointer}
+.visor-documento-datos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.visor-documento-datos div{padding:12px;background:#f4f7fb;border-radius:8px;overflow-wrap:anywhere}
+.visor-documento-datos dt{font-size:12px;color:#60738a}.visor-documento-datos dd{margin:5px 0 0;font-weight:600}
+.visor-documento section{margin:18px 0}.visor-documento p{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.visor-documento-acciones{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+.visor-documento-pdf{width:100%;height:60vh;min-height:280px;border:1px solid #d9e1ea;border-radius:8px}
+.visor-documento-texto pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;background:#f4f7fb;padding:12px;font:inherit}
+.visor-documento-edicion{padding:14px;background:#f4f7fb;border-radius:9px}.visor-documento form{display:grid;gap:10px;min-width:0}
+.visor-documento input,.visor-documento textarea{box-sizing:border-box;max-width:100%;width:100%}
+.visor-documento [hidden]{display:none!important}
+.buzon-sol-row-actions{display:flex;gap:7px;flex-wrap:wrap}.buzon-sol-row-actions .mini-btn.primary{background:#0b2341;color:white}
+@media(max-width:600px){.visor-documento{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:13px}.visor-documento-cabecera h2{font-size:19px}.visor-documento-datos{grid-template-columns:minmax(0,1fr)}.visor-documento-acciones{display:grid;grid-template-columns:minmax(0,1fr)}.visor-documento-pdf{height:55vh}.visor-documento .reference-btn{white-space:normal;text-align:center}}
+
+.visor-documento input[type=checkbox]{width:auto}.visor-documento input[type=file]{min-width:0}.visor-documento select{max-width:100%;width:100%;box-sizing:border-box}
+
+.visor-documento details.visor-documento-edicion,.visor-documento details.visor-documento-compartir{padding:12px 14px;border:1px solid #dce6f0;border-radius:9px;background:#f8fafc}
+.visor-documento details > summary{cursor:pointer;font-weight:700;color:#0b294d}
+.visor-documento details[open] > summary{margin-bottom:12px}
+.visor-documento-cabecera h2{font-size:clamp(17px,2.3vw,22px);line-height:1.35}
+
+                                                                            
+.buzon-caso{margin:22px 0!important;padding:18px;border:1px solid #dce5f1;border-radius:12px;background:#fff}
+.buzon-caso h3{margin:0 0 8px}.buzon-caso h4{margin:18px 0 9px;color:#12345b}
+.buzon-caso-aclaracion{color:#6b7280;margin:4px 0 12px}
+.buzon-caso-estado{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:10px 12px;background:#eff5fc;border-radius:8px}
+.buzon-caso-estado span{font-size:13px}
+.buzon-caso-asignar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.buzon-caso-asignar select{flex:1 1 250px;width:auto}
+.buzon-caso-historial{display:grid;gap:10px;max-height:320px;overflow-y:auto;margin-bottom:12px}
+.buzon-caso-entrada{padding:12px;background:#f5f8fc;border:1px solid #e2eaf3;border-radius:9px}
+.buzon-caso-entrada b{display:block;font-size:13px;color:#102d50}
+.buzon-caso-entrada time{display:block;font-size:12px;color:#66768c;margin:2px 0 8px}
+.buzon-caso-entrada p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.buzon-caso-mensaje:not(:empty){padding:10px 12px;background:#eaf3fe;border-radius:8px;margin:8px 0}
+.buzon-caso-cierre{margin-top:18px;padding-top:14px;border-top:1px solid #e1e8f1}
+.buzon-caso textarea{min-height:140px;max-height:50vh;resize:vertical}
+.visor-seccion-pdf,.visor-documento-edicion,.visor-documento-compartir{margin:16px 0!important}
+@media(max-width:600px){.buzon-caso{padding:12px}.buzon-caso-asignar{display:grid;grid-template-columns:1fr}.buzon-caso-asignar select{width:100%}}
+
+                                                                                   
+.buzon-sol-aviso-fila{display:block;margin-top:8px;padding:9px 11px;border-radius:9px;background:#edf4ff;color:#143b67;border:1px solid #d1e0f1;font-size:12px;line-height:1.4;max-width:380px;white-space:normal}
+.buzon-sol-aviso-fila[hidden],.buzon-sol-avisos-globales[hidden],.buzon-sol-avisos-flotantes[hidden]{display:none!important}
+.buzon-sol-aviso-fila[data-tipo=progreso]{background:#eff6ff;border-color:#c1d5f4}
+.buzon-sol-aviso-fila[data-tipo=error]{background:#fff2f2;border-color:#f3c1c1;color:#882424}
+.buzon-sol-aviso-fila[data-tipo=exito]{background:#eff9f2;border-color:#bfe1ca;color:#185c32}
+.buzon-sol-avisos-globales{padding:13px 16px;background:#edf4ff;border:1px solid #c6d9ee;border-radius:12px;margin:12px 0;color:#163b67;font-weight:600}
+.buzon-sol-avisos-globales[data-tipo=error]{background:#fff1f1;border-color:#efb5b5;color:#8a2626}
+.buzon-sol-avisos-globales[data-tipo=exito]{background:#ebf8ef;border-color:#b8e2c6;color:#205f36}
+.buzon-sol-avisos-flotantes{position:fixed;bottom:24px;right:24px;z-index:2147483000;width:min(460px,calc(100vw - 32px));display:flex;align-items:flex-start;gap:12px;box-sizing:border-box;padding:14px 14px 14px 16px;border:1px solid #c4d6eb;background:#f1f7ff;color:#123b67;border-radius:13px;box-shadow:0 14px 38px #0a244538;font:600 14px/1.5 system-ui,Arial,sans-serif;max-height:40vh;overflow:auto}
+.buzon-sol-avisos-flotantes[data-tipo=error]{background:#fff0f0;color:#802323;border-color:#ebaaaa}
+.buzon-sol-avisos-flotantes[data-tipo=exito]{background:#eaf8ed;color:#195d33;border-color:#a8daba}
+.buzon-sol-avisos-flotantes [data-avisos-texto]{flex:1;overflow-wrap:anywhere}
+.buzon-sol-avisos-flotantes [data-avisos-cerrar]{border:0;background:transparent;font-size:22px;color:inherit;cursor:pointer;line-height:1}
+.buzon-sol-avisos-animacion{flex:0 0 11px;height:11px;margin-top:6px;border-radius:50%;background:currentColor;opacity:.8}
+.buzon-sol-avisos-flotantes[data-tipo=progreso] .buzon-sol-avisos-animacion{animation:buzon-respirar 1.2s ease-in-out infinite alternate}
+@keyframes buzon-respirar{from{opacity:.25;transform:scale(.8)}to{opacity:1;transform:scale(1.2)}}
+.visor-documento-cabecera{position:sticky;top:-22px;background:white;z-index:3;padding-top:8px}
+.visor-documento-seccion-cabecera{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.visor-documento-seccion-cabecera h3{margin:0}
+.visor-documento-indicador{font-size:11px;color:#58708c;background:#edf3fb;border-radius:14px;padding:5px 10px}
+.visor-documento-aviso{padding:12px 14px;background:#f0f6ff;border:1px solid #cbdcf0;color:#224c78;border-radius:10px;font-weight:600;overflow-wrap:anywhere}
+.visor-documento-aviso[data-tipo=error]{background:#fff1f1;border-color:#efbbbb;color:#872b2b}
+.visor-documento-aviso[data-tipo=progreso]{background:#ecf5ff;border-color:#bdd5ed}
+.visor-documento .visor-seccion-pdf{padding:16px;border:1px solid #dce5ee;border-radius:12px;background:#fcfdff}
+.visor-documento .reference-btn[disabled],.buzon-sol-accion-icono[disabled]{opacity:.55;cursor:progress}
+.visor-documento-aclaracion{font-size:12px;color:#596c82}
+.visor-sol-contenido-oficial{box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere;max-height:380px;overflow:auto;padding:16px;border:1px solid #dce5ee;border-radius:9px;background:#fff;color:#25374a;font:400 13px/1.65 system-ui,Arial,sans-serif}
+#visorSolDocumentos{padding:12px 16px;margin:12px 0;border:1px solid #dce5ee;border-radius:9px;background:#fff}
+#visorSolDocumentos h4{margin:0 0 8px;color:#14365c}
+#visorSolDocumentos ul{margin:8px 0;padding-left:22px;overflow-wrap:anywhere}
+#visorSolDocumentos p{font-size:12px;color:#63758b;margin:8px 0 0}
+@media(max-width:600px){.buzon-sol-avisos-flotantes{right:10px;left:10px;bottom:12px;width:auto;font-size:13px}.visor-documento-cabecera{top:-13px}.visor-documento .visor-seccion-pdf{padding:12px}}
+@media(prefers-reduced-motion:reduce){.buzon-sol-avisos-flotantes[data-tipo=progreso] .buzon-sol-avisos-animacion{animation:none}}
+
+.buzon-sol-enlace-listo{display:inline-block;margin:7px 0 0;padding:7px 10px;background:#12345b;color:#fff!important;border-radius:7px;text-decoration:none;font-weight:700;white-space:normal}
+.buzon-sol-enlace-listo:hover{background:#23507b;text-decoration:underline}
+
+.buzon-sol-sync-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.buzon-sol-estado-consulta{padding:8px 10px;border-radius:8px;background:#eef5ff;color:#13416d;font-size:12px;max-width:400px;overflow-wrap:anywhere}
+.buzon-sol-estado-consulta[hidden]{display:none!important}
+.buzon-sol-estado-consulta[data-tipo=error]{background:#fff0f0;color:#8a2626}
+.buzon-sol-estado-consulta[data-tipo=exito]{background:#eaf8ee;color:#1a6139}
+@media(max-width:600px){.buzon-sol-sync-form{width:100%}.buzon-sol-estado-consulta{flex-basis:100%}}

@@ -1,0 +1,108 @@
+                                                                                  
+.buzon-renovado .page-header{align-items:center;gap:16px}
+.buzon-renovado .page-header h1{letter-spacing:-.035em}
+.buzon-renovado .reference-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.buzon-renovado .reference-panel{border-radius:15px}
+.buzon-renovado .buzon-comando{margin:14px 0 18px;padding:24px 25px;border:1px solid #d8e2ed;background:linear-gradient(120deg,#fff 60%,#f4f8fd 100%)}
+.buzon-renovado .buzon-kicker{display:block;font-size:11px;letter-spacing:.1em;font-weight:800;color:#476a98;margin-bottom:6px}
+.buzon-renovado .buzon-comando-intro h2{margin:0 0 5px;font-size:21px;letter-spacing:-.025em;color:#112c4d}
+.buzon-renovado .buzon-comando-intro p{max-width:750px;line-height:1.55;margin:0 0 17px;color:#53677f;font-size:13px}
+.buzon-renovado .buzon-comando-form{display:grid;grid-template-columns:minmax(260px,490px) auto;gap:12px;align-items:end}
+.buzon-renovado .buzon-comando-form .reference-field{margin:0;min-width:0;font-size:12px;font-weight:700;color:#283f60}
+.buzon-renovado .buzon-comando-form select{width:100%;min-height:42px}
+.buzon-renovado .buzon-comando-form .buzon-boton-consultar{min-height:42px;white-space:nowrap;padding:0 20px;border-radius:9px}
+.buzon-renovado .buzon-comando-form .buzon-boton-consultar:disabled{opacity:.64;cursor:not-allowed}
+.buzon-renovado .buzon-consulta-aviso{grid-column:1/-1;display:block;padding:10px 13px;border-radius:8px;background:#f0f6fc;color:#224c79;font-size:12px;line-height:1.45}
+.buzon-renovado .buzon-consulta-aviso[hidden]{display:none}
+.buzon-renovado .buzon-consulta-aviso[data-tipo=error]{background:#fff0f0;color:#a23535}
+.buzon-renovado .buzon-consulta-aviso[data-tipo=exito]{background:#eaf8f1;color:#176545}
+.buzon-renovado .buzon-estado-servicio{display:flex;align-items:flex-start;gap:8px;margin-top:15px;font-size:12px;color:#50647c;line-height:1.5}
+.buzon-renovado .buzon-punto{flex:none;width:8px;height:8px;margin-top:5px;border-radius:50%;background:#25a372;box-shadow:0 0 0 3px #e2f5ec}
+.buzon-renovado [data-cron-reciente="0"] .buzon-punto{background:#da8437;box-shadow:0 0 0 3px #fcf0dc}
+.buzon-renovado .buzon-estados-empresas{margin-top:14px;padding-top:12px;border-top:1px solid #e5ecf3}
+.buzon-renovado .buzon-estados-empresas summary{cursor:pointer;font-size:12px;font-weight:750;color:#244b77;display:flex;align-items:center;gap:8px;list-style:none}
+.buzon-renovado .buzon-estados-empresas summary::-webkit-details-marker{display:none}
+.buzon-renovado .buzon-expandir-mas{display:inline-grid;place-items:center;width:29px;height:29px;flex:none;border:1px solid #bfd2e6;border-radius:8px;background:#f4f8fe;color:#173e67;font-size:19px;font-weight:650}
+.buzon-renovado .buzon-expandir-mas::before{content:'+'}
+.buzon-renovado details[open] > summary .buzon-expandir-mas::before{content:'−'}
+.buzon-renovado .buzon-proceso-detalle{margin:0 0 16px;border:1px solid #ccdced;border-radius:13px;background:#fff;overflow:hidden}
+.buzon-renovado .buzon-proceso-detalle > summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;background:#f7faff}
+.buzon-renovado .buzon-proceso-detalle > summary::-webkit-details-marker{display:none}
+.buzon-renovado .buzon-proceso-titulo{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;color:#173b66;font-size:14px}
+.buzon-renovado .buzon-proceso-titulo small{font-weight:450;color:#5e7084;font-size:12px}
+.buzon-renovado .buzon-proceso-ver{font-size:12px;font-weight:750;color:#2a5482;white-space:nowrap}
+.buzon-renovado .buzon-proceso-detalle[data-buzon-estado="ERROR"]{border-color:#eec9c9}
+.buzon-renovado .buzon-proceso-detalle[data-buzon-estado="ERROR"] > summary{background:#fff5f5}
+.buzon-renovado .buzon-proceso-detalle[data-buzon-estado="COMPLETADO"] > summary{background:#f1fbf6}
+.buzon-renovado .buzon-proceso-contenido{padding:14px 17px 17px}
+.buzon-renovado .buzon-proceso-contenido > p{font-size:13px;margin:0 0 13px;color:#324d6e;line-height:1.55}
+.buzon-renovado .buzon-proceso-contenido dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 25px;margin:0 0 14px}
+.buzon-renovado .buzon-proceso-contenido dl > div{min-width:0}
+.buzon-renovado .buzon-proceso-contenido dt{font-size:11px;font-weight:800;color:#65788e;margin-bottom:3px}
+.buzon-renovado .buzon-proceso-contenido dd{font-size:12px;color:#203d62;margin:0;overflow-wrap:anywhere}
+.buzon-renovado .buzon-proceso-ayuda{display:block;font-size:11px;line-height:1.5;color:#6c7f94;margin-top:12px}
+.buzon-renovado .buzon-estados-empresas table{width:100%;margin-top:10px}
+.buzon-renovado .buzon-estados-empresas small{display:block;font-size:11px;color:#63758b;margin-top:4px;max-width:350px}
+.buzon-renovado .reference-metrics{margin-bottom:15px}
+.buzon-renovado .reference-metric{min-height:102px}
+.buzon-renovado .buzon-filtros{margin-bottom:16px}
+.buzon-renovado .buzon-filtros .reference-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end}
+.buzon-renovado .buzon-filtros .reference-actions{display:flex;align-items:center;gap:7px;grid-column:1/-1}
+.buzon-renovado .buzon-filtros .reference-chip-row{display:flex;flex-wrap:wrap;gap:7px}
+.buzon-renovado .buzon-filtros .reference-chip{font-size:11px}
+.buzon-renovado .buzon-tabla-panel{overflow:visible}
+.buzon-renovado .buzon-tabla-panel .table-container{width:100%;max-width:100%;overflow-x:auto}
+.buzon-renovado table.buzon-tabla-simple{width:100%;min-width:1320px;table-layout:auto}
+.buzon-renovado #tablaSunafil td:nth-child(1){min-width:100px}
+.buzon-renovado #tablaSunafil td:nth-child(2){min-width:110px}
+.buzon-renovado #tablaSunafil td:nth-child(3){min-width:120px}
+.buzon-renovado #tablaSunafil td:nth-child(4){min-width:190px}
+.buzon-renovado #tablaSunafil td:nth-child(5){min-width:270px}
+.buzon-renovado #tablaSunafil td:nth-child(6){min-width:140px}
+.buzon-renovado #tablaSunafil td:nth-child(7){min-width:105px}
+.buzon-renovado #tablaSunafil td:nth-child(8){min-width:100px}
+.buzon-renovado #tablaSunafil td:nth-child(9){min-width:195px}
+.buzon-renovado .buzon-asunto{display:block;font-size:13px;line-height:1.5;color:#193754;font-weight:700;overflow-wrap:anywhere}
+.buzon-renovado .buzon-metadato{display:block;margin-top:7px;font-size:11px;color:#687b91;line-height:1.4;font-weight:400}
+.buzon-renovado .buzon-sol-cliente-ruc{display:block;margin-top:5px;font-size:11px;color:#63758b}
+.buzon-renovado .buzon-sol-row-actions,.buzon-renovado .buzon-acciones-sunafil{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.buzon-renovado .buzon-acciones-sunafil form{margin:0}
+.buzon-renovado .buzon-acciones-sunafil .reference-btn{white-space:normal;line-height:1.35}
+.buzon-renovado .buzon-accion-principal,.buzon-renovado .buzon-accion-pdf{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;font-size:12px;font-weight:750;min-height:36px;border-radius:8px;white-space:nowrap}
+.buzon-renovado .buzon-accion-principal{background:#f1f6fd;border-color:#c6d6e9;color:#163f6d}
+.buzon-renovado .buzon-accion-principal:hover{background:#e4f0ff}
+.buzon-renovado .buzon-accion-principal svg,.buzon-renovado .buzon-accion-pdf svg{width:15px;height:15px}
+.buzon-renovado .buzon-mas-acciones{min-width:0}
+.buzon-renovado .buzon-mas-acciones summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;border:1px solid #cdd9e7;border-radius:8px;padding:8px 10px;min-height:36px;white-space:nowrap;font-size:12px;font-weight:700;background:white;color:#294564}
+.buzon-renovado .buzon-mas-acciones summary::-webkit-details-marker{display:none}
+.buzon-renovado .buzon-mas-acciones summary::after{content:'⌄';margin-left:6px}
+.buzon-renovado .buzon-mas-acciones[open]{width:100%}
+.buzon-renovado .buzon-mas-menu{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding:8px;border:1px solid #dae4ef;border-radius:10px;background:#f7f9fd}
+.buzon-renovado .buzon-mas-menu button{display:inline-flex;gap:6px;align-items:center;border:1px solid #d9e3ee;border-radius:7px;padding:7px 9px;background:#fff;color:#2c4562;font-size:11px;cursor:pointer}
+.buzon-renovado .buzon-mas-menu button:hover{background:#e8f0f9}
+.buzon-renovado .buzon-mas-menu button svg{width:15px;height:15px}
+.buzon-renovado #tablaBuzonSol{min-width:1380px;table-layout:auto}
+.buzon-renovado #tablaBuzonSol td{vertical-align:top}
+.buzon-renovado .buzon-sol-paginacion{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:16px}
+@media(max-width:1000px){
+  .buzon-renovado .buzon-filtros .reference-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .buzon-renovado table.buzon-tabla-simple{min-width:1320px}
+}
+@media(max-width:640px){
+  .buzon-renovado .page-header{align-items:stretch;flex-direction:column}
+  .buzon-renovado .reference-head-actions{width:100%}
+  .buzon-renovado .buzon-comando{padding:18px 15px}
+  .buzon-renovado .buzon-comando-form{grid-template-columns:1fr}
+  .buzon-renovado .buzon-proceso-contenido dl{grid-template-columns:1fr}
+  .buzon-renovado .buzon-comando-form .buzon-boton-consultar{width:100%}
+  .buzon-renovado .buzon-filtros .reference-filter-grid{grid-template-columns:1fr}
+  .buzon-renovado .buzon-filtros .reference-actions{flex-wrap:wrap}
+  .buzon-renovado .buzon-sol-row-actions,.buzon-renovado .buzon-acciones-sunafil{gap:7px}
+  .buzon-renovado table.buzon-tabla-simple{min-width:0;display:block}
+  .buzon-renovado table.buzon-tabla-simple thead{display:none}
+  .buzon-renovado table.buzon-tabla-simple tbody{display:block}
+  .buzon-renovado table.buzon-tabla-simple tbody tr{display:block;border:1px solid #e0e8f1;border-radius:10px;padding:12px;margin-bottom:12px}
+  .buzon-renovado table.buzon-tabla-simple tbody td{display:block;padding:7px 0;border:0}
+  .buzon-renovado table.buzon-tabla-simple tbody td::before{content:attr(data-label);display:block;margin-bottom:3px;color:#708298;font-size:10px;font-weight:800;text-transform:uppercase}
+  .buzon-renovado table.buzon-tabla-simple tbody td[colspan]::before{content:none}
+}

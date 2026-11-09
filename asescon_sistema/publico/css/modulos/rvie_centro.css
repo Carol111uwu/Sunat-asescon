@@ -1,0 +1,50 @@
+                                                                                       
+.rvie-query [hidden],
+.rvie-inventario[hidden],
+.rvie-proceso[hidden],
+.rvie-proceso [hidden],
+#rvieResultados [hidden] { display: none !important; }
+.rvie-query-header,
+.rvie-proceso-encabezado { display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+.rvie-query-header h2 { margin-top:0; }
+.rvie-top-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
+.rvie-filtros { align-items:start; }
+.rvie-consulta-actions { display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;margin-top:15px; }
+.rvie-dos-botones { display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
+.rvie-dos-botones .reference-btn { min-width:132px; }
+.rvie-consulta-actions .reference-btn.primary { min-width:144px; }
+#rvieEstadoGuardado { scroll-margin-top:22px; }
+.rvie-inventario { margin-top:16px;padding:16px;border:1px solid #d8e2ed;border-radius:12px;background:#f8fbff; }
+.rvie-inventario h3 { margin:0 0 8px;font-size:16px; }
+.rvie-inventario table { width:100%; }
+.rvie-inventario td, .rvie-inventario th { padding:10px 12px;vertical-align:top; }
+.rvie-inventario td:nth-child(2) { font-variant-numeric:tabular-nums;white-space:nowrap; }
+.rvie-proceso { margin-top:14px; }
+.rvie-proceso progress { width:100%;height:17px;accent-color:#1d5bb3;margin:14px 0 8px; }
+.rvie-proceso-contadores { font-size:13px;color:#30445d; }
+.rvie-proceso-lista { max-height:230px;overflow:auto;padding-left:24px;margin:12px 0 0; }
+.rvie-proceso-lista li { padding:8px 0;border-bottom:1px solid #e7edf5;overflow-wrap:anywhere;font-size:13px; }
+.rvie-proceso-lista .rvie-ok { color:#11643b; }
+.rvie-proceso-lista .rvie-error { color:#a52a36; }
+.rvie-proceso-lista .rvie-pendiente { color:#9a6500; }
+.rvie-paginacion { display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:14px; }
+.rvie-paginacion [aria-disabled="true"] { opacity:.45;pointer-events:none; }
+.rvie-query .reference-subtle { margin:5px 0; }
+.rvie-reparacion { margin-top:16px;padding-top:12px;border-top:1px solid #e3eaf3;display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.rvie-filtro-periodo .reference-switch { position:relative;flex:none; }
+.rvie-filtro-periodo .reference-switch input { display:block;position:absolute;opacity:0;width:1px;height:1px; }
+.rvie-filtro-periodo .reference-switch input:focus-visible + .track { outline:3px solid #77a6df;outline-offset:3px; }
+.rvie-metricas .reference-metric strong { overflow-wrap:anywhere;font-variant-numeric:tabular-nums; }
+@media (max-width:1200px) { .rvie-metricas { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:720px) {
+  .rvie-query-header,.rvie-proceso-encabezado { flex-direction:column; }
+  .rvie-top-actions { width:100%; }
+  .rvie-consulta-actions { justify-content:flex-start; }
+  .rvie-dos-botones { width:100%; }
+  .rvie-dos-botones .reference-btn { flex:1 1 145px; }
+}
+@media (max-width:600px) { .rvie-metricas { grid-template-columns:1fr; } }
+.sire-pendientes-anuales:not([hidden]) { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:9px 12px;border:1px solid #f0d5a1;border-radius:9px;background:#fffaf0;color:#60430a;font-size:12px;line-height:1.45; }
+.sire-boton-recuperar { padding:6px 11px!important;font-size:11px!important;white-space:normal; }
+.sire-boton-pausa { padding:7px 12px!important;font-size:12px!important;white-space:normal; }
+.sire-pendientes-anuales[hidden],.sire-boton-pausa[hidden] { display:none!important; }

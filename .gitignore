@@ -1,0 +1,32 @@
+# Credenciales y configuración local
+.env
+.env.*
+!.env.example
+asescon_secure/
+asescon_sistema/configuracion/*.servidor.php
+asescon_sistema/.user.ini
+
+# Datos privados, documentos y estado de procesos
+asescon_datos_privados/
+**/*.log
+**/*.lock
+!asescon_sistema/composer.lock
+
+# Dependencias generadas y cachés
+asescon_sistema/vendor/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+node_modules/
+
+# IDE y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Respaldos locales de base de datos
+/backups/
+/respaldo*.sql
+/respaldo*.sql.gz
+

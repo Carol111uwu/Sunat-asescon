@@ -1,0 +1,18 @@
+                                                                               
+:root { --fuente-ui: "Segoe UI", Arial, Helvetica, sans-serif; }
+html, body, .app, .main-content, .content, .sidebar, .topbar,
+.reference-panel, .reference-metric, .summary-card, .module-panel,
+.sync-panel, .sync-empresa, .sync-modulo, .perfil-tarjeta,
+.perfil-password, .perfil-resumen, .ventana-sol {
+  font-family: var(--fuente-ui) !important;
+}
+
+                                                                             
+                                                                          
+body :is(input, select, textarea, button, option, optgroup, table, code, pre),
+body :is(h1, h2, h3, h4, h5, h6, p, small, label, summary, th, td, caption, dt, dd, strong, span, a),
+.buzon-sol-avisos-flotantes, .visor-sol-contenido-oficial {
+  font-family: var(--fuente-ui) !important;
+}
+                                                             
+.logo-text strong { font-family: var(--fuente-ui) !important; letter-spacing:.02em; }

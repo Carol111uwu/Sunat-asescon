@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.vscode
+asescon_datos_privados
+asescon_secure
+asescon_sistema/vendor
+asescon_sistema/.user.ini
+asescon_sistema/php.ini
+**/*.log
+**/*.lock
+!asescon_sistema/composer.lock
+**/__pycache__
+**/*.pyc
+

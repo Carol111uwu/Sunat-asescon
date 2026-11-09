@@ -1,0 +1,1 @@
+const y=document.getElementById('plameAnio'),m=document.getElementById('plameMes'),p=document.getElementById('plamePeriodo');function sync(){p.value=y.value+m.value;}y?.addEventListener('change',sync);m?.addEventListener('change',sync);

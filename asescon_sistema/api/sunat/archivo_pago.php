@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);require_once __DIR__.'/../../configuracion/inicializacion.php';require_once __DIR__.'/../../servicios/archivos/ServicioArchivosPrivados.php';asesconExigirPermiso($conexion,'DECLARACIONES','ver');
+require_once __DIR__.'/../../modelos/sunat/PagoTributario.php';if(!(new PagoTributario($conexion))->disponible()){http_response_code(404);exit('Constancia no disponible.');}
+$id=(int)($_GET['id']??0);$filtro=asesconFiltroClientesSql($conexion,'c');$s=$conexion->prepare("SELECT p.archivo_constancia FROM pagos_tributarios p INNER JOIN clientes c ON c.id_cliente=p.id_cliente WHERE p.id_pago=? AND ({$filtro})");$s->bind_param('i',$id);$s->execute();$d=$s->get_result()->fetch_assoc();$s->close();$serv=new ServicioArchivosPrivados();$ruta=$serv->resolver((string)($d['archivo_constancia']??''),'PAGOS');if(!$ruta){http_response_code(404);exit('Constancia no disponible.');}$serv->servir($ruta,!empty($_GET['descargar']),'pago_'.$id.'.pdf');

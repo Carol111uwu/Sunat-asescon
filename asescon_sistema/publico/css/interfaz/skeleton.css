@@ -1,0 +1,16 @@
+                                                                                   
+.asescon-skeleton-list{display:grid;gap:11px;padding:12px;min-width:0}
+.asescon-skeleton-item{display:flex;align-items:center;gap:12px;min-width:0}
+.asescon-skeleton-lines{display:grid;flex:1;gap:9px;min-width:0}
+.asescon-skeleton{display:block;border-radius:9px;min-height:12px;background:linear-gradient(100deg,#e1e8f1 8%,#f2f6fc 24%,#e1e8f1 42%);background-size:230% 100%;animation:asescon-carga 1.5s ease-in-out infinite}
+.asescon-skeleton.avatar{width:38px;height:38px;flex:0 0 38px;border-radius:50%}
+.asescon-skeleton.wide{width:78%;height:13px}
+.asescon-skeleton.medium{width:52%;height:11px}
+.asescon-skeleton.short{width:31%;height:11px}
+.asescon-skeleton-pdf{padding:18px;border-radius:12px;margin:12px 0;border:1px solid rgba(120,139,168,.18)}
+.asescon-skeleton-pdf .asescon-skeleton.paper{width:100%;height:210px;margin-top:15px;border-radius:8px}
+.asescon-skeleton-list[hidden],.asescon-skeleton-pdf[hidden]{display:none!important}
+#buzonSolMensajeConsulta[data-tipo="progreso"]::after{content:"";display:block;width:min(100%,360px);height:7px;margin-top:10px;border-radius:99px;background:linear-gradient(100deg,#c7d9ee 8%,#e6f0fc 24%,#c7d9ee 42%);background-size:230% 100%;animation:asescon-carga 1.5s ease-in-out infinite}
+@keyframes asescon-carga{0%{background-position:110% 0}100%{background-position:-110% 0}}
+@media (prefers-color-scheme:dark){.asescon-skeleton{background-image:linear-gradient(100deg,#283548 8%,#3b4b60 24%,#283548 42%)}}
+@media (prefers-reduced-motion:reduce){.asescon-skeleton,#buzonSolMensajeConsulta[data-tipo="progreso"]::after{animation:none}}

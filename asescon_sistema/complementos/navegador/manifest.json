@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "ASESCON - Acceso SUNAT por cliente",
+  "version": "1.0.0",
+  "minimum_chrome_version": "112",
+  "description": "Abre una sesión privada de SUNAT con el cliente autorizado de ASESCON.",
+  "incognito": "spanning",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://sistema.asescon.net/*",
+    "https://*.sunat.gob.pe/*"
+  ],
+  "background": {
+    "service_worker": "coordinador.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://sistema.asescon.net/*"
+      ],
+      "js": [
+        "puente_asescon.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.sunat.gob.pe/*"
+      ],
+      "js": [
+        "acceso_sol.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ]
+}

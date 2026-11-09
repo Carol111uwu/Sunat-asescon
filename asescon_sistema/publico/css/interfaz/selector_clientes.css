@@ -1,0 +1,16 @@
+                                                            
+.asescon-select-original{position:absolute!important;width:1px!important;height:1px!important;min-width:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important;clip-path:inset(50%)!important}
+.asescon-cliente-combo{position:relative;width:100%;min-width:0;box-sizing:border-box;font:inherit}
+.asescon-cliente-boton{display:flex;justify-content:space-between;align-items:center;gap:9px;width:100%;min-height:38px;padding:9px 12px;background:#fff;color:#153353;border:1px solid #cbd7e4;border-radius:8px;font:inherit;text-align:left;cursor:pointer;box-sizing:border-box;max-width:100%}
+.asescon-cliente-boton>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asescon-cliente-boton>span:last-child{flex:none;color:#49617b;font-size:17px}
+.asescon-cliente-boton.sin-seleccion{color:#64748b}
+.asescon-cliente-boton:focus-visible,.asescon-cliente-entrada:focus{outline:2px solid #397ac9;outline-offset:2px}
+.asescon-cliente-popup{position:absolute;z-index:250;top:calc(100% + 5px);left:0;width:max(100%,280px);max-width:min(500px,90vw);background:#fff;border:1px solid #cdd8e4;border-radius:10px;box-shadow:0 14px 32px #10264036;padding:8px;box-sizing:border-box}
+.asescon-cliente-popup[hidden]{display:none!important}
+.asescon-cliente-entrada{display:block;width:100%;min-height:38px;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd7e4;border-radius:7px;font:inherit;color:#153353;background:#fff}
+.asescon-cliente-lista{max-height:270px;overflow-y:auto;margin-top:6px;overscroll-behavior:contain}
+.asescon-cliente-lista button{display:block;width:100%;border:0;border-bottom:1px solid #edf1f6;padding:10px 9px;background:#fff;color:#153353;font:inherit;font-size:12px;line-height:1.4;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.asescon-cliente-lista button:hover,.asescon-cliente-lista button.activo,.asescon-cliente-lista button[aria-selected="true"]{background:#edf5fc}
+.asescon-cliente-nota{display:block;padding:7px 3px 2px;font-size:11px;color:#64748b}
+@media(max-width:600px){.asescon-cliente-popup{width:100%;min-width:210px;max-width:90vw}}

@@ -1,0 +1,83 @@
+DirectoryIndex index.php
+Options -Indexes
+<IfModule php8_module>
+   php_flag log_errors On
+</IfModule>
+<IfModule lsapi_module>
+   php_flag log_errors On
+</IfModule>
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(?:asescon_secure|asescon_recursos_privados|asescon_datos_privados|instalacion)(?:/|$) - [F,L,NC]
+RewriteRule ^buzon_sol(?:/|$) - [F,L,NC]
+RewriteRule ^(?:buzon_sol/)*(?:almacenamiento|base_datos|configuracion|modelos|servicios|vendor|python|procesos|pruebas|documentacion)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:models|services)(?:/|$) - [F,L,NC]
+RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L]
+RewriteRule \.(?:sql|log|ini|lock|sh|py|pyc|bak|zip|ejemplo)$ - [F,L,NC]
+RewriteRule ^(?:composer\.(?:json|lock)|LEEME[^/]*)$ - [F,L,NC]
+RewriteRule ^vistas/clientes/recordatorio_whatsapp\.php$ vistas/clientes/comunicacion_informes.php?seccion=recordatorios [R=302,L,QSA,NE]
+RewriteRule ^vistas/clientes/informes_entregables\.php$ vistas/clientes/comunicacion_informes.php?seccion=informes [R=302,L,QSA,NE]
+RewriteRule ^vistas/comunicaciones/envio_entregables\.php$ vistas/clientes/comunicacion_informes.php?seccion=entregables [R=302,L,QSA,NE]
+RewriteRule ^vistas/clientes/planes_servicio\.php$ vistas/clientes/servicios_cobros.php?seccion=planes [R=302,L,QSA,NE]
+RewriteRule ^vistas/clientes/cotizaciones\.php$ vistas/clientes/servicios_cobros.php?seccion=cotizaciones [R=302,L,QSA,NE]
+RewriteRule ^vistas/clientes/honorarios_pendientes\.php$ vistas/clientes/servicios_cobros.php?seccion=honorarios [R=302,L,QSA,NE]
+RewriteRule ^api/sunat/consultar_declaraciones\.php$ api/sunat/declaraciones_pagos/consultar_declaraciones_y_pagos.php [L,QSA]
+RewriteRule ^vistas/sunat/acceso_portal\.php$ vistas/clientes/gestion_clientes.php [R=302,L,NE]
+RewriteRule ^views/sunat/panel_operaciones_sire\.php$ vistas/sunat/panel_sire.php [L,NC]
+RewriteRule ^vistas/sunat/panel_operaciones_sire\.php$ vistas/sunat/panel_sire.php [L,NC]
+RewriteRule ^api/clientes/buscar\.php$ api/clientes/buscar_clientes.php [L,NC]
+RewriteRule ^api/sunat/ficha_ruc\.php$ api/sunat/consulta_ficha_ruc.php [L,NC]
+RewriteRule ^api/sunat/sire\.php$ api/sunat/operaciones_sire.php [L,NC]
+RewriteRule ^controllers/afp/AfpController\.php$ controladores/afp/ControladorAFP.php [L,NC]
+RewriteRule ^controllers/autenticacion/CambiarCuentaController\.php$ controladores/autenticacion/ControladorCambioCuenta.php [L,NC]
+RewriteRule ^controllers/autenticacion/LoginController\.php$ controladores/autenticacion/ControladorInicioSesion.php [L,NC]
+RewriteRule ^controllers/buzones/BuzonSolController\.php$ controladores/buzones/ControladorBuzonSol.php [L,NC]
+RewriteRule ^controllers/buzones/BuzonSunafilController\.php$ controladores/buzones/ControladorBuzonSunafil.php [L,NC]
+RewriteRule ^controllers/clientes/ClienteController\.php$ controladores/clientes/ControladorCliente.php [L,NC]
+RewriteRule ^controllers/clientes/CotizacionesController\.php$ controladores/clientes/ControladorCotizaciones.php [L,NC]
+RewriteRule ^controllers/clientes/HonorariosController\.php$ controladores/clientes/ControladorHonorarios.php [L,NC]
+RewriteRule ^controllers/clientes/InformesController\.php$ controladores/clientes/ControladorInformes.php [L,NC]
+RewriteRule ^controllers/clientes/PlanesController\.php$ controladores/clientes/ControladorPlanes.php [L,NC]
+RewriteRule ^controllers/clientes/WhatsAppController\.php$ controladores/clientes/ControladorWhatsApp.php [L,NC]
+RewriteRule ^controllers/dashboard/ControladorDashboard\.php$ controladores/panel/ControladorPanelPrincipal.php [L,NC]
+RewriteRule ^controllers/equipo/EquipoController\.php$ controladores/equipo/ControladorEquipo.php [L,NC]
+RewriteRule ^controllers/seguridad/PerfilCuentaController\.php$ controladores/seguridad/ControladorPerfilCuenta.php [L,NC]
+RewriteRule ^controllers/seguridad/RecordatorioContrasenaController\.php$ controladores/seguridad/ControladorRecordatorioContrasena.php [L,NC]
+RewriteRule ^controllers/sunat/AlertaSunatController\.php$ controladores/sunat/ControladorAlertaSunat.php [L,NC]
+RewriteRule ^controllers/sunat/ComprobanteNoDomiciliadoController\.php$ controladores/sunat/ControladorComprobanteNoDomiciliado.php [L,NC]
+RewriteRule ^controllers/sunat/ComprobanteSunatController\.php$ controladores/sunat/ControladorComprobanteSunat.php [L,NC]
+RewriteRule ^controllers/sunat/CpeController\.php$ controladores/sunat/ControladorCpe.php [L,NC]
+RewriteRule ^controllers/sunat/DeclaracionController\.php$ controladores/sunat/ControladorDeclaracion.php [L,NC]
+RewriteRule ^controllers/sunat/DetraccionController\.php$ controladores/sunat/ControladorDetraccion.php [L,NC]
+RewriteRule ^controllers/sunat/LiquidacionController\.php$ controladores/sunat/ControladorLiquidacion.php [L,NC]
+RewriteRule ^controllers/sunat/Pdt0621Controller\.php$ controladores/sunat/ControladorPdt0621.php [L,NC]
+RewriteRule ^controllers/sunat/Plame0601Controller\.php$ controladores/sunat/ControladorPlame0601.php [L,NC]
+RewriteRule ^controllers/sunat/ReciboHonorarioController\.php$ controladores/sunat/ControladorReciboHonorario.php [L,NC]
+RewriteRule ^controllers/sunat/TipoCambioController\.php$ controladores/sunat/ControladorTipoCambio.php [L,NC]
+RewriteRule ^controllers/sunat/VencimientoSunatController\.php$ controladores/sunat/ControladorVencimientoSunat.php [L,NC]
+RewriteRule ^controllers/tareas/TareaController\.php$ controladores/tareas/ControladorTarea.php [L,NC]
+RewriteRule ^public/css/base/dashboard\.css$ publico/css/base/estructura_panel.css [L,NC]
+RewriteRule ^public/css/base/responsive\.css$ publico/css/base/diseno_adaptable.css [L,NC]
+RewriteRule ^public/js/sunat/dashboard_sire\.js$ publico/js/sunat/panel_sire.js [L,NC]
+RewriteRule ^views/dashboard\.php$ vistas/panel_principal.php [L,NC]
+RewriteRule ^views/login\.php$ vistas/inicio_sesion.php [L,NC]
+RewriteRule ^views/logout\.php$ vistas/cerrar_sesion.php [L,NC]
+RewriteRule ^views/partials/sidebar\.php$ vistas/componentes/menu_lateral.php [L,NC]
+RewriteRule ^views/partials/topbar\.php$ vistas/componentes/barra_superior.php [L,NC]
+RewriteRule ^views/sunat/dashboard_sire\.php$ vistas/sunat/panel_sire.php [L,NC]
+RewriteRule ^controllers/autenticacion/RestablecerContrasenaController\.php$ controladores/autenticacion/ControladorRestablecimientoContrasena.php [L,NC]
+RewriteRule ^controllers/autenticacion/SolicitarRecuperacionContrasenaController\.php$ controladores/autenticacion/ControladorSolicitudRecuperacionContrasena.php [L,NC]
+RewriteRule ^views/partials/alerta_cambio_contrasena\.php$ vistas/componentes/alerta_cambio_contrasena.php [L,NC]
+RewriteRule ^public/templates/comprobantes_no_domiciliados\.csv$ publico/plantillas/comprobantes_no_domiciliados.csv [L,NC]
+RewriteRule ^views/(.*)$ vistas/$1 [L,NC]
+RewriteRule ^controllers/(.*)$ controladores/$1 [L,NC]
+RewriteRule ^models/(.*)$ modelos/$1 [L,NC]
+RewriteRule ^services/(.*)$ servicios/$1 [L,NC]
+RewriteRule ^public/(.*)$ publico/$1 [L,NC]
+</IfModule>
+
+
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+</IfModule>

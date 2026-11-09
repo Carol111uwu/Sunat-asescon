@@ -1,0 +1,1 @@
+const y=document.getElementById('pdtAnio'),m=document.getElementById('pdtMes'),p=document.getElementById('pdtPeriodo');function sync(){p.value=y.value+m.value;}y?.addEventListener('change',sync);m?.addEventListener('change',sync);
