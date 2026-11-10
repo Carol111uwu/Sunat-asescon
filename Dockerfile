@@ -3,7 +3,7 @@ WORKDIR /app
 COPY asescon_sistema/composer.json asescon_sistema/composer.lock ./
 RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
-FROM php:8.2-apache
+FROM php:8.4-apache
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/asescon_sistema \
     ASESCON_PHP_CLI=/usr/local/bin/php \
