@@ -1,0 +1,9 @@
+# Tareas automáticas de ASESCON (las mismas 3 de cPanel, cada 5 minutos).
+# Los horarios reales los controla cada script (sincronización 2:00-3:00, limpieza 0:40-1:50, Buzón SOL continuo).
+# Formato /etc/cron.d: minuto hora día mes día_semana USUARIO comando
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+*/5 * * * * www-data . /etc/asescon-entorno.sh && /bin/bash /var/www/html/asescon_sistema/procesos/sincronizacion/cron_nocturno.sh >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1
+*/5 * * * * www-data . /etc/asescon-entorno.sh && /bin/bash /var/www/html/asescon_sistema/procesos/buzon_sol/procesar_cola.sh 0 >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1
+*/5 * * * * www-data . /etc/asescon-entorno.sh && /bin/bash /var/www/html/asescon_sistema/procesos/almacenamiento/cron_limpieza.sh >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1

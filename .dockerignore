@@ -15,3 +15,6 @@ asescon_sistema/php.ini
 **/__pycache__
 **/*.pyc
 
+# Configuración privada con contraseñas (correo, SMS, base de datos): nunca dentro de la imagen.
+asescon_sistema/configuracion/*.servidor.php
+asescon_recursos_privados

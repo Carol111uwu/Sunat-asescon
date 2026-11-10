@@ -1,7 +1,25 @@
+# Variables comunes de la web (app) y de las tareas automáticas (tareas).
+x-entorno-asescon: &entorno-asescon
+  ASESCON_DB_HOST: db
+  ASESCON_DB_PORT: 3306
+  ASESCON_DB_NAME: ${ASESCON_DB_NAME:-asescon}
+  ASESCON_DB_USER: ${ASESCON_DB_USER:-asescon}
+  ASESCON_DB_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
+  ASESCON_DB_SUNAT_HOST: db
+  ASESCON_DB_SUNAT_PORT: 3306
+  ASESCON_DB_SUNAT_NAME: ${ASESCON_DB_SUNAT_NAME:-asescon_sunat}
+  ASESCON_DB_SUNAT_USER: ${ASESCON_DB_USER:-asescon}
+  ASESCON_DB_SUNAT_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
+  ASESCON_FORCE_HTTPS: ${ASESCON_FORCE_HTTPS:-0}
+  ASESCON_URL_PUBLICA: ${ASESCON_URL_PUBLICA:-http://localhost:8080}
+  ASESCON_RECURSOS_PRIVADOS: /var/www/html/asescon_recursos_privados
+  TZ: America/Lima
+
 services:
   app:
     build:
       context: .
+    image: asescon-sistema:local
     restart: unless-stopped
     # Solo en esta PC (127.0.0.1). En el VPS se quita: el tráfico entra por el proxy compartido.
     ports:
@@ -11,29 +29,45 @@ services:
       # Red del proxy compartido con FACT-KARD (deploy/docker/proxy del repositorio fact-kard).
       proxy_net:
         aliases: [asescon-app]
-    environment:
-      ASESCON_DB_HOST: db
-      ASESCON_DB_PORT: 3306
-      ASESCON_DB_NAME: ${ASESCON_DB_NAME:-asescon}
-      ASESCON_DB_USER: ${ASESCON_DB_USER:-asescon}
-      ASESCON_DB_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
-      ASESCON_DB_SUNAT_HOST: db
-      ASESCON_DB_SUNAT_PORT: 3306
-      ASESCON_DB_SUNAT_NAME: ${ASESCON_DB_SUNAT_NAME:-asescon_sunat}
-      ASESCON_DB_SUNAT_USER: ${ASESCON_DB_USER:-asescon}
-      ASESCON_DB_SUNAT_PASSWORD: ${ASESCON_DB_PASSWORD:?Define ASESCON_DB_PASSWORD in .env}
-      ASESCON_FORCE_HTTPS: ${ASESCON_FORCE_HTTPS:-0}
-      ASESCON_URL_PUBLICA: ${ASESCON_URL_PUBLICA:-http://localhost:8080}
+    environment: *entorno-asescon
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - asescon_private_data:/var/www/html/asescon_datos_privados
       - asescon_secure_data:/var/www/html/asescon_secure
+      - asescon_recursos_privados:/var/www/html/asescon_recursos_privados:ro
+    mem_limit: 768m
+
+  # Tareas automáticas (antes "Trabajos de Cron" de cPanel): Buzón SOL, sincronización nocturna
+  # (SUNAT, SIRE y SUNAFIL) y limpieza, cada 5 minutos. Misma imagen y mismos datos que la web.
+  tareas:
+    build:
+      context: .
+    image: asescon-sistema:local
+    restart: unless-stopped
+    command: ["asescon-tareas"]
+    environment: *entorno-asescon
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - asescon_private_data:/var/www/html/asescon_datos_privados
+      - asescon_secure_data:/var/www/html/asescon_secure
+      - asescon_recursos_privados:/var/www/html/asescon_recursos_privados
+    # Chromium (Playwright) necesita memoria compartida y RAM.
+    shm_size: 512mb
+    mem_limit: 1536m
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /var/run/crond.pid && kill -0 $$(cat /var/run/crond.pid)"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
 
   db:
     image: mariadb:11.4
     restart: unless-stopped
+    mem_limit: 1g
     environment:
       MARIADB_ROOT_PASSWORD: ${ASESCON_DB_ROOT_PASSWORD:?Define ASESCON_DB_ROOT_PASSWORD in .env}
       MARIADB_DATABASE: ${ASESCON_DB_NAME:-asescon}
@@ -58,4 +92,5 @@ volumes:
   asescon_db_data:
   asescon_private_data:
   asescon_secure_data:
+  asescon_recursos_privados:
 
