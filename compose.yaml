@@ -3,8 +3,14 @@ services:
     build:
       context: .
     restart: unless-stopped
+    # Solo en esta PC (127.0.0.1). En el VPS se quita: el tráfico entra por el proxy compartido.
     ports:
-      - "${ASESCON_HTTP_PORT:-8080}:80"
+      - "127.0.0.1:${ASESCON_HTTP_PORT:-8080}:80"
+    networks:
+      default: {}
+      # Red del proxy compartido con FACT-KARD (deploy/docker/proxy del repositorio fact-kard).
+      proxy_net:
+        aliases: [asescon-app]
     environment:
       ASESCON_DB_HOST: db
       ASESCON_DB_PORT: 3306
@@ -42,6 +48,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+networks:
+  proxy_net:
+    external: true
+    name: proxy_net
 
 volumes:
   asescon_db_data:
