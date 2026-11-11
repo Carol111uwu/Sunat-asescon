@@ -79,5 +79,9 @@ RewriteRule ^public/(.*)$ publico/$1 [L,NC]
 
 
 <IfModule mime_module>
-  AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+  <IfModule !php_module>
+    <IfModule !php8_module>
+      AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+    </IfModule>
+  </IfModule>
 </IfModule>

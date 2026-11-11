@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!submenu) return;
             submenu.classList.toggle("open");
             boton.classList.toggle("closed");
+            boton.setAttribute("aria-expanded", submenu.classList.contains("open") ? "true" : "false");
             const flecha = boton.querySelector(".arrow");
             if (flecha) flecha.textContent = submenu.classList.contains("open") ? "⌃" : "⌄";
         });

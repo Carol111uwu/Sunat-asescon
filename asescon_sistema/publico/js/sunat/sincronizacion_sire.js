@@ -29,6 +29,9 @@
     if (!res.ok || !json.ok) {
       const codigo = json.codigo_sunat ? ' [' + json.codigo_sunat + ']' : '';
       const temporal = [429, 502, 503, 504].includes(res.status) ? ' (HTTP ' + res.status + ')' : '';
+      if (String(json.codigo_sunat || '') === '42209') {
+        throw pendiente('SUNAT ya tiene una exportación SIRE en curso para este período. Si no pudo recuperarse el ticket, espera a que termine el proceso existente antes de volver a solicitarlo.' + codigo);
+      }
       throw new Error((json.mensaje || 'SUNAT SIRE rechazó la solicitud.') + codigo + temporal);
     }
     return json;

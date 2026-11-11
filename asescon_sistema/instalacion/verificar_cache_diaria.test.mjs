@@ -38,7 +38,7 @@ test('cron de limpieza reutiliza PHP CLI con las mismas rutas privadas y sin dup
 test('ventas/compras consultan SUNAT incluso con caché reciente y dashboard conserva vigencia diaria',()=>{
   for(const libro of ['rvie','rce']){
     const js=read(`publico/js/sunat/${libro}_centro.js`);
-    assert.match(js,/Cada nuevo clic consulta todos los períodos elegidos/);
+    assert.match(js,/const tareas = loteRecuperacion \|\| opciones\.flatMap/);
     assert.doesNotMatch(js,/!vigente\(tarea\)|mostrarGuardado\(/);
     assert.match(js,/AsesconSireSync\.sincronizarLibro/);
   }

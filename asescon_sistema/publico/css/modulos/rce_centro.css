@@ -48,3 +48,124 @@
 .sire-boton-recuperar { padding:6px 11px!important;font-size:11px!important;white-space:normal; }
 .sire-boton-pausa { padding:7px 12px!important;font-size:12px!important;white-space:normal; }
 .sire-pendientes-anuales[hidden],.sire-boton-pausa[hidden] { display:none!important; }
+
+.rce-fila-acciones {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 5px;
+  justify-content: start;
+}
+
+.rce-icono-accion {
+  width: 34px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #81b5d9;
+  border-radius: 7px;
+  background: #fff;
+  color: #195b8a;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.rce-icono-accion:hover { background: #eaf5ff; color: #103d64; }
+.rce-icono-accion:focus-visible { outline: 2px solid #195b8a; outline-offset: 2px; }
+
+.rce-dialogo {
+  box-sizing: border-box;
+  width: min(460px, calc(100% - 32px));
+  padding: 24px;
+  border: 1px solid #d8e2ed;
+  border-radius: 14px;
+  color: #0b2341;
+  background: #fff;
+}
+
+.rce-dialogo::backdrop { background: rgba(11, 35, 65, .48); }
+.rce-dialogo h2 { margin: 0 0 12px; font-size: 19px; }
+.rce-dialogo label { display: block; margin-top: 16px; }
+.rce-dialogo input[type="email"] {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #b5c6d8;
+  border-radius: 7px;
+}
+.rce-dialogo [data-rce-estado]:empty { display: none; }
+.rce-dialogo-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.rce-dialogo [hidden] { display: none !important; }
+
+.rce-seleccion-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 18px 14px;
+  padding: 14px;
+  background: #f5f9ff;
+  border: 1px solid #c7dcf1;
+  border-radius: 12px;
+}
+.rce-seleccion-todos { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.rce-seleccion-todos input, .rce-seleccionar-fila { width: 17px; height: 17px; accent-color: #14558f; cursor: pointer; }
+#rceCantidadSeleccionados { font-size: 12px; color: #245578; }
+.rce-seleccion-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+.rce-seleccion-controles .reference-btn { min-height: 33px; }
+.rce-seleccion-controles button:disabled { opacity: .5; cursor: not-allowed; }
+.rce-seleccion-ayuda { width: 100%; margin: 0; }
+#rceSeleccionEstado { width: 100%; margin: 0; color: #245578; font-size: 12px; }
+#rceSeleccionEstado:empty { display: none; }
+.rce-enviar-grupo { position: relative; }
+.rce-enviar-opciones {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  min-width: 190px;
+  padding: 5px;
+  border-radius: 9px;
+  border: 1px solid #d2e1ed;
+  background: white;
+  box-shadow: 0 10px 22px rgba(12, 37, 65, .14);
+}
+.rce-enviar-opciones[hidden] { display: none; }
+.rce-enviar-opciones button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #113455;
+  text-align: left;
+  cursor: pointer;
+}
+.rce-enviar-opciones button:hover { background: #eaf4ff; }
+.rce-seleccionar-fila:focus-visible { outline: 2px solid #14558f; outline-offset: 2px; }
+.sire-detail-row.rce-oculto-filtro { display: none !important; }
+.rce-filtros-detalle {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+  padding: 16px 18px;
+  margin: 0 18px 14px;
+  background: #fff;
+  border: 1px solid #dce7ef;
+  border-radius: 12px;
+}
+.rce-filtros-titulo { grid-column: 1/-1; display: flex; flex-direction: column; gap: 3px; color: #163e61; }
+.rce-filtros-titulo small { font-size: 11px; color: #6b8194; }
+.rce-filtros-detalle label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700; color: #234d70; }
+.rce-filtros-detalle input,.rce-filtros-detalle select { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #ccdce8; border-radius: 8px; background: white; color: #173956; }
+.rce-filtros-botones { display: flex; align-items: end; gap: 8px; }
+#rceFiltrosEstado { grid-column: 1/-1; margin: 0; color: #456781; font-size: 11px; }
+#rceFiltrosEstado:empty { display: none; }
+@media (max-width: 930px) { .rce-filtros-detalle { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) {
+  .rce-filtros-detalle { grid-template-columns: 1fr; margin: 0 10px 12px; }
+  .rce-seleccion-controles { margin: 0 10px 12px; padding: 12px; }
+  .rce-seleccion-acciones > .reference-btn { flex: 1 1 auto; }
+}

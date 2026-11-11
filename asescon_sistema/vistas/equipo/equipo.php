@@ -24,6 +24,8 @@ $errores=[
  'usuario_formato'=>'El usuario debe tener entre 4 y 50 caracteres y usar solo letras, números, punto, guion o guion bajo.',
  'usuario_existe'=>'Ese nombre de usuario ya existe. Elige otro.',
  'password'=>'La contraseña debe tener entre 8 y 72 caracteres.',
+ 'password_confirmacion'=>'La confirmación de contraseña no coincide.',
+ 'datos_contacto'=>'Verifica el formato de los correos y del teléfono.',
  'password_actual'=>'La contraseña actual no coincide.',
  'rol'=>'No puedes asignar ese rol con tu cuenta.',
  'confirmacion'=>'Para eliminar la cuenta debes escribir exactamente su nombre de usuario.',
@@ -56,9 +58,73 @@ $errores=[
 
 <section class="reference-panel"><h2 class="team-card-title">Información de roles</h2><div class="reference-role-info"><?php foreach($roles as $r):?><div class="reference-role-line"><span class="role-pill<?php echo strtoupper((string)$r['codigo'])==='ADMIN_SECUNDARIO'?'':' secondary';?>"><?php echo htmlspecialchars((string)$r['nombre']);?></span><span><?php echo htmlspecialchars((string)($r['descripcion']??'Permisos configurables por módulo y empresa.'));?></span></div><?php endforeach;?></div></section>
 
-<?php if($puedeCrear):?><dialog id="newUserDialog" class="team-dialog small new-user-dialog"><form method="post" action="../../controladores/equipo/ControladorEquipo.php" autocomplete="off"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="guardar"><input type="hidden" name="id_usuario" value="0"><div class="team-dialog-head"><div><h2>Nuevo usuario</h2><p>Crea únicamente la cuenta. Después usa los botones de la tabla para asignar empresas, permisos, contraseña o rol.</p></div><button type="button" class="team-dialog-x" data-close="newUserDialog">×</button></div>
-<div class="team-create-block compact"><h3>Datos de acceso</h3><div class="form-grid one"><label>Usuario *<input name="usuario" minlength="4" maxlength="50" autocomplete="off" required></label><label>Contraseña *<input type="password" name="password" minlength="8" maxlength="72" autocomplete="new-password" required></label><label>Rol *<select name="id_rol" required><option value="">Seleccione</option><?php foreach($roles as $r):?><option value="<?php echo (int)$r['id_rol'];?>"><?php echo htmlspecialchars((string)$r['nombre']);?></option><?php endforeach;?></select></label></div><div class="new-user-help">Al crear la cuenta se aplican los permisos base de su rol. Después se asignan las empresas y permisos desde los botones de “Accesos a empresas”.</div></div>
-<div class="form-actions"><button type="button" class="reference-btn" data-close="newUserDialog">Cancelar</button><button class="reference-btn primary">Crear usuario</button></div></form></dialog><?php endif;?>
+<?php if($puedeCrear):?>
+<dialog id="newUserDialog" class="team-dialog new-user-dialog" aria-labelledby="newUserTitle">
+  <form id="newUserForm" method="post" action="../../controladores/equipo/ControladorEquipo.php" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf,ENT_QUOTES,'UTF-8') ?>">
+    <input type="hidden" name="accion" value="guardar">
+    <input type="hidden" name="id_usuario" value="0">
+    <div class="nuevo-usuario-cabecera"><h2 id="newUserTitle">Nuevo usuario</h2><button type="button" class="team-dialog-x" data-close="newUserDialog" aria-label="Cerrar">×</button></div>
+    <div class="nuevo-usuario-pestanas" role="tablist" aria-label="Datos del nuevo usuario">
+      <button type="button" role="tab" data-nuevo-tab="acceso" aria-selected="true">Datos de usuario</button>
+      <button type="button" role="tab" data-nuevo-tab="permisos" aria-selected="false">Permisos</button>
+      <button type="button" role="tab" data-nuevo-tab="personales" aria-selected="false">Datos personales</button>
+      <button type="button" role="tab" data-nuevo-tab="documentos" aria-selected="false">Config. documentos</button>
+      <button type="button" role="tab" data-nuevo-tab="inicio" aria-selected="false">Ruta de inicio</button>
+      <button type="button" role="tab" data-nuevo-tab="caja" aria-selected="false">Caja</button>
+    </div>
+    <div class="nuevo-usuario-cuerpo">
+      <section class="nuevo-usuario-panel" data-nuevo-panel="acceso" role="tabpanel">
+        <div class="nuevo-usuario-grid">
+          <label>Nombre de usuario *<input name="usuario" minlength="4" maxlength="50" pattern="[A-Za-z0-9._-]{4,50}" autocomplete="off" required placeholder="Nombre para iniciar sesión"></label>
+          <label>Correo electrónico<input name="correo" type="email" maxlength="180" autocomplete="off" placeholder="nombre@empresa.com"></label>
+          <label>Contraseña *<input type="password" name="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+          <label>Confirmar contraseña *<input type="password" name="password_confirmacion" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+          <label>Perfil / Rol *<select name="id_rol" required><option value="">Selecciona un rol</option><?php foreach($roles as $r):?><option value="<?= (int)$r['id_rol'] ?>"><?= htmlspecialchars((string)$r['nombre']) ?></option><?php endforeach;?></select></label>
+        </div>
+        <p class="new-user-help">El rol establece el máximo de permisos. La contraseña se guarda cifrada mediante hash.</p>
+      </section>
+      <section class="nuevo-usuario-panel" data-nuevo-panel="permisos" role="tabpanel" hidden>
+        <label class="nuevo-usuario-check"><input type="checkbox" name="ver_todo" id="nuevoUsuarioVerTodo" checked> Habilitar los módulos permitidos por el rol</label>
+        <p class="reference-subtle">Desactiva esta opción para elegir módulos específicos; nunca se otorgarán permisos superiores al rol.</p>
+        <div class="nuevo-usuario-modulos" id="nuevoUsuarioModulos" hidden>
+          <?php foreach($modulos as $m):?><label><input type="checkbox" name="menu[]" value="<?= htmlspecialchars((string)$m['codigo'],ENT_QUOTES,'UTF-8') ?>"><span><?= htmlspecialchars((string)$m['nombre']) ?><small><?= htmlspecialchars((string)($m['grupo']??'')) ?></small></span></label><?php endforeach;?>
+        </div>
+      </section>
+      <section class="nuevo-usuario-panel" data-nuevo-panel="personales" role="tabpanel" hidden>
+        <div class="nuevo-usuario-grid">
+          <label>Correo electrónico secundario<input type="email" name="correo_secundario" maxlength="180" placeholder="Correo opcional"></label>
+          <label>Teléfono de contacto<input type="tel" name="telefono" maxlength="30" placeholder="Teléfono opcional"></label>
+        </div>
+        <p class="new-user-help">Estos datos de contacto se guardan en la cuenta. La base actual no dispone de campos para DNI, cumpleaños, dirección o fotografía del empleado.</p>
+      </section>
+      <section class="nuevo-usuario-panel" data-nuevo-panel="documentos" role="tabpanel" hidden>
+        <h3>Configuración de documentos</h3>
+        <p class="new-user-help">ASESCON todavía no tiene preferencias de emisión por usuario (tipo de comprobante predeterminado, series o CPE ligero). No se guardarán ajustes simulados.</p>
+      </section>
+      <section class="nuevo-usuario-panel" data-nuevo-panel="inicio" role="tabpanel" hidden>
+        <h3>Ruta de inicio</h3>
+        <p class="new-user-help">Por ahora los usuarios acceden al panel principal y el menú se limita según el rol y los permisos asignados. La ruta personalizada necesitará soporte de inicio de sesión.</p>
+      </section>
+      <section class="nuevo-usuario-panel" data-nuevo-panel="caja" role="tabpanel" hidden>
+        <h3>Permisos de caja</h3>
+        <p class="new-user-help">Las opciones de caja del ejemplo externo aún no existen como operaciones independientes en ASESCON. Se gestionan los permisos reales de cada módulo desde la pestaña Permisos.</p>
+      </section>
+      <section class="nuevo-usuario-empresas">
+        <button type="button" class="reference-btn" id="nuevoUsuarioEmpresasToggle" aria-expanded="false" aria-controls="nuevoUsuarioEmpresas">Acceso a empresas ▾</button>
+        <div id="nuevoUsuarioEmpresas" hidden>
+          <?php if($esMain||(int)$actor['acceso_todos_clientes']===1):?><label class="nuevo-usuario-check"><input type="checkbox" name="acceso_todos_clientes" id="nuevoUsuarioTodasEmpresas"> Acceso a todas las empresas</label><?php endif;?>
+          <div class="nuevo-usuario-empresas-lista" id="nuevoUsuarioEmpresasLista">
+            <?php foreach($clientes as $c):?><label><input type="checkbox" name="clientes_asignados[]" value="<?= (int)$c['id_cliente'] ?>"><span><?= htmlspecialchars((string)$c['razon_social']) ?><small><?= htmlspecialchars((string)$c['ruc']) ?></small></span></label><?php endforeach;?>
+            <?php if($clientes===[]):?><p class="reference-subtle">No hay empresas visibles para asignar todavía.</p><?php endif;?>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="form-actions nuevo-usuario-pie"><p id="nuevoUsuarioMensaje" role="status"></p><button type="button" class="reference-btn" data-close="newUserDialog">Cancelar</button><button class="reference-btn primary" type="submit">Guardar usuario</button></div>
+  </form>
+</dialog>
+<?php endif;?>
 
 <dialog id="assignClientsDialog" class="team-dialog"><form method="post" action="../../controladores/equipo/ControladorEquipo.php"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="asignar_clientes"><input type="hidden" name="id_usuario" id="assignUserId"><div class="team-dialog-head"><div><h2>Seleccionar empresas</h2><p>Empresas permitidas para <strong id="assignUserName"></strong>.</p></div><button type="button" class="team-dialog-x" data-close="assignClientsDialog">×</button></div><div class="client-search-box"><span aria-hidden="true">⌕</span><input type="search" id="assignClientSearch" placeholder="Buscar por empresa o RUC" autocomplete="off"><button type="button" id="clearAssignSearch" title="Limpiar búsqueda">×</button></div><div class="assign-selection-meta"><span id="assignSelectedCount">0 empresas seleccionadas</span><span id="assignVisibleCount"></span></div><div class="assign-clients-list" id="assignClientsList"><?php foreach($clientes as $c):?><label class="assign-client-row" data-search="<?php echo htmlspecialchars((string)$c['razon_social'].' '.(string)$c['ruc'],ENT_QUOTES,'UTF-8');?>"><input type="checkbox" name="clientes_asignados[]" value="<?php echo (int)$c['id_cliente'];?>" data-client-id="<?php echo (int)$c['id_cliente'];?>"><span><strong><?php echo htmlspecialchars((string)$c['razon_social']);?></strong><small><?php echo htmlspecialchars((string)$c['ruc']);?></small></span></label><?php endforeach;?><p class="assign-empty" id="assignEmpty" hidden>No se encontraron empresas con esa búsqueda.</p></div><div class="form-actions"><button type="button" class="reference-btn" data-close="assignClientsDialog">Cancelar</button><button class="reference-btn primary">Guardar asignación</button></div></form></dialog>
 

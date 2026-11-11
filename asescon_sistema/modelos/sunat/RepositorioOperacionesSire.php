@@ -42,7 +42,7 @@ final class RepositorioOperacionesSire
              WHERE id_cliente=? AND periodo=? AND tipo_libro=?
                AND numero_ticket IS NOT NULL AND numero_ticket<>''
                AND estado_procesamiento IN ('PENDIENTE','PROCESANDO')
-               AND fecha_solicitud >= (NOW() - INTERVAL 15 MINUTE)
+               AND fecha_solicitud >= (NOW() - INTERVAL 48 HOUR)
              ORDER BY id_descarga DESC LIMIT 1"
         );
         $stmt->bind_param('iss', $idCliente, $periodo, $libro);
@@ -60,7 +60,7 @@ final class RepositorioOperacionesSire
              FROM sire_descargas
              WHERE id_cliente=? AND periodo=? AND tipo_libro=?
                AND numero_ticket IS NOT NULL AND numero_ticket<>''
-               AND fecha_solicitud >= (NOW() - INTERVAL 30 MINUTE)
+               AND fecha_solicitud >= (NOW() - INTERVAL 48 HOUR)
              ORDER BY id_descarga DESC LIMIT 1"
         );
         $stmt->bind_param('iss', $idCliente, $periodo, $libro);
@@ -110,6 +110,19 @@ final class RepositorioOperacionesSire
              WHERE id_cliente=? AND periodo=? AND tipo_libro=? AND numero_ticket=?'
         );
         $stmt->bind_param('sisss', $estado, $idCliente, $periodo, $libro, $ticket);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    public function marcarTicketError(int $idCliente, string $periodo, string $libro, string $ticket, string $detalle): void
+    {
+        $detalle = substr($detalle, 0, 480);
+        $stmt = $this->conexion->prepare(
+            "UPDATE sire_descargas
+             SET estado_procesamiento='ERROR',mensaje=?
+             WHERE id_cliente=? AND periodo=? AND tipo_libro=? AND numero_ticket=?"
+        );
+        $stmt->bind_param('sisss', $detalle, $idCliente, $periodo, $libro, $ticket);
         $stmt->execute();
         $stmt->close();
     }

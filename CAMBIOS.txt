@@ -1,1 +1,10 @@
 2026-11-09 12:49:13 America/Lima
+
+2026-11-11 America/Lima — Actualización local de RCE y usuarios
+- RCE: se conserva el PDF informativo existente y se añade selección por fila, selección de todos los visibles, limpieza de selección, descarga de PDF en ZIP y Excel agrupado.
+- RCE: menú Enviar con correo (requiere SMTP operativo) y WhatsApp (compartir nativo cuando esté disponible o descargar y adjuntar manualmente).
+- RCE: filtros de tabla para registros ya importados, sin alterar la consulta original ni las bases de datos.
+- SUNAT SIRE: recuperación del ticket de proceso activo informado por SUNAT (42209), ampliación de la ventana para reutilizar tickets pendientes y liberación de tickets que SUNAT termina con error.
+- Mi equipo: formulario Nuevo usuario en pestañas; al crear, guarda credenciales, rol, correos, teléfono, permisos y empresas. Las preferencias de documentos, ruta de inicio y caja quedan informativas mientras no tengan soporte en la base de datos.
+- Docker: las dependencias de Python y Chromium se construyen antes de copiar el código de aplicación para acelerar reconstrucciones posteriores.
+- No se modificaron las bases de datos, credenciales privadas, la VPS ni los trabajos CRON.

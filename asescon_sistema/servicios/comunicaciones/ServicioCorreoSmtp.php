@@ -28,7 +28,13 @@ final class ServicioCorreoSmtp
         $correo->isHTML($alternativo !== '');
         $correo->Body = $mensaje;
         if ($alternativo !== '') { $correo->AltBody = $alternativo; }
-        foreach ($adjuntos as $adjunto) { $correo->addAttachment($adjunto['ruta'], $adjunto['nombre']); }
+        foreach ($adjuntos as $adjunto) {
+            if (isset($adjunto['bytes'])) {
+                $correo->addStringAttachment($adjunto['bytes'], $adjunto['nombre'], 'base64', $adjunto['tipo']);
+            } else {
+                $correo->addAttachment($adjunto['ruta'], $adjunto['nombre']);
+            }
+        }
         $correo->send();
     }
 }

@@ -4,6 +4,41 @@
  const dialogs=id=>document.getElementById(id);
  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>dialogs(b.dataset.close)?.close()));
  document.getElementById('openNewUser')?.addEventListener('click',()=>dialogs('newUserDialog').showModal());
+ const nuevoForm=document.getElementById('newUserForm');
+ const tabsNuevo=[...document.querySelectorAll('[data-nuevo-tab]')];
+ function abrirTabNuevo(tab){
+   tabsNuevo.forEach(b=>b.setAttribute('aria-selected',String(b.dataset.nuevoTab===tab)));
+   document.querySelectorAll('[data-nuevo-panel]').forEach(p=>{p.hidden=p.dataset.nuevoPanel!==tab;});
+ }
+ tabsNuevo.forEach(b=>b.addEventListener('click',()=>abrirTabNuevo(b.dataset.nuevoTab)));
+ const verTodosNuevo=document.getElementById('nuevoUsuarioVerTodo');
+ const listaModulosNuevo=document.getElementById('nuevoUsuarioModulos');
+ verTodosNuevo?.addEventListener('change',()=>{listaModulosNuevo.hidden=verTodosNuevo.checked;});
+ document.getElementById('nuevoUsuarioEmpresasToggle')?.addEventListener('click',e=>{
+   const panel=document.getElementById('nuevoUsuarioEmpresas');
+   panel.hidden=!panel.hidden;
+   e.currentTarget.setAttribute('aria-expanded',String(!panel.hidden));
+ });
+ document.getElementById('nuevoUsuarioTodasEmpresas')?.addEventListener('change',e=>{
+   document.getElementById('nuevoUsuarioEmpresasLista').hidden=e.target.checked;
+ });
+ nuevoForm?.addEventListener('invalid',e=>{
+   const contenedor=e.target.closest('[data-nuevo-panel]');
+   if(contenedor) abrirTabNuevo(contenedor.dataset.nuevoPanel);
+ },true);
+ nuevoForm?.addEventListener('submit',e=>{
+   const clave=nuevoForm.elements.password.value;
+   const confirmar=nuevoForm.elements.password_confirmacion.value;
+   const mensaje=document.getElementById('nuevoUsuarioMensaje');
+   if(clave!==confirmar){
+     e.preventDefault();
+     abrirTabNuevo('acceso');
+     mensaje.textContent='Las contraseñas no coinciden.';
+     nuevoForm.elements.password_confirmacion.focus();
+   }else{
+     mensaje.textContent='';
+   }
+ });
  const assignSearch=document.getElementById('assignClientSearch'),assignRows=[...document.querySelectorAll('#assignClientsList .assign-client-row')],assignEmpty=document.getElementById('assignEmpty'),assignSelectedCount=document.getElementById('assignSelectedCount'),assignVisibleCount=document.getElementById('assignVisibleCount');
  function normalizeSearch(v){return (v||'').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
  function updateAssignMeta(){const selected=assignRows.filter(r=>r.querySelector('input')?.checked).length,visible=assignRows.filter(r=>!r.hidden).length;assignSelectedCount.textContent=selected+' '+(selected===1?'empresa seleccionada':'empresas seleccionadas');assignVisibleCount.textContent=visible+' visibles';assignEmpty.hidden=visible>0;}

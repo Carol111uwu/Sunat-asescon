@@ -136,7 +136,7 @@ final class RepositorioLecturaSire
         if ($idCliente <= 0) return [];
         [$tabla, $pk, $detalle, $pkDetalle, $documento, $razon] = $this->configuracionLibro($libro);
         $where = $this->condicionGlobalDetalle($filtroClientes, $periodo, $excluirAnteriores, $tipo);
-        $sql = "SELECT d.fecha_emision,d.tipo_comprobante,d.serie,d.numero,
+        $sql = "SELECT d.{$pkDetalle} AS id_detalle,d.fecha_emision,d.tipo_comprobante,d.serie,d.numero,
                        d.{$documento},d.{$razon},d.base_imponible,d.igv,
                        d.importe_total,d.estado_registro,h.id_cliente,c.ruc AS ruc_empresa,
                        c.razon_social AS empresa_asescon,h.periodo
@@ -274,7 +274,7 @@ final class RepositorioLecturaSire
         if ($id <= 0) {
             return [];
         }
-        $sql = "SELECT fecha_emision,tipo_comprobante,serie,numero,{$documento},{$razon},base_imponible,igv,importe_total,estado_registro FROM {$detalle} WHERE {$pk}=? ORDER BY fecha_emision DESC,{$pkDetalle} DESC";
+        $sql = "SELECT {$pkDetalle} AS id_detalle,fecha_emision,tipo_comprobante,serie,numero,{$documento},{$razon},base_imponible,igv,importe_total,estado_registro FROM {$detalle} WHERE {$pk}=? ORDER BY fecha_emision DESC,{$pkDetalle} DESC";
         $stmt = $this->conexion->prepare($sql);
         if (!$stmt) {
             throw new RuntimeException('No se pudo consultar el detalle SIRE.');
@@ -291,7 +291,7 @@ final class RepositorioLecturaSire
         [$tabla,$pk,$detalle,$pkDetalle,$documento,$razon] = $this->configuracionLibro($libro);
         $docSelect = $normalizados ? "d.{$documento} documento" : "d.{$documento}";
         $razonSelect = $normalizados ? "d.{$razon} razon_social" : "d.{$razon}";
-        $sql = "SELECT d.fecha_emision,d.tipo_comprobante,d.serie,d.numero,{$docSelect},{$razonSelect},d.base_imponible,d.igv,d.importe_total,d.estado_registro,h.periodo FROM {$detalle} d INNER JOIN {$tabla} h ON h.{$pk}=d.{$pk} WHERE h.id_cliente=? AND h.periodo LIKE CONCAT(?,'%') ORDER BY d.fecha_emision DESC,d.{$pkDetalle} DESC";
+        $sql = "SELECT d.{$pkDetalle} AS id_detalle,d.fecha_emision,d.tipo_comprobante,d.serie,d.numero,{$docSelect},{$razonSelect},d.base_imponible,d.igv,d.importe_total,d.estado_registro,h.periodo FROM {$detalle} d INNER JOIN {$tabla} h ON h.{$pk}=d.{$pk} WHERE h.id_cliente=? AND h.periodo LIKE CONCAT(?,'%') ORDER BY d.fecha_emision DESC,d.{$pkDetalle} DESC";
         $stmt = $this->conexion->prepare($sql);
         if (!$stmt) {
             throw new RuntimeException('No se pudo consultar el detalle anual SIRE.');
@@ -301,6 +301,22 @@ final class RepositorioLecturaSire
         $filas = $this->filas($stmt->get_result());
         $stmt->close();
         return $filas;
+    }
+
+    public function obtenerComprobanteRce(int $idCliente, int $idDetalle): ?array
+    {
+        $stmt = $this->conexion->prepare(
+            'SELECT d.*, h.periodo, c.ruc AS ruc_empresa, c.razon_social AS empresa_asescon
+             FROM rce_detalle d
+             JOIN rce h ON h.id_rce = d.id_rce
+             JOIN clientes c ON c.id_cliente = h.id_cliente
+             WHERE d.id_rce_detalle = ? AND h.id_cliente = ?'
+        );
+        $stmt->bind_param('ii', $idDetalle, $idCliente);
+        $stmt->execute();
+        $fila = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $fila ?: null;
     }
 
     public function obtenerDetallesNormalizados(string $libro, int $idCliente, string $periodo): array

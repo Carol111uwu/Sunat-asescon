@@ -19,13 +19,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
+COPY asescon_sistema/python/requirements.txt /tmp/asescon-python-requirements.txt
+RUN python3 -m venv /opt/asescon-venv \
+    && /opt/asescon-venv/bin/pip install --no-cache-dir -r /tmp/asescon-python-requirements.txt \
+    && /opt/asescon-venv/bin/playwright install --with-deps chromium
+
 COPY asescon_sistema ./asescon_sistema
 COPY --from=vendor /app/vendor ./asescon_sistema/vendor
 
-RUN python3 -m venv /opt/asescon-venv \
-    && /opt/asescon-venv/bin/pip install --no-cache-dir -r asescon_sistema/python/requirements.txt \
-    && /opt/asescon-venv/bin/playwright install --with-deps chromium \
-    && mkdir -p /var/www/html/asescon_datos_privados/almacenamiento /var/www/html/asescon_secure \
+RUN mkdir -p /var/www/html/asescon_datos_privados/almacenamiento /var/www/html/asescon_secure \
                 /var/www/html/asescon_recursos_privados \
     && printf 'Deny from all\n' > /var/www/html/asescon_datos_privados/.htaccess \
     && chown -R www-data:www-data /var/www/html/asescon_datos_privados /var/www/html/asescon_secure \

@@ -94,8 +94,21 @@ final class ControladorEquipo
         if ($creando && (strlen($password) < 8 || strlen($password) > 72)) {
             asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'password']);
         }
+        if ($creando && isset($post['password_confirmacion']) && !hash_equals($password, (string)$post['password_confirmacion'])) {
+            asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'password_confirmacion']);
+        }
         if (!$creando && $password !== '' && (strlen($password) < 8 || strlen($password) > 72)) {
             asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'password']);
+        }
+        $correo = trim((string)($post['correo'] ?? ''));
+        $correoSecundario = trim((string)($post['correo_secundario'] ?? ''));
+        $telefono = trim((string)($post['telefono'] ?? ''));
+        if ($creando && (
+            (strlen($correo) > 180 || ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)))
+            || (strlen($correoSecundario) > 180 || ($correoSecundario !== '' && !filter_var($correoSecundario, FILTER_VALIDATE_EMAIL)))
+            || strlen($telefono) > 30
+        )) {
+            asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'datos_contacto']);
         }
         if (!asesconPuedeAsignarRol($this->conexion, $idRol)) {
             asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'rol']);
@@ -114,12 +127,25 @@ final class ControladorEquipo
         try {
             if ($creando) {
                 $idUsuario = $model->crear($usuario, password_hash($password, PASSWORD_DEFAULT), $idRol, $accesoTodos, (int)$actor['id_usuario']);
+                $stmtContacto = $this->conexion->prepare('UPDATE usuarios SET correo=?,correo_secundario=?,telefono=? WHERE id_usuario=?');
+                if (!$stmtContacto) {
+                    throw new RuntimeException('No se pudieron guardar los datos de contacto.');
+                }
+                $correoGuardar = $correo !== '' ? $correo : null;
+                $secundarioGuardar = $correoSecundario !== '' ? $correoSecundario : null;
+                $telefonoGuardar = $telefono !== '' ? $telefono : null;
+                $stmtContacto->bind_param('sssi', $correoGuardar, $secundarioGuardar, $telefonoGuardar, $idUsuario);
+                $stmtContacto->execute();
+                $stmtContacto->close();
             } else {
                 $model->actualizar($idUsuario, $usuario, $idRol, $accesoTodos, $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : null);
             }
 
             if ($creando) {
-                $this->guardarPermisosMenuSeleccionados($idUsuario, $idRol, [], true);
+                $seleccion = is_array($post['menu'] ?? null) ? array_map('strval', $post['menu']) : [];
+                $this->guardarPermisosMenuSeleccionados($idUsuario, $idRol, $seleccion, isset($post['ver_todo']));
+                $clientesSeleccionados = is_array($post['clientes_asignados'] ?? null) ? $post['clientes_asignados'] : [];
+                $this->guardarClientesRapidos($idUsuario, $clientesSeleccionados, $accesoTodos === 1, (int)$actor['id_usuario']);
             } elseif (isset($post['menu'])) {
                 $sel = is_array($post['menu'] ?? null) ? array_map('strval', $post['menu']) : [];
                 $this->guardarPermisosMenuSeleccionados($idUsuario, $idRol, $sel, isset($post['ver_todo']));

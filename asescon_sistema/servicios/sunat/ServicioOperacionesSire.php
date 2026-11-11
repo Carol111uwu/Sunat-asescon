@@ -102,7 +102,29 @@ class ServicioOperacionesSire
                 'mensaje' => 'Se reutilizó un ticket SIRE reciente que todavía estaba en proceso.',
             ];
         }
-        $respuesta = $this->sesion($cliente)->solicitarPropuesta($codigo, $periodo);
+        try {
+            $respuesta = $this->sesion($cliente)->solicitarPropuesta($codigo, $periodo);
+        } catch (ExcepcionSunat $error) {
+            // SUNAT puede devolver el ticket de una exportación ya solicitada por otra instancia.
+            $mensaje = $error->getMessage();
+            if ($error->getCodigoSunat() === '42209'
+                && preg_match('/\bTicket\s*[:#-]\s*([A-Z0-9]{8,24})\b/i', $mensaje, $coincidencia)) {
+                $ticketExistente = $coincidencia[1];
+                if (!$this->repositorio->existeTicket($idCliente, $periodo, $nombre, $ticketExistente)) {
+                    $this->repositorio->registrarTicket($idCliente, $periodo, $nombre, $ticketExistente);
+                }
+                $this->auditar('RECUPERAR_TICKET_SIRE', $idCliente, 'sire_descargas', $ticketExistente, $nombre . ' ' . $periodo);
+                return [
+                    'cliente' => $cliente,
+                    'libro' => $nombre,
+                    'periodo' => $periodo,
+                    'num_ticket' => $ticketExistente,
+                    'reutilizado' => true,
+                    'mensaje' => 'SUNAT ya tenía un proceso de exportación activo. Se recuperó el mismo ticket sin solicitar otro.',
+                ];
+            }
+            throw $error;
+        }
         $ticket = trim((string)($respuesta['num_ticket'] ?? ''));
         if ($ticket === '') {
             throw new RuntimeException('SUNAT no devolvió un ticket válido.');
@@ -158,7 +180,10 @@ class ServicioOperacionesSire
         $this->validarTicketLocal($idCliente, $periodo, $nombre, $ticket);
         $respuesta = $this->sesion($cliente)->consultarTicket($codigo, $periodo, $ticket);
         $this->repositorio->actualizarEstado($idCliente, $periodo, $nombre, $ticket, (string)$respuesta['estado']);
-        if(!empty($respuesta['con_error']))throw new ExcepcionSunat('SUNAT terminó el ticket con error: '.(string)$respuesta['estado']);
+        if (!empty($respuesta['con_error'])) {
+            $this->repositorio->marcarTicketError($idCliente, $periodo, $nombre, $ticket, (string)$respuesta['estado']);
+            throw new ExcepcionSunat('SUNAT terminó el ticket con error: ' . (string)$respuesta['estado']);
+        }
         return ['cliente' => $cliente, 'libro' => $nombre] + $respuesta;
     }
 
@@ -174,6 +199,7 @@ class ServicioOperacionesSire
         $estado = $servicio->consultarTicket($codigo, $periodo, $ticket);
         $this->repositorio->actualizarEstado($idCliente, $periodo, $nombre, $ticket, (string)$estado['estado']);
         if (!empty($estado['con_error'])) {
+            $this->repositorio->marcarTicketError($idCliente, $periodo, $nombre, $ticket, (string)$estado['estado']);
             throw new ExcepcionSunat('SUNAT terminó el ticket con error: ' . (string)$estado['estado']);
         }
         if (!($estado['terminado'] ?? false)) {
