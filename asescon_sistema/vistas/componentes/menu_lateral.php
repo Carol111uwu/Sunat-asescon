@@ -15,23 +15,26 @@ foreach (asesconGruposClientes() as $codigoGrupo=>$grupoMenu) {
     }
 }
 $sunatItems = [
+    ['GRUPO_SIRE','◫','SIRE',''],
     ['DECLARACIONES','▣','Control de declaraciones','vistas/sunat/control_declaraciones.php'],
     ['DECLARACIONES_PAGOS_SUNAT','▤','Consulta de declaraciones y pagos','vistas/sunat/declaraciones_pagos/principal.php'],
     ['DETRACCIONES','◈','Detracciones','vistas/sunat/detracciones.php'],
     ['RHE','▱','Recibos por honorarios','vistas/sunat/recibos_honorarios.php'],
     ['NO_DOMICILIADOS','▤','Comprobantes No Domiciliados','vistas/sunat/comprobantes_no_domiciliados.php'],
     ['CPE','▣','Consulta de validez CPE','vistas/sunat/consulta_cpe.php'],
-    ['COMPROBANTES_SUNAT','▤','Comprobantes SUNAT','vistas/sunat/comprobantes_sunat.php'],
     ['TIPO_CAMBIO','◌','Tipo de cambio','vistas/sunat/tipo_cambio.php'],
-    ['SIRE','◫','Dashboard SIRE','vistas/sunat/panel_sire.php'],
     ['LIQUIDACIONES','▥','Liquidación de impuestos','vistas/sunat/liquidaciones_impuestos.php'],
-    ['RVIE','▤','RVIE (Ventas)','vistas/sunat/rvie.php'],
-    ['RCE','▤','RCE (Compras)','vistas/sunat/rce.php'],
     ['PLAME_0601','▤','PLAME / PDT 0601','vistas/sunat/plame_0601.php'],
     ['PDT_0621','▤','PDT / Formulario 0621','vistas/sunat/pdt_0621.php'],
     ['BUZON_SOL','✉','Buzón SOL','vistas/buzones/buzon_sol_sunat.php'],
     ['ALERTAS_SUNAT','△','Alertas SUNAT','vistas/alertas/alertas_sunat.php'],
     ['VENCIMIENTOS_SUNAT','▣','Vencimientos SUNAT','vistas/vencimientos/vencimientos_sunat.php'],
+];
+$sireItems = [
+    ['RCE','▤','RCE (Compras)','vistas/sunat/rce.php'],
+    ['RVIE','▤','RVIE (Ventas)','vistas/sunat/rvie.php'],
+    ['SIRE','◫','Dashboard SIRE','vistas/sunat/panel_sire.php'],
+    ['COMPROBANTES_SUNAT','▤','Comprobantes SUNAT','vistas/sunat/comprobantes_sunat.php'],
 ];
 $sunafilItems = [
     ['BUZON_SUNAFIL','✉','Buzón SUNAFIL','vistas/buzones/buzon_sunafil.php'],
@@ -46,17 +49,20 @@ $utilItems = [
 ];
 if (asesconEsPrincipal($conexion)) { $utilItems[] = ['CONFIGURACION_CORREO','✉','Configuración de correo','vistas/comunicaciones/configuracion_correo.php']; }
 $clientesVisibles = array_values(array_filter($clientesItems, fn($i) => in_array($i[0],['COMUNICACION_CLIENTES','SERVICIOS_CLIENTES'],true) || $perm($i[0])));
-$sunatVisibles = array_values(array_filter($sunatItems, fn($i) => $perm($i[0])));
+$sireVisibles = array_values(array_filter($sireItems, fn($i) => $perm($i[0])));
+$sunatVisibles = array_values(array_filter($sunatItems, fn($i) => $i[0] === 'GRUPO_SIRE' ? $sireVisibles !== [] : $perm($i[0])));
 $sunafilVisibles = array_values(array_filter($sunafilItems, fn($i) => $perm($i[0])));
 $afpVisibles = array_values(array_filter($afpItems, fn($i) => $perm($i[0])));
 $utilVisibles = $perm('UTILITARIOS') ? $utilItems : [];
 
-$sunatCodigos = array_column($sunatItems, 0);
+$sireCodigos = array_column($sireItems, 0);
+$sunatCodigos = array_merge(array_column($sunatItems, 0), $sireCodigos);
 $sunafilCodigos = array_column($sunafilItems, 0);
 $afpCodigos = array_column($afpItems, 0);
 $clientesCodigos = array_column($clientesItems, 0);
 $utilCodigos = array_column($utilItems, 0);
 $sunatAbierto = in_array($activo, $sunatCodigos, true);
+$sireAbierto = in_array($activo, $sireCodigos, true);
 $sunafilAbierto = in_array($activo, $sunafilCodigos, true);
 $afpAbierto = in_array($activo, $afpCodigos, true);
 $clientesAbierto = in_array($activo, $clientesCodigos, true);
@@ -119,10 +125,25 @@ $badgeSunafil = $indicadoresMenu['sunafil'];
             </button>
             <div class="submenu<?php echo $sunatAbierto ? ' open' : ''; ?>" id="sunatMenu">
                 <?php foreach ($sunatVisibles as [$codigo,$icono,$texto,$ruta]): ?>
+                    <?php if ($codigo === 'GRUPO_SIRE'): ?>
+                    <div class="sire-subgroup">
+                        <button class="menu-item sire-toggle dropdown-btn<?php echo $sireAbierto ? '' : ' closed'; ?>" type="button" data-target="sireMenu" aria-controls="sireMenu" aria-expanded="<?php echo $sireAbierto ? 'true' : 'false'; ?>">
+                            <span class="sub-icon">◫</span><span>SIRE</span><span class="arrow"><?php echo $sireAbierto ? '⌃' : '⌄'; ?></span>
+                        </button>
+                        <div class="submenu sire-submenu<?php echo $sireAbierto ? ' open' : ''; ?>" id="sireMenu">
+                            <?php foreach ($sireVisibles as [$sireCodigo,$sireIcono,$sireTexto,$sireRuta]): ?>
+                            <a href="<?php echo htmlspecialchars(asesconUrl($sireRuta)); ?>"<?php echo $activo === $sireCodigo ? ' class="active"' : ''; ?>>
+                                <span class="sub-icon"><?php echo $sireIcono; ?></span><?php echo htmlspecialchars($sireTexto); ?>
+                            </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php else: ?>
                     <a href="<?php echo htmlspecialchars(asesconUrl($ruta)); ?>"<?php echo $activo === $codigo ? ' class="active"' : ''; ?>>
                         <span class="sub-icon"><?php echo $icono; ?></span><?php echo htmlspecialchars($texto); ?>
                         <?php if($codigo==='BUZON_SOL' && $badgeSol>0): ?><span class="menu-badge"><?php echo $badgeSol>999?'999+':$badgeSol; ?></span><?php endif; ?>
                     </a>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
         </div>
