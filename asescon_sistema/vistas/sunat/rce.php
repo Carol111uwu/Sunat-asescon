@@ -22,7 +22,9 @@ $urlDetalle = static function (int $paginaDestino, string $tipo = '') use ($para
 $totalDetallesMostrados = $esGlobal ? $totalDetallesGlobales : count($detallesVisibles);
 $totalPaginas = $esGlobal ? max(1, count($clientesPaginados)) : 1;
 $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
-$puedeEnviarCorreoRce = asesconTienePermiso($conexion, 'RCE', 'editar');
+$puedeEnviarCorreo = asesconTienePermiso($conexion, 'RCE', 'editar');
+$apiComprobante = '../../api/sunat/comprobante_rce.php';
+$csrfCorreo = 'csrf_rce_correo';
 require __DIR__ . '/componentes/acciones_comprobante_rce.php';
 ?>
 <!doctype html>
@@ -34,6 +36,7 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
   <title>RCE SUNAT — Compras — ASESCON</title>
   <link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui3">
   <link rel="stylesheet" href="../../publico/css/modulos/sunat.css">
+  <link rel="stylesheet" href="../../publico/css/modulos/descarga_masiva_sire.css?v=<?= (int)@filemtime(__DIR__ . '/../../publico/css/modulos/descarga_masiva_sire.css') ?>">
   <link rel="stylesheet" href="../../publico/css/modulos/rce_centro.css?v=<?= (int)@filemtime(__DIR__ . '/../../publico/css/modulos/rce_centro.css') ?>">
 </head>
 <body>
@@ -177,46 +180,30 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
               <a class="reference-btn" data-rce-excel="detalle" href="<?= $h($excelBase . '&modo=detalle') ?>">⇩ Excel detalle</a>
               <?php if (!$esAnual && !$esGlobal): ?><a class="reference-btn" data-rce-excel="original" href="<?= $h($excelBase . '&modo=original') ?>">Excel original</a><?php endif; ?>
             </div></div>
-            <form id="rceFiltrosDetalle" class="rce-filtros-detalle">
-              <div class="rce-filtros-titulo"><strong>Filtros de comprobantes</strong><small>Busca dentro de los registros cargados de esta página.</small></div>
-              <label>RUC / Proveedor<input type="search" name="proveedor" placeholder="RUC o razón social"></label>
-              <label>Tipo documento<select name="tipo"><option value="">Todos</option><?php foreach($tipos as $tipo): ?><option value="<?= $h($tipo['tipo']) ?>"><?= $h($tipo['tipo']) ?></option><?php endforeach; ?></select></label>
-              <label>Serie<input name="serie" placeholder="Ej. F001"></label>
-              <label>Número<input name="numero" placeholder="Número de comprobante"></label>
-              <label>Fecha desde<input type="date" name="desde"></label>
-              <label>Fecha hasta<input type="date" name="hasta"></label>
-              <label>Importe mínimo (S/)<input type="number" min="0" step="0.01" name="minimo"></label>
-              <label>Importe máximo (S/)<input type="number" min="0" step="0.01" name="maximo"></label>
-              <div class="rce-filtros-botones"><button class="reference-btn primary" type="submit">Buscar</button><button class="reference-btn" type="reset">Limpiar</button></div>
-              <p id="rceFiltrosEstado" role="status" aria-live="polite"></p>
-            </form>
-            <div class="rce-seleccion-controles" id="rceSeleccionControles" data-csrf="<?= $h(asesconCsrf('csrf_rce_lote')) ?>">
-              <label class="rce-seleccion-todos"><input type="checkbox" id="rceMarcarTodos"> Seleccionar todos los visibles</label>
-              <span id="rceCantidadSeleccionados" aria-live="polite">0 comprobantes seleccionados</span>
-              <button type="button" class="reference-btn" id="rceLimpiarSeleccion" disabled>Deseleccionar todos</button>
-              <div class="rce-seleccion-acciones">
-                <button type="button" class="reference-btn" id="rceLotePdf" disabled>⇩ PDF seleccionados (ZIP)</button>
-                <button type="button" class="reference-btn" id="rceLoteExcel" disabled>⇩ Excel seleccionados</button>
-                <div class="rce-enviar-grupo" id="rceEnviarGrupo">
-                  <button type="button" class="reference-btn primary" id="rceLoteEnviar" aria-expanded="false" aria-controls="rceEnviarOpciones" disabled>Enviar ▾</button>
-                  <div class="rce-enviar-opciones" id="rceEnviarOpciones" hidden>
-                    <?php if ($puedeEnviarCorreoRce): ?><button type="button" data-rce-enviar-correo>Enviar por correo</button><?php endif; ?>
-                    <button type="button" data-rce-enviar-whatsapp>Compartir por WhatsApp</button>
-                  </div>
-                </div>
-              </div>
-              <p class="reference-subtle rce-seleccion-ayuda">Selecciona algunos o todos los comprobantes de esta página. El PDF mantiene el diseño actual y se descarga agrupado en un ZIP. El Excel combina las filas seleccionadas.</p>
-              <p id="rceSeleccionEstado" role="status" aria-live="polite"></p>
+            <div class="sire-descarga-masiva" data-sire-masiva="rce">
+              <label for="rceCantidadSeleccion" class="sire-masiva-cantidad">Seleccionar cantidad
+                <select id="rceCantidadSeleccion" data-sire-cantidad>
+                  <option value="">Elegir cantidad</option>
+                  <option value="10">10</option><option value="20">20</option>
+                  <option value="50">50</option><option value="100">100</option>
+                  <option value="todos">Todos los visibles</option>
+                </select>
+              </label>
+              <span data-sire-contador role="status" aria-live="polite">0 seleccionados</span>
+              <button type="button" class="reference-btn primary" data-sire-descargar disabled>Descargar seleccionados (0)</button>
+              <button type="button" class="reference-btn" data-sire-limpiar disabled>Limpiar selección</button>
+              <small class="sire-masiva-nota">Cada PDF se descarga por separado, sin ZIP. El navegador puede solicitar permiso para descargas múltiples.</small>
+              <div class="sire-masiva-progreso" data-sire-progreso role="status" aria-live="polite"></div>
             </div>
             <div class="table-container"><table><thead><tr>
-              <th aria-label="Seleccionar comprobante"><span aria-hidden="true">☑</span></th>
+              <th class="sire-columna-seleccion"><input type="checkbox" data-sire-todos aria-label="Seleccionar todos los comprobantes visibles"></th>
               <?php if ($esGlobal): ?><th>Empresa ASESCON</th><?php endif; ?>
               <th>Fecha de emisión</th><th>Tipo</th><th>Serie</th><th>Número</th><th>RUC proveedor</th><th>Proveedor</th><th>Base imponible</th><th>IGV</th><th>Total</th><th>Estado</th><th>Acciones</th>
             </tr></thead><tbody>
               <?php if ($detallesVisibles === []): ?><tr><td colspan="<?= $esGlobal ? 13 : 12 ?>"><div class="reference-empty">No hay comprobantes visibles para este filtro.</div></td></tr>
               <?php else: foreach ($detallesVisibles as $detalle): ?>
-                <tr class="sire-detail-row" data-sire-tipo="<?= $h($detalle['tipo_comprobante'] ?? '—') ?>" data-rce-proveedor="<?= $h(($detalle['ruc_proveedor'] ?? '') . ' ' . ($detalle['razon_social_proveedor'] ?? '')) ?>" data-rce-serie="<?= $h($detalle['serie'] ?? '') ?>" data-rce-numero="<?= $h($detalle['numero'] ?? '') ?>" data-rce-fecha="<?= $h($detalle['fecha_emision'] ?? '') ?>" data-rce-total="<?= (float)($detalle['importe_total'] ?? 0) ?>">
-                  <td><input type="checkbox" class="rce-seleccionar-fila" data-cliente="<?= $esGlobal ? (int)($detalle['id_cliente'] ?? 0) : $idCliente ?>" data-detalle="<?= (int)($detalle['id_detalle'] ?? 0) ?>" aria-label="Seleccionar <?= $h(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? '')) ?>"></td>
+                <tr class="sire-detail-row" data-sire-tipo="<?= $h($detalle['tipo_comprobante'] ?? '—') ?>">
+                  <td class="sire-columna-seleccion"><input type="checkbox" class="sire-seleccion-fila" aria-label="Seleccionar comprobante <?= $h(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? '')) ?>"></td>
                   <?php if ($esGlobal): ?><td><strong><?= $h($detalle['empresa_asescon'] ?? '—') ?></strong><br><small><?= $h($detalle['ruc_empresa'] ?? '') ?></small></td><?php endif; ?>
                   <td><?= !empty($detalle['fecha_emision']) ? $h(date('d/m/Y', strtotime((string)$detalle['fecha_emision']))) : '—' ?></td>
                   <td><?= $h($detalle['tipo_comprobante'] ?? '—') ?></td><td><?= $h($detalle['serie'] ?? '—') ?></td><td><?= $h($detalle['numero'] ?? '—') ?></td>
@@ -227,29 +214,14 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
                   <td><?= $h($detalle['estado_registro'] ?? '—') ?></td>
                   <?php
                   $clienteFila = $esGlobal ? (int)($detalle['id_cliente'] ?? 0) : $idCliente;
-                  $comprobanteUrl = '../../api/sunat/comprobante_rce.php?' . http_build_query([
+                  $comprobanteUrl = $apiComprobante . '?' . http_build_query([
                       'cliente' => $clienteFila,
                       'detalle' => (int)$detalle['id_detalle'],
                   ]);
+                  $rucEmisorFila = $detalle['ruc_proveedor'] ?? '';
                   $numeroFila = trim(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? ''), '-');
                   ?>
-                  <td><div class="rce-fila-acciones">
-                    <a class="rce-icono-accion" href="<?= $h($comprobanteUrl . '&vista=previa') ?>" target="_blank" rel="noopener" title="Ver PDF" aria-label="Ver PDF"><?= $iconoRce('ver') ?></a>
-                    <a class="rce-icono-accion" href="<?= $h($comprobanteUrl) ?>" title="Descargar PDF" aria-label="Descargar PDF"><?= $iconoRce('pdf') ?></a>
-                    <a class="rce-icono-accion" href="<?= $h($comprobanteUrl . '&formato=xlsx') ?>" title="Descargar Excel" aria-label="Descargar Excel"><?= $iconoRce('excel') ?></a>
-                    <?php if ($puedeEnviarCorreoRce): ?>
-                      <button type="button" class="rce-icono-accion" data-rce-correo data-rce-url="<?= $h($comprobanteUrl) ?>" data-rce-numero="<?= $h($numeroFila) ?>" title="Enviar PDF por correo" aria-label="Enviar PDF por correo"><?= $iconoRce('correo') ?></button>
-                    <?php endif; ?>
-                    <button type="button" class="rce-icono-accion" data-rce-whatsapp data-rce-url="<?= $h($comprobanteUrl) ?>" data-rce-numero="<?= $h($numeroFila) ?>" title="Compartir PDF por WhatsApp" aria-label="Compartir PDF por WhatsApp"><?= $iconoRce('whatsapp') ?></button>
-                    <button type="button" class="rce-icono-accion" title="Archivos / cuenta" aria-label="Archivos / cuenta" data-archivo-comprobante="<?= $h(json_encode([
-                      'id_cliente' => $clienteFila,
-                      'ruc_emisor' => $detalle['ruc_proveedor'] ?? '',
-                      'tipo_documento' => $detalle['tipo_comprobante'] ?? '',
-                      'serie' => $detalle['serie'] ?? '',
-                      'numero' => $detalle['numero'] ?? '',
-                      'periodo' => $detalle['periodo'] ?? $periodo,
-                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>"><?= $iconoRce('archivos') ?></button>
-                  </div></td>
+                  <?php require __DIR__ . '/componentes/botones_comprobante_sire.php'; ?>
                 </tr>
               <?php endforeach; endif; ?>
             </tbody></table></div>
@@ -263,64 +235,7 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
           </section>
         </div>
       </div>
-      <?php if ($puedeEnviarCorreoRce): ?>
-      <dialog id="rceCorreo" class="rce-dialogo" aria-labelledby="rceCorreoTitulo">
-        <form id="rceCorreoFormulario" method="post" action="../../api/sunat/comprobante_rce.php">
-          <h2 id="rceCorreoTitulo">Enviar PDF por correo</h2>
-          <p data-rce-documento></p>
-          <input type="hidden" name="csrf_token" value="<?= $h(asesconCsrf('csrf_rce_correo')) ?>">
-          <input type="hidden" name="cliente">
-          <input type="hidden" name="detalle">
-          <label for="rceCorreoDestino">Correo del destinatario</label>
-          <input id="rceCorreoDestino" type="email" name="destinatario" required maxlength="254" autocomplete="email">
-          <p data-rce-estado role="status" aria-live="polite"></p>
-          <div class="rce-dialogo-acciones">
-            <button type="button" class="reference-btn" data-rce-cerrar>Cerrar</button>
-            <button type="submit" class="reference-btn primary">Enviar PDF</button>
-          </div>
-        </form>
-      </dialog>
-      <?php endif; ?>
-      <?php if ($puedeEnviarCorreoRce): ?>
-      <dialog id="rceCorreoLote" class="rce-dialogo" aria-labelledby="rceCorreoLoteTitulo">
-        <form id="rceCorreoLoteFormulario" autocomplete="off">
-          <h2 id="rceCorreoLoteTitulo">Enviar comprobantes RCE seleccionados</h2>
-          <p data-rce-cantidad></p>
-          <p>Se adjuntará un archivo ZIP con los PDF informativos, sin cambiar el diseño de los documentos.</p>
-          <label for="rceCorreoLoteDestino">Correo del destinatario</label>
-          <input id="rceCorreoLoteDestino" type="email" name="destinatario" required maxlength="254" autocomplete="email">
-          <p data-rce-estado role="status" aria-live="polite"></p>
-          <div class="rce-dialogo-acciones">
-            <button type="button" class="reference-btn" data-rce-cerrar>Cancelar</button>
-            <button type="submit" class="reference-btn primary">Enviar por correo</button>
-          </div>
-        </form>
-      </dialog>
-      <?php endif; ?>
-      <dialog id="rceWhatsAppLote" class="rce-dialogo" aria-labelledby="rceWhatsAppLoteTitulo">
-        <h2 id="rceWhatsAppLoteTitulo">Compartir comprobantes seleccionados</h2>
-        <p data-rce-cantidad></p>
-        <p>WhatsApp Web no adjunta archivos automáticamente. Descarga el ZIP y adjúntalo al chat; en dispositivos compatibles también puedes usar Compartir.</p>
-        <p data-rce-estado role="status" aria-live="polite"></p>
-        <div class="rce-dialogo-acciones">
-          <button type="button" class="reference-btn" data-rce-cerrar>Cerrar</button>
-          <button type="button" class="reference-btn" id="rceCompartirLote" hidden>Compartir archivo</button>
-          <button type="button" class="reference-btn" id="rceDescargarLoteWhatsapp" disabled>Descargar ZIP</button>
-          <a class="reference-btn primary" href="https://web.whatsapp.com/" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
-        </div>
-      </dialog>
-      <dialog id="rceWhatsApp" class="rce-dialogo" aria-labelledby="rceWhatsAppTitulo">
-        <h2 id="rceWhatsAppTitulo">Compartir por WhatsApp</h2>
-        <p data-rce-documento></p>
-        <p>En computadora, descarga el PDF, abre WhatsApp y adjúntalo al chat.</p>
-        <p data-rce-estado role="status" aria-live="polite"></p>
-        <div class="rce-dialogo-acciones">
-          <button type="button" class="reference-btn" data-rce-cerrar>Cerrar</button>
-          <button type="button" class="reference-btn" data-rce-compartir hidden>Compartir PDF</button>
-          <a class="reference-btn" data-rce-descargar>Descargar PDF</a>
-          <a class="reference-btn primary" href="https://web.whatsapp.com/" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
-        </div>
-      </dialog>
+      <?php require __DIR__ . '/componentes/dialogos_comprobante_sire.php'; ?>
       <?php $moduloArchivos = 'RCE'; require __DIR__ . '/componentes/archivo_comprobante.php'; ?>
       <footer>© <?= (int)(new DateTimeImmutable("now", new DateTimeZone("America/Lima")))->format("Y") ?> ASESCON - Todos los derechos reservados.</footer>
     </section>
@@ -334,6 +249,6 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
 <script src="../../publico/js/sunat/pendientes_anuales_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/pendientes_anuales_sire.js') ?>"></script>
 <script src="../../publico/js/sunat/rce_centro.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/rce_centro.js') ?>"></script>
 <script src="../../publico/js/sunat/rce_comprobante.js?v=<?= (int)filemtime(__DIR__ . '/../../publico/js/sunat/rce_comprobante.js') ?>"></script>
-<script src="../../publico/js/sunat/rce_seleccion.js?v=<?= (int)filemtime(__DIR__ . '/../../publico/js/sunat/rce_seleccion.js') ?>"></script>
+<script src="../../publico/js/sunat/descarga_masiva_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/descarga_masiva_sire.js') ?>"></script>
 <script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/interfaz/tablas_adaptables.js') ?>"></script>
 </body></html>

@@ -71,7 +71,7 @@
         const respuesta = await fetch(url, {signal: consulta.signal});
         if (!respuesta.ok || !respuesta.headers.get('Content-Type')?.startsWith('application/pdf')) return;
         const blob = await respuesta.blob();
-        const nombre = respuesta.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'comprobante-RCE.pdf';
+        const nombre = respuesta.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'comprobante-SIRE.pdf';
         const archivo = new File([blob], nombre, {type: 'application/pdf'});
         if (consulta.signal.aborted || !navigator.canShare({files: [archivo]})) return;
         archivoCompartir = archivo;

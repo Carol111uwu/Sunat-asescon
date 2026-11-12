@@ -319,6 +319,22 @@ final class RepositorioLecturaSire
         return $fila ?: null;
     }
 
+    public function obtenerComprobanteRvie(int $idCliente, int $idDetalle): ?array
+    {
+        $stmt = $this->conexion->prepare(
+            'SELECT d.*, h.periodo, c.ruc AS ruc_empresa, c.razon_social AS empresa_asescon
+             FROM rvie_detalle d
+             JOIN rvie h ON h.id_rvie = d.id_rvie
+             JOIN clientes c ON c.id_cliente = h.id_cliente
+             WHERE d.id_rvie_detalle = ? AND h.id_cliente = ?'
+        );
+        $stmt->bind_param('ii', $idDetalle, $idCliente);
+        $stmt->execute();
+        $fila = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $fila ?: null;
+    }
+
     public function obtenerDetallesNormalizados(string $libro, int $idCliente, string $periodo): array
     {
         [$tabla,$pk,$detalle,$pkDetalle,$documento,$razon] = $this->configuracionLibro($libro);
