@@ -6,7 +6,11 @@ require_once __DIR__.'/../../modelos/sunat/ComprobanteSunat.php';
 require_once __DIR__.'/../../servicios/archivos/ServicioArchivosPrivados.php';
 asesconExigirLogin();
 try{
-    $k=ClaveComprobante::normalizar($_GET);if(!asesconPuedeVerCliente($conexion,$k['id_cliente'])||!array_filter(['COMPROBANTES_SUNAT','RCE','RVIE'],static fn(string $m):bool=>asesconTienePermiso($conexion,$m,'ver'))){http_response_code(403);exit('Comprobante no autorizado.');}
+    $k=ClaveComprobante::normalizar($_GET);if(!asesconPuedeVerCliente($conexion,$k['id_cliente'])||!(
+        asesconTienePermiso($conexion,'COMPROBANTES_SUNAT','ver')
+        || asesconTienePermiso($conexion,'RCE','ver')
+        || (asesconTienePermiso($conexion,'RVIE','ver') && (new ComprobanteSunat($conexion))->existeEnRvie($k))
+    )){http_response_code(403);exit('Comprobante no autorizado.');}
     $tipo=strtoupper((string)($_GET['tipo_archivo']??'PDF'));$col=match($tipo){'PDF'=>'archivo_pdf','XML'=>'archivo_xml','CDR'=>'archivo_cdr',default=>throw new DomainException('Tipo no válido.')};
     $fila=(new ArchivoComprobante($conexion))->obtener($k);$ref=(string)($fila[$col]??'');
     if($ref==='')$ref=(string)((new ComprobanteSunat($conexion))->buscarArchivo($k['id_cliente'],$k['ruc_emisor'],$k['tipo_documento'],$k['serie'],$k['numero'],$tipo)['ruta']??'');

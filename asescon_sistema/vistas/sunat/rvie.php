@@ -22,6 +22,11 @@ $urlDetalle = static function (int $paginaDestino, string $tipo = '') use ($para
 $totalDetallesMostrados = $esGlobal ? $totalDetallesGlobales : count($detallesVisibles);
 $totalPaginas = $esGlobal ? max(1, count($clientesPaginados)) : 1;
 $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
+$puedeEnviarCorreo = asesconTienePermiso($conexion, 'RVIE', 'editar');
+$apiComprobante = '../../api/sunat/comprobante_rvie.php';
+$csrfCorreo = 'csrf_rvie_correo';
+$rucEmpresaPorCliente = array_column($clientes, 'ruc', 'id_cliente');
+require __DIR__ . '/componentes/acciones_comprobante_rce.php';
 ?>
 <!doctype html>
 <html lang="es">
@@ -32,6 +37,7 @@ $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
   <title>RVIE SUNAT — Ventas — ASESCON</title>
   <link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui3">
   <link rel="stylesheet" href="../../publico/css/modulos/sunat.css">
+  <link rel="stylesheet" href="../../publico/css/modulos/descarga_masiva_sire.css?v=<?= (int)@filemtime(__DIR__ . '/../../publico/css/modulos/descarga_masiva_sire.css') ?>">
   <link rel="stylesheet" href="../../publico/css/modulos/rvie_centro.css?v=<?= (int)@filemtime(__DIR__ . '/../../publico/css/modulos/rvie_centro.css') ?>">
 </head>
 <body>
@@ -162,6 +168,12 @@ $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
           </section>
         </div>
         <div data-tab-panel="rvie-detalle" <?= $abrirDetalle ? '' : 'hidden' ?>>
+          <?php foreach (['mensaje_archivo_comprobante', 'error_archivo_comprobante'] as $claveAviso): ?>
+            <?php if (isset($_SESSION[$claveAviso])): ?>
+              <p role="<?= $claveAviso === 'error_archivo_comprobante' ? 'alert' : 'status' ?>"><?= $h($_SESSION[$claveAviso]) ?></p>
+              <?php unset($_SESSION[$claveAviso]); ?>
+            <?php endif; ?>
+          <?php endforeach; ?>
           <section class="panel module-panel">
             <div class="reference-table-title" style="padding:0 18px"><div>
               <h2>Detalle de comprobantes RVIE</h2>
@@ -175,13 +187,30 @@ $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
               <a class="reference-btn" data-rvie-excel="detalle" href="<?= $h($excelBase . '&modo=detalle') ?>">⇩ Excel detalle</a>
               <?php if (!$esAnual && !$esGlobal): ?><a class="reference-btn" data-rvie-excel="original" href="<?= $h($excelBase . '&modo=original') ?>">Excel original</a><?php endif; ?>
             </div></div>
+            <div class="sire-descarga-masiva" data-sire-masiva="rvie">
+              <label for="rvieCantidadSeleccion" class="sire-masiva-cantidad">Seleccionar cantidad
+                <select id="rvieCantidadSeleccion" data-sire-cantidad>
+                  <option value="">Elegir cantidad</option>
+                  <option value="10">10</option><option value="20">20</option>
+                  <option value="50">50</option><option value="100">100</option>
+                  <option value="todos">Todos los visibles</option>
+                </select>
+              </label>
+              <span data-sire-contador role="status" aria-live="polite">0 seleccionados</span>
+              <button type="button" class="reference-btn primary" data-sire-descargar disabled>Descargar seleccionados (0)</button>
+              <button type="button" class="reference-btn" data-sire-limpiar disabled>Limpiar selección</button>
+              <small class="sire-masiva-nota">Cada PDF se descarga por separado, sin ZIP. El navegador puede solicitar permiso para descargas múltiples.</small>
+              <div class="sire-masiva-progreso" data-sire-progreso role="status" aria-live="polite"></div>
+            </div>
             <div class="table-container"><table><thead><tr>
+              <th class="sire-columna-seleccion"><input type="checkbox" data-sire-todos aria-label="Seleccionar todos los comprobantes visibles"></th>
               <?php if ($esGlobal): ?><th>Empresa ASESCON</th><?php endif; ?>
-              <th>Fecha de emisión</th><th>Tipo</th><th>Serie</th><th>Número</th><th>Documento cliente</th><th>Cliente</th><th>Base imponible</th><th>IGV</th><th>Total</th><th>Estado</th>
+              <th>Fecha de emisión</th><th>Tipo</th><th>Serie</th><th>Número</th><th>Documento cliente</th><th>Cliente</th><th>Base imponible</th><th>IGV</th><th>Total</th><th>Estado</th><th>Acciones</th>
             </tr></thead><tbody>
-              <?php if ($detallesVisibles === []): ?><tr><td colspan="<?= $esGlobal ? 11 : 10 ?>"><div class="reference-empty">No hay comprobantes visibles para este filtro.</div></td></tr>
+              <?php if ($detallesVisibles === []): ?><tr><td colspan="<?= $esGlobal ? 13 : 12 ?>"><div class="reference-empty">No hay comprobantes visibles para este filtro.</div></td></tr>
               <?php else: foreach ($detallesVisibles as $detalle): ?>
                 <tr class="sire-detail-row" data-sire-tipo="<?= $h($detalle['tipo_comprobante'] ?? '—') ?>">
+                  <td class="sire-columna-seleccion"><input type="checkbox" class="sire-seleccion-fila" aria-label="Seleccionar comprobante <?= $h(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? '')) ?>"></td>
                   <?php if ($esGlobal): ?><td><strong><?= $h($detalle['empresa_asescon'] ?? '—') ?></strong><br><small><?= $h($detalle['ruc_empresa'] ?? '') ?></small></td><?php endif; ?>
                   <td><?= !empty($detalle['fecha_emision']) ? $h(date('d/m/Y', strtotime((string)$detalle['fecha_emision']))) : '—' ?></td>
                   <td><?= $h($detalle['tipo_comprobante'] ?? '—') ?></td><td><?= $h($detalle['serie'] ?? '—') ?></td><td><?= $h($detalle['numero'] ?? '—') ?></td>
@@ -190,6 +219,16 @@ $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
                   <td>S/ <?= PresentacionDatosSire::formatearMonto($detalle['igv'] ?? 0) ?></td>
                   <td>S/ <?= PresentacionDatosSire::formatearMonto($detalle['importe_total'] ?? 0) ?></td>
                   <td><?= $h($detalle['estado_registro'] ?? '—') ?></td>
+                  <?php
+                    $clienteFila = $esGlobal ? (int)($detalle['id_cliente'] ?? 0) : $idCliente;
+                    $comprobanteUrl = $apiComprobante . '?' . http_build_query([
+                        'cliente' => $clienteFila,
+                        'detalle' => (int)$detalle['id_detalle'],
+                    ]);
+                    $rucEmisorFila = $detalle['ruc_empresa'] ?? $rucEmpresaPorCliente[$clienteFila] ?? '';
+                    $numeroFila = trim(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? ''), '-');
+                  ?>
+                  <?php require __DIR__ . '/componentes/botones_comprobante_sire.php'; ?>
                 </tr>
               <?php endforeach; endif; ?>
             </tbody></table></div>
@@ -203,6 +242,8 @@ $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
           </section>
         </div>
       </div>
+      <?php require __DIR__ . '/componentes/dialogos_comprobante_sire.php'; ?>
+      <?php $moduloArchivos = 'RVIE'; require __DIR__ . '/componentes/archivo_comprobante.php'; ?>
       <footer>© <?= (int)(new DateTimeImmutable("now", new DateTimeZone("America/Lima")))->format("Y") ?> ASESCON - Todos los derechos reservados.</footer>
     </section>
   </main>
@@ -214,5 +255,7 @@ $abrirDetalle = (string)($_GET['vista'] ?? '') === 'detalle';
 <script src="../../publico/js/sunat/sincronizacion_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/sincronizacion_sire.js') ?>"></script>
 <script src="../../publico/js/sunat/pendientes_anuales_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/pendientes_anuales_sire.js') ?>"></script>
 <script src="../../publico/js/sunat/rvie_centro.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/rvie_centro.js') ?>"></script>
+<script src="../../publico/js/sunat/rce_comprobante.js?v=<?= (int)filemtime(__DIR__ . '/../../publico/js/sunat/rce_comprobante.js') ?>"></script>
+<script src="../../publico/js/sunat/descarga_masiva_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/descarga_masiva_sire.js') ?>"></script>
 <script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/interfaz/tablas_adaptables.js') ?>"></script>
 </body></html>

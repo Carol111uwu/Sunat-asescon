@@ -1,0 +1,37 @@
+.sire-descarga-masiva { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 18px; border-top:1px solid #e0e9f2; background:#f8fbff; }
+.sire-masiva-cantidad { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:#253f5e; }
+.sire-masiva-cantidad select { padding:7px 9px; border:1px solid #bbd1e4; border-radius:7px; background:white; }
+.sire-descarga-masiva [data-sire-contador] { font-size:13px; color:#274e70; font-weight:600; }
+.sire-descarga-masiva button:disabled { opacity:.52; cursor:not-allowed; }
+.sire-masiva-nota { flex-basis:100%; color:#60738a; font-size:12px; }
+.sire-masiva-progreso { flex-basis:100%; font-size:12px; font-weight:600; color:#20527a; }
+.sire-columna-seleccion { text-align:center; min-width:45px; width:45px; }
+.sire-columna-seleccion input { width:17px; height:17px; cursor:pointer; accent-color:#1d5bb3; }
+.rce-fila-acciones { display:flex; align-items:center; flex-wrap:nowrap; gap:5px; width:max-content; }
+.rce-fila-acciones .rce-icono-accion { display:inline-grid; place-items:center; width:34px; min-width:34px; height:32px; padding:0; border:1px solid #81b5d9; border-radius:7px; background:#fff; color:#195b8a; text-decoration:none; cursor:pointer; }
+.rce-fila-acciones .rce-icono-accion:hover { background:#eaf5ff; }
+
+.rce-dialogo {
+  box-sizing: border-box;
+  width: min(460px, calc(100% - 32px));
+  padding: 24px;
+  border: 1px solid #d8e2ed;
+  border-radius: 14px;
+  color: #0b2341;
+  background: #fff;
+}
+
+.rce-dialogo::backdrop { background: rgba(11, 35, 65, .48); }
+.rce-dialogo h2 { margin: 0 0 12px; font-size: 19px; }
+.rce-dialogo label { display: block; margin-top: 16px; }
+.rce-dialogo input[type="email"] {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #b5c6d8;
+  border-radius: 7px;
+}
+.rce-dialogo [data-rce-estado]:empty { display: none; }
+.rce-dialogo-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.rce-dialogo [hidden] { display: none !important; }

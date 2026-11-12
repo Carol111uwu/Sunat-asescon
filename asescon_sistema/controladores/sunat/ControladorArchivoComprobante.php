@@ -12,7 +12,7 @@ final class ControladorArchivoComprobante
     public function __construct(private mysqli $conexion){}
     public function procesar(array $p,array $archivos):void
     {
-        asesconExigirLogin();$modulo=(string)($p['modulo']??'COMPROBANTES_SUNAT');if(!in_array($modulo,['COMPROBANTES_SUNAT','RCE'],true)){http_response_code(400);exit('Módulo no válido.');}
+        asesconExigirLogin();$modulo=(string)($p['modulo']??'COMPROBANTES_SUNAT');if(!in_array($modulo,['COMPROBANTES_SUNAT','RCE','RVIE'],true)){http_response_code(400);exit('Módulo no válido.');}
         asesconExigirPermiso($this->conexion,$modulo,($p['accion']??'')==='descarga_masiva'?'ejecutar':'editar');
         if(($_SERVER['REQUEST_METHOD']??'')!=='POST'||!asesconValidarCsrf((string)($p['csrf_token']??''),'csrf_archivos_comprobantes')){http_response_code(403);exit('Solicitud no válida.');}
         $cliente=(int)($p['id_cliente']??0);if(!asesconPuedeVerCliente($this->conexion,$cliente)){http_response_code(403);exit('Cliente no autorizado.');}
@@ -30,7 +30,9 @@ final class ControladorArchivoComprobante
             if(($p['accion']??'')==='agregar_cuenta'){$repo->agregarCuenta($cliente,trim((string)($p['codigo']??'')),trim((string)($p['nombre']??'')));$_SESSION['mensaje_archivo_comprobante']='Cuenta guardada sin duplicar su código.';}
             else{
                 $k=ClaveComprobante::normalizar($p);
-                if(!(new ComprobanteSunat($this->conexion))->existeParaCliente($k))throw new DomainException('El comprobante no está registrado para este cliente.');
+                $comprobantes = new ComprobanteSunat($this->conexion);
+                $existe = $modulo === 'RVIE' ? $comprobantes->existeEnRvie($k) : $comprobantes->existeParaCliente($k);
+                if(!$existe)throw new DomainException('El comprobante no está registrado para este cliente.');
                 $cuenta=trim((string)($p['cuenta_contable']??''));$centro=trim((string)($p['centro_costos']??''));if(strlen($cuenta)>30||preg_match_all('/./us',$centro)>120)throw new DomainException('Cuenta o centro de costos demasiado extensos.');
                 if($cuenta!==''&&!in_array($cuenta,array_column($repo->cuentas($cliente),'codigo'),true))throw new DomainException('Agrega o selecciona una cuenta del catálogo de este cliente.');
                 $anterior=$repo->obtener($k);$ref=(string)($anterior[$col]??'');
@@ -38,7 +40,12 @@ final class ControladorArchivoComprobante
                 $repo->guardar($k,$tipo,$ref,$cuenta,$centro);$_SESSION['mensaje_archivo_comprobante']='Archivo y clasificación guardados para el comprobante.';
             }
         }catch(Throwable $e){error_log('Archivo de comprobante: '.get_class($e));$_SESSION['error_archivo_comprobante']=$e instanceof DomainException?$e->getMessage():'No se pudo procesar el archivo.';}
-        asesconRedirigir($modulo==='RCE'?'vistas/sunat/rce.php':'vistas/sunat/comprobantes_sunat.php',$modulo==='RCE'?['cliente'=>$cliente,'periodo'=>(string)($p['periodo']??date('Ym'))]:['cliente_desc'=>$cliente,'tab'=>'descripcion']);
+        if ($modulo === 'RCE' || $modulo === 'RVIE') {
+            $vista = $modulo === 'RVIE' ? 'vistas/sunat/rvie.php' : 'vistas/sunat/rce.php';
+            $parametros = ['cliente' => $cliente, 'periodo' => (string)($p['periodo'] ?? date('Ym'))];
+            asesconRedirigir($vista, $modulo === 'RVIE' ? $parametros + ['vista' => 'detalle'] : $parametros);
+        }
+        asesconRedirigir('vistas/sunat/comprobantes_sunat.php', ['cliente_desc' => $cliente, 'tab' => 'descripcion']);
     }
 }
 if(realpath((string)($_SERVER['SCRIPT_FILENAME']??''))===__FILE__)(new ControladorArchivoComprobante($conexion))->procesar($_POST,$_FILES);

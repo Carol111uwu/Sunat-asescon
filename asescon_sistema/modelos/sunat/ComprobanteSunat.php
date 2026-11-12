@@ -54,6 +54,25 @@ final class ComprobanteSunat
         $s=$this->conexion->prepare($sql);$s->bind_param('issssissss',$k['id_cliente'],$k['ruc_emisor'],$k['tipo_documento'],$k['serie'],$k['numero'],$k['id_cliente'],$k['ruc_emisor'],$k['tipo_documento'],$k['serie'],$k['numero']);$s->execute();$existe=$s->get_result()->fetch_assoc()!==null;$s->close();return $existe;
     }
 
+    public function existeEnRvie(array $clave): bool
+    {
+        $k = ClaveComprobante::normalizar($clave);
+        $sql = "SELECT 1 FROM rvie_detalle d
+                INNER JOIN rvie h ON h.id_rvie = d.id_rvie
+                INNER JOIN clientes c ON c.id_cliente = h.id_cliente
+                WHERE h.id_cliente = ? AND c.ruc = ?
+                  AND LPAD(TRIM(d.tipo_comprobante), 2, '0') = ?
+                  AND UPPER(TRIM(d.serie)) = ?
+                  AND COALESCE(NULLIF(TRIM(LEADING '0' FROM TRIM(d.numero)), ''), '0') = ?
+                LIMIT 1";
+        $stmt = $this->conexion->prepare($sql);
+        $stmt->bind_param('issss', $k['id_cliente'], $k['ruc_emisor'], $k['tipo_documento'], $k['serie'], $k['numero']);
+        $stmt->execute();
+        $existe = $stmt->get_result()->fetch_row() !== null;
+        $stmt->close();
+        return $existe;
+    }
+
     public function crear(array $d): int
     {
         $s = $this->conexion->prepare("INSERT INTO comprobantes_sunat(id_cliente,tipo_comprobante,serie,numero,fecha_emision,ruc_emisor,razon_social_emisor,ruc_receptor,razon_social_receptor,moneda,subtotal,igv,total,estado) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
