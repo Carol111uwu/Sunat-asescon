@@ -51,12 +51,14 @@ test('RCE permite ocultar y volver a mostrar el estado sin interrumpir la consul
 
 test('RCE presenta proveedores reales, PDF/archivos y consolidados paginados por empresa', () => {
   const vista = leer('vistas/sunat/rce.php');
+  assert.match(vista, /componentes\/botones_comprobante_sire\.php/);
+  const contenidoVista = vista + '\n' + leer('vistas/sunat/componentes/botones_comprobante_sire.php');
   const modelo = leer('modelos/sunat/RepositorioLecturaSire.php');
   const controlador = leer('controladores/sunat/ControladorVistaLibroSire.php');
   const exportacion = leer('controladores/sunat/ControladorExportacionSire.php');
   for (const campo of ['ruc_proveedor', 'razon_social_proveedor', 'Archivos / cuenta',
     'archivo_comprobante.php', 'totalDetallesGlobales', 'rce-paginacion']) {
-    assert.ok(vista.includes(campo), `RCE no incluye ${campo}`);
+    assert.ok(contenidoVista.includes(campo), `RCE no incluye ${campo}`);
   }
   assert.match(modelo, /d\.importe_total,d\.estado_registro,h\.id_cliente/);
   assert.ok(controlador.includes('contarDetallesGlobales'));

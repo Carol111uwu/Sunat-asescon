@@ -9,11 +9,13 @@ const leer = ruta => readFileSync(resolve(raiz, ruta), 'utf8');
 
 test('RCE muestra acciones para consultar, descargar y compartir el reporte', () => {
   const vista = leer('vistas/sunat/rce.php');
+  assert.match(vista, /componentes\/botones_comprobante_sire\.php/);
+  const contenidoVista = vista + '\n' + leer('vistas/sunat/componentes/botones_comprobante_sire.php');
   for (const texto of ['data-rce-correo', 'data-rce-whatsapp', 'formato=xlsx',
     'vista=previa', 'rce_comprobante.js', 'acciones_comprobante_rce.php']) {
-    assert.ok(vista.includes(texto), `Falta la integración: ${texto}`);
+    assert.ok(contenidoVista.includes(texto), `Falta la integración: ${texto}`);
   }
-  assert.ok(vista.includes('data-archivo-comprobante'), 'Debe conservarse el acceso a los archivos originales');
+  assert.ok(contenidoVista.includes('data-archivo-comprobante'), 'Debe conservarse el acceso a los archivos originales');
 });
 
 test('La API del reporte verifica sesión, cliente, permisos y CSRF antes de enviar correos', () => {

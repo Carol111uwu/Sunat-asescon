@@ -180,30 +180,57 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
               <a class="reference-btn" data-rce-excel="detalle" href="<?= $h($excelBase . '&modo=detalle') ?>">⇩ Excel detalle</a>
               <?php if (!$esAnual && !$esGlobal): ?><a class="reference-btn" data-rce-excel="original" href="<?= $h($excelBase . '&modo=original') ?>">Excel original</a><?php endif; ?>
             </div></div>
-            <div class="sire-descarga-masiva" data-sire-masiva="rce">
-              <label for="rceCantidadSeleccion" class="sire-masiva-cantidad">Seleccionar cantidad
-                <select id="rceCantidadSeleccion" data-sire-cantidad>
-                  <option value="">Elegir cantidad</option>
-                  <option value="10">10</option><option value="20">20</option>
-                  <option value="50">50</option><option value="100">100</option>
-                  <option value="todos">Todos los visibles</option>
+            <form id="rceFiltrosDetalle" class="rce-filtros-detalle">
+              <div class="rce-filtros-titulo"><strong>Filtros de comprobantes</strong><small>Busca dentro de los registros cargados de esta página.</small></div>
+              <label>RUC / Proveedor<input type="search" name="proveedor" placeholder="RUC o razón social"></label>
+              <label>Tipo documento<select name="tipo"><option value="">Todos</option><?php foreach($tipos as $tipo): ?><option value="<?= $h($tipo['tipo']) ?>"><?= $h($tipo['tipo']) ?></option><?php endforeach; ?></select></label>
+              <label>Serie<input name="serie" placeholder="Ej. F001"></label>
+              <label>Número<input name="numero" placeholder="Número de comprobante"></label>
+              <label>Fecha desde<input type="date" name="desde"></label>
+              <label>Fecha hasta<input type="date" name="hasta"></label>
+              <label>Importe mínimo (S/)<input type="number" min="0" step="0.01" name="minimo"></label>
+              <label>Importe máximo (S/)<input type="number" min="0" step="0.01" name="maximo"></label>
+              <div class="rce-filtros-botones"><button class="reference-btn primary" type="submit">Buscar</button><button class="reference-btn" type="reset">Limpiar</button></div>
+              <p id="rceFiltrosEstado" role="status" aria-live="polite"></p>
+            </form>
+            <div class="rce-seleccion-controles" id="rceSeleccionControles" data-csrf="<?= $h(asesconCsrf('csrf_rce_lote')) ?>">
+              <label class="rce-seleccion-todos"><input type="checkbox" id="rceMarcarTodos"> Seleccionar visibles (máximo 60)</label>
+              <label class="rce-seleccion-cantidad">Elegir cantidad
+                <select id="rceSeleccionCantidad" aria-label="Elegir cuántos comprobantes seleccionar">
+                  <option value="">Elegir</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="60">60</option>
+                  <option value="todos">Todos los visibles (máximo 60)</option>
                 </select>
               </label>
-              <span data-sire-contador role="status" aria-live="polite">0 seleccionados</span>
-              <button type="button" class="reference-btn primary" data-sire-descargar disabled>Descargar seleccionados (0)</button>
-              <button type="button" class="reference-btn" data-sire-limpiar disabled>Limpiar selección</button>
-              <small class="sire-masiva-nota">Cada PDF se descarga por separado, sin ZIP. El navegador puede solicitar permiso para descargas múltiples.</small>
-              <div class="sire-masiva-progreso" data-sire-progreso role="status" aria-live="polite"></div>
+              <span id="rceCantidadSeleccionados" aria-live="polite">0 comprobantes seleccionados</span>
+              <button type="button" class="reference-btn" id="rceLimpiarSeleccion" disabled>Deseleccionar todos</button>
+              <div class="rce-seleccion-acciones">
+                <button type="button" class="reference-btn" id="rceLotePdf" disabled>⇩ PDF seleccionados (ZIP)</button>
+                <button type="button" class="reference-btn" id="rceLoteExcel" disabled>⇩ Excel seleccionados</button>
+                <button type="button" class="reference-btn" id="rceLoteIndividual" disabled>⇩ PDF individuales</button>
+                <div class="rce-enviar-grupo" id="rceEnviarGrupo">
+                  <button type="button" class="reference-btn primary" id="rceLoteEnviar" aria-expanded="false" aria-controls="rceEnviarOpciones" disabled>Enviar ▾</button>
+                  <div class="rce-enviar-opciones" id="rceEnviarOpciones" hidden>
+                    <?php if ($puedeEnviarCorreo): ?><button type="button" data-rce-enviar-correo>Enviar por correo</button><?php endif; ?>
+                    <button type="button" data-rce-enviar-whatsapp>Compartir por WhatsApp</button>
+                  </div>
+                </div>
+              </div>
+              <p class="reference-subtle rce-seleccion-ayuda">Selecciona hasta 60 comprobantes visibles para descargar un ZIP, un Excel o PDFs individuales. Las descargas individuales pueden requerir permiso del navegador.</p>
+              <p id="rceSeleccionEstado" role="status" aria-live="polite"></p>
             </div>
             <div class="table-container"><table><thead><tr>
-              <th class="sire-columna-seleccion"><input type="checkbox" data-sire-todos aria-label="Seleccionar todos los comprobantes visibles"></th>
+              <th class="sire-columna-seleccion">Selección</th>
               <?php if ($esGlobal): ?><th>Empresa ASESCON</th><?php endif; ?>
               <th>Fecha de emisión</th><th>Tipo</th><th>Serie</th><th>Número</th><th>RUC proveedor</th><th>Proveedor</th><th>Base imponible</th><th>IGV</th><th>Total</th><th>Estado</th><th>Acciones</th>
             </tr></thead><tbody>
               <?php if ($detallesVisibles === []): ?><tr><td colspan="<?= $esGlobal ? 13 : 12 ?>"><div class="reference-empty">No hay comprobantes visibles para este filtro.</div></td></tr>
               <?php else: foreach ($detallesVisibles as $detalle): ?>
-                <tr class="sire-detail-row" data-sire-tipo="<?= $h($detalle['tipo_comprobante'] ?? '—') ?>">
-                  <td class="sire-columna-seleccion"><input type="checkbox" class="sire-seleccion-fila" aria-label="Seleccionar comprobante <?= $h(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? '')) ?>"></td>
+                <tr class="sire-detail-row" data-sire-tipo="<?= $h($detalle['tipo_comprobante'] ?? '—') ?>" data-rce-proveedor="<?= $h(($detalle['ruc_proveedor'] ?? '') . ' ' . ($detalle['razon_social_proveedor'] ?? '')) ?>" data-rce-serie="<?= $h($detalle['serie'] ?? '') ?>" data-rce-numero="<?= $h($detalle['numero'] ?? '') ?>" data-rce-fecha="<?= $h($detalle['fecha_emision'] ?? '') ?>" data-rce-total="<?= (float)($detalle['importe_total'] ?? 0) ?>">
+                  <td class="sire-columna-seleccion"><input type="checkbox" class="sire-seleccion-fila rce-seleccionar-fila" data-cliente="<?= $esGlobal ? (int)($detalle['id_cliente'] ?? 0) : $idCliente ?>" data-detalle="<?= (int)($detalle['id_detalle'] ?? 0) ?>" aria-label="Seleccionar comprobante <?= $h(($detalle['serie'] ?? '') . '-' . ($detalle['numero'] ?? '')) ?>"></td>
                   <?php if ($esGlobal): ?><td><strong><?= $h($detalle['empresa_asescon'] ?? '—') ?></strong><br><small><?= $h($detalle['ruc_empresa'] ?? '') ?></small></td><?php endif; ?>
                   <td><?= !empty($detalle['fecha_emision']) ? $h(date('d/m/Y', strtotime((string)$detalle['fecha_emision']))) : '—' ?></td>
                   <td><?= $h($detalle['tipo_comprobante'] ?? '—') ?></td><td><?= $h($detalle['serie'] ?? '—') ?></td><td><?= $h($detalle['numero'] ?? '—') ?></td>
@@ -236,6 +263,34 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
         </div>
       </div>
       <?php require __DIR__ . '/componentes/dialogos_comprobante_sire.php'; ?>
+      <?php if ($puedeEnviarCorreo): ?>
+      <dialog id="rceCorreoLote" class="rce-dialogo" aria-labelledby="rceCorreoLoteTitulo">
+        <form id="rceCorreoLoteFormulario" autocomplete="off">
+          <h2 id="rceCorreoLoteTitulo">Enviar comprobantes RCE seleccionados</h2>
+          <p data-rce-cantidad></p>
+          <p>Se adjuntará un archivo ZIP con los PDF informativos, sin cambiar el diseño de los documentos.</p>
+          <label for="rceCorreoLoteDestino">Correo del destinatario</label>
+          <input id="rceCorreoLoteDestino" type="email" name="destinatario" required maxlength="254" autocomplete="email">
+          <p data-rce-estado role="status" aria-live="polite"></p>
+          <div class="rce-dialogo-acciones">
+            <button type="button" class="reference-btn" data-rce-cerrar>Cancelar</button>
+            <button type="submit" class="reference-btn primary">Enviar por correo</button>
+          </div>
+        </form>
+      </dialog>
+      <?php endif; ?>
+      <dialog id="rceWhatsAppLote" class="rce-dialogo" aria-labelledby="rceWhatsAppLoteTitulo">
+        <h2 id="rceWhatsAppLoteTitulo">Compartir comprobantes seleccionados</h2>
+        <p data-rce-cantidad></p>
+        <p>WhatsApp Web no adjunta archivos automáticamente. Descarga el ZIP y adjúntalo al chat; en dispositivos compatibles también puedes usar Compartir.</p>
+        <p data-rce-estado role="status" aria-live="polite"></p>
+        <div class="rce-dialogo-acciones">
+          <button type="button" class="reference-btn" data-rce-cerrar>Cerrar</button>
+          <button type="button" class="reference-btn" id="rceCompartirLote" hidden>Compartir archivo</button>
+          <button type="button" class="reference-btn" id="rceDescargarLoteWhatsapp" disabled>Descargar ZIP</button>
+          <a class="reference-btn primary" href="https://web.whatsapp.com/" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+        </div>
+      </dialog>
       <?php $moduloArchivos = 'RCE'; require __DIR__ . '/componentes/archivo_comprobante.php'; ?>
       <footer>© <?= (int)(new DateTimeImmutable("now", new DateTimeZone("America/Lima")))->format("Y") ?> ASESCON - Todos los derechos reservados.</footer>
     </section>
@@ -250,5 +305,7 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
 <script src="../../publico/js/sunat/rce_centro.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/rce_centro.js') ?>"></script>
 <script src="../../publico/js/sunat/rce_comprobante.js?v=<?= (int)filemtime(__DIR__ . '/../../publico/js/sunat/rce_comprobante.js') ?>"></script>
 <script src="../../publico/js/sunat/descarga_masiva_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/descarga_masiva_sire.js') ?>"></script>
+<script src="../../publico/js/sunat/rce_seleccion.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/rce_seleccion.js') ?>"></script>
+<script src="../../publico/js/sunat/rce_descarga_individual.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/rce_descarga_individual.js') ?>"></script>
 <script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/interfaz/tablas_adaptables.js') ?>"></script>
 </body></html>

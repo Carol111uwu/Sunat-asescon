@@ -7,6 +7,7 @@
   const token = raiz.dataset.csrf;
   const casillas = Array.from(document.querySelectorAll('.rce-seleccionar-fila'));
   const marcarTodo = document.getElementById('rceMarcarTodos');
+  const elegirCantidad = document.getElementById('rceSeleccionCantidad');
   const limpiar = document.getElementById('rceLimpiarSeleccion');
   const cantidad = document.getElementById('rceCantidadSeleccionados');
   const pdf = document.getElementById('rceLotePdf');
@@ -36,16 +37,33 @@
     marcarTodo.checked = actuales.length > 0 && marcadas === actuales.length;
     marcarTodo.indeterminate = marcadas > 0 && marcadas < actuales.length;
     for (const boton of [limpiar, pdf, excel, enviar]) boton.disabled = marcadas === 0 || preparando;
+    if (elegirCantidad) elegirCantidad.disabled = preparando;
     if (!marcadas) opciones.hidden = true;
   }
 
   casillas.forEach(c => c.addEventListener('change', actualizar));
   marcarTodo.addEventListener('change', () => {
-    visibles().forEach(c => { c.checked = marcarTodo.checked; });
+    const actuales = visibles();
+    actuales.forEach((c, i) => { c.checked = marcarTodo.checked && i < 60; });
+    if (marcarTodo.checked && actuales.length > 60) {
+      estado.textContent = 'Se seleccionaron los primeros 60 comprobantes visibles. Para continuar, descarga el siguiente grupo.';
+    }
+    actualizar();
+  });
+  elegirCantidad?.addEventListener('change', () => {
+    if (!elegirCantidad.value) return;
+    const actuales = visibles();
+    const pedido = elegirCantidad.value === 'todos' ? actuales.length : Number(elegirCantidad.value);
+    actuales.forEach((c, i) => { c.checked = i < Math.min(60, pedido); });
+    estado.textContent = pedido > 60
+      ? 'Se seleccionaron 60 comprobantes de esta página; puedes procesar el resto después.'
+      : '';
     actualizar();
   });
   limpiar.addEventListener('click', () => {
     casillas.forEach(c => { c.checked = false; });
+    if (elegirCantidad) elegirCantidad.value = '';
+    estado.textContent = '';
     actualizar();
   });
   const formularioFiltros = document.getElementById('rceFiltrosDetalle');
