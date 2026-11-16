@@ -37,6 +37,9 @@ RUN mkdir -p /var/www/html/asescon_datos_privados/almacenamiento /var/www/html/a
 ENV PATH="/opt/asescon-venv/bin:${PATH}"
 
 COPY docker/php.ini /usr/local/etc/php/conf.d/asescon.ini
+# Permisos de lectura para Apache
+RUN chgrp -R www-data /var/www/html/asescon_sistema \
+    && chmod -R g+rX /var/www/html/asescon_sistema
 
 # Detrás del proxy compartido: IP real del usuario y HTTPS (mod_remoteip).
 COPY docker/apache-proxy.conf /etc/apache2/conf-available/asescon-proxy.conf
