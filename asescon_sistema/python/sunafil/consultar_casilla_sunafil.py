@@ -450,6 +450,21 @@ def guardar_adjuntos(page, records: list[dict[str, Any]], carpeta: str, cliente:
     return descargados
 
 
+def descargar_pdf_solicitado(page, req: dict[str, Any]) -> dict[str, Any]:
+    identificador = clean(req.get("identificador_externo", ""))
+    id_documento = int(req.get("id_documento", 0))
+    if id_documento < 1 or not re.fullmatch(r"SUNAFIL-[a-f0-9]{40}", identificador):
+        raise RuntimeError("La notificación SUNAFIL no está identificada.")
+    coincidencias = [r for r in read_inbox(page) if r["identificador_externo"] == identificador]
+    if len(coincidencias) != 1:
+        raise RuntimeError("La notificación ya no aparece en la casilla o no pudo identificarse.")
+    guardar_adjuntos(page, coincidencias, str(req.get("raiz_archivos", "")), int(req.get("id_cliente", 0)))
+    archivo = coincidencias[0].get("archivo", "")
+    if not archivo:
+        raise RuntimeError("SUNAFIL no entregó un PDF directo para esta notificación. Puedes vincular el archivo oficial manualmente.")
+    return {"id_documento": id_documento, "identificador_externo": identificador, "archivo": archivo}
+
+
 def main() -> None:
     try:
         req = json.loads(sys.stdin.read() or "{}")
@@ -498,6 +513,8 @@ def main() -> None:
                         sys.stderr.write("SUNAFIL: no se pudo guardar uno o más PDF en el volumen privado.\n")
                     for notificacion in data["notificaciones"]:
                         notificacion.pop("enlace_pdf", None)
+                elif modo == "pdf":
+                    data["documento"] = descargar_pdf_solicitado(page, req)
             finally:
                 context.close()
                 browser.close()

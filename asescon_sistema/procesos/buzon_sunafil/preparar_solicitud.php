@@ -47,6 +47,21 @@ try {
         'clave_sol' => (string)$credenciales['clave_sol'],
     ];
 
+    $idDocumento = (int)($solicitud['id_documento'] ?? 0);
+    if ($idDocumento > 0) {
+        $consulta = $conexion->prepare('SELECT identificador_externo FROM buzon_sunafil WHERE id_documento=? AND id_cliente=?');
+        $consulta->bind_param('ii', $idDocumento, $idCliente);
+        $consulta->execute();
+        $identificador = (string)($consulta->get_result()->fetch_assoc()['identificador_externo'] ?? '');
+        $consulta->close();
+        if (!preg_match('/^SUNAFIL-[a-f0-9]{40}$/D', $identificador)) {
+            throw new DomainException('No se pudo identificar la notificación para solicitar el PDF oficial.');
+        }
+        $entrada['modo'] = 'pdf';
+        $entrada['id_documento'] = $idDocumento;
+        $entrada['identificador_externo'] = $identificador;
+    }
+
     $json = json_encode($entrada, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if ($json === false) {
         throw new RuntimeException('No se pudo preparar la entrada del conector.');
@@ -62,7 +77,7 @@ try {
     echo $idTrabajo . "\t" . $rutaEntrada . "\t" . $rutaResultado;
 } catch (Throwable $e) {
     error_log('Buzón SUNAFIL preparar cron: ' . get_class($e) . ': ' . $e->getMessage());
-    $cola->fallar($idCliente, $idTrabajo, 'No se pudo preparar la consulta del cliente. Consulta el registro de errores.');
+    $cola->fallar($idCliente, $idTrabajo, $e instanceof DomainException ? $e->getMessage() : 'No se pudo preparar la consulta del cliente. Consulta el registro de errores.');
     $cola->limpiarTrabajo($idTrabajo);
     exit(1);
 }

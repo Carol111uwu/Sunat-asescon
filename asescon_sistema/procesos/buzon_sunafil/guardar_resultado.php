@@ -63,33 +63,48 @@ try {
             if (!$cliente || (string)($datos['ruc'] ?? '') !== (string)$cliente['ruc']) {
                 throw new RuntimeException('La respuesta no corresponde al cliente solicitado.');
             }
-            $documentos = is_array($datos['notificaciones'] ?? null) ? $datos['notificaciones'] : [];
-            $archivos = new ServicioArchivosPrivados();
-            foreach ($documentos as &$documento) {
-                if (!is_array($documento)) {
-                    continue;
+            $idDocumento = (int)($solicitud['id_documento'] ?? 0);
+            if ($idDocumento > 0) {
+                $documento = $datos['documento'] ?? null;
+                if (!is_array($documento) || (int)($documento['id_documento'] ?? 0) !== $idDocumento) {
+                    throw new RuntimeException('SUNAFIL no devolvió el documento solicitado.');
                 }
-                $identificador = (string) ($documento['identificador_externo'] ?? '');
-                $referencia = (string) ($documento['archivo'] ?? '');
-                $esperada = ServicioArchivosPrivados::CARPETAS['SUNAFIL'] . "/{$idCliente}/oficial/{$identificador}.pdf";
-                $documento['archivo'] = preg_match('/^SUNAFIL-[a-f0-9]{40}$/D', $identificador)
-                    && $referencia === $esperada && $archivos->resolver($referencia, 'SUNAFIL') ? $referencia : '';
-            }
-            unset($documento);
-            $conexion->begin_transaction();
-            try {
-                $nuevos = (new BuzonSunafil($conexion))->guardarSincronizados($idCliente, $documentos);
-                $conexion->commit();
-            } catch (Throwable $e) {
-                $conexion->rollback();
-                throw $e;
-            }
-            $cola->completar($idCliente, $idTrabajo, count($documentos), $nuevos);
-            try {
-                require_once dirname(__DIR__, 2) . '/modelos/comunicaciones/ColaAvisosBuzones.php';
-                (new ColaAvisosBuzones($conexion))->registrar('SUNAFIL', $idCliente);
-            } catch (Throwable $errorAviso) {
-                error_log('Avisos SUNAFIL: no se pudo registrar la cola de correo.');
+                (new BuzonSunafil($conexion))->vincularPdfOficial(
+                    $idCliente,
+                    $idDocumento,
+                    (string)($documento['identificador_externo'] ?? ''),
+                    (string)($documento['archivo'] ?? '')
+                );
+                $cola->completarPdf($idCliente, $idTrabajo);
+            } else {
+                $documentos = is_array($datos['notificaciones'] ?? null) ? $datos['notificaciones'] : [];
+                $archivos = new ServicioArchivosPrivados();
+                foreach ($documentos as &$documento) {
+                    if (!is_array($documento)) {
+                        continue;
+                    }
+                    $identificador = (string) ($documento['identificador_externo'] ?? '');
+                    $referencia = (string) ($documento['archivo'] ?? '');
+                    $esperada = ServicioArchivosPrivados::CARPETAS['SUNAFIL'] . "/{$idCliente}/oficial/{$identificador}.pdf";
+                    $documento['archivo'] = preg_match('/^SUNAFIL-[a-f0-9]{40}$/D', $identificador)
+                        && $referencia === $esperada && $archivos->resolver($referencia, 'SUNAFIL') ? $referencia : '';
+                }
+                unset($documento);
+                $conexion->begin_transaction();
+                try {
+                    $nuevos = (new BuzonSunafil($conexion))->guardarSincronizados($idCliente, $documentos);
+                    $conexion->commit();
+                } catch (Throwable $e) {
+                    $conexion->rollback();
+                    throw $e;
+                }
+                $cola->completar($idCliente, $idTrabajo, count($documentos), $nuevos);
+                try {
+                    require_once dirname(__DIR__, 2) . '/modelos/comunicaciones/ColaAvisosBuzones.php';
+                    (new ColaAvisosBuzones($conexion))->registrar('SUNAFIL', $idCliente);
+                } catch (Throwable $errorAviso) {
+                    error_log('Avisos SUNAFIL: no se pudo registrar la cola de correo.');
+                }
             }
         }
     }

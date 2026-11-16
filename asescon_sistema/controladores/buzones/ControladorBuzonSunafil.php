@@ -13,6 +13,22 @@ final class ControladorBuzonSunafil
     {
     }
 
+    public function casosVisibles(): array
+    {
+        require_once __DIR__.'/../../modelos/buzones/SeguimientoNotificacionesSunafil.php';
+        asesconExigirPermiso($this->conexion, 'BUZON_SUNAFIL', 'ver');
+        try {
+            return (new SeguimientoNotificacionesSunafil($this->conexion))->listarCasosVisibles(
+                asesconFiltroClientesSql($this->conexion, 'c'),
+                (int)asesconUsuarioActual($this->conexion)['id_usuario'],
+                asesconEsPrincipal($this->conexion)
+            );
+        } catch (Throwable $error) {
+            error_log('Seguimiento SUNAFIL: '.get_class($error));
+            return [];
+        }
+    }
+
     public function datos(string $estado = '', int $idCliente = 0,string $tipo='',string $desde='',string $hasta='',int $pagina=1): array
     {
         asesconExigirPermiso($this->conexion, 'BUZON_SUNAFIL', 'ver');

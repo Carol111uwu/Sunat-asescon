@@ -10,7 +10,9 @@ $tipo=trim((string)($_GET['tipo']??''));
 $desde=trim((string)($_GET['desde']??''));
 $hasta=trim((string)($_GET['hasta']??''));
 $pagina=max(1,(int)($_GET['pagina']??1));
-$datos=(new ControladorBuzonSunafil($conexion))->datos($estado,$idCliente,$tipo,$desde,$hasta,$pagina);
+$controladorSunafil = new ControladorBuzonSunafil($conexion);
+$datos=$controladorSunafil->datos($estado,$idCliente,$tipo,$desde,$hasta,$pagina);
+$casosAsignados = $controladorSunafil->casosVisibles();
 extract($datos);
 $csrf=asesconCsrf('csrf_buzon_sunafil');
 $clientes=[];
@@ -64,6 +66,28 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <label class="reference-field">Estado<select name="estado"><option value="">Todos</option><option value="NO_REVISADO" <?=$estado==='NO_REVISADO'?'selected':''?>>Pendientes</option><option value="REVISADO" <?=$estado==='REVISADO'?'selected':''?>>Revisados</option></select></label>
 <div class="reference-actions"><button class="reference-btn primary" type="submit">Aplicar filtros</button><a class="reference-btn" href="buzon_sunafil.php?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente]))?>">Limpiar filtros</a></div></form></section>
 
+<?php if($casosAsignados !== []):?>
+<section class="reference-panel">
+  <div class="reference-table-title"><h2><?=asesconEsPrincipal($conexion)?'Casos SUNAFIL registrados':'Mis casos SUNAFIL asignados'?></h2></div>
+  <div class="table-container">
+    <table class="buzon-tabla-simple">
+      <thead><tr><th>Cliente</th><th>Asunto</th><th>Responsable</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody>
+      <?php foreach($casosAsignados as $caso):?>
+        <tr>
+          <td><?=$escBuzon($caso['razon_social'])?></td>
+          <td><?=$escBuzon($caso['asunto'])?></td>
+          <td><?=$escBuzon($caso['responsable']??'Sin asignar')?></td>
+          <td><?=$escBuzon($caso['estado_caso'])?></td>
+          <td><a class="reference-btn" href="caso_sunafil.php?id_documento=<?=(int)$caso['id_documento']?>#seguimiento-sunafil">Abrir caso</a></td>
+        </tr>
+      <?php endforeach;?>
+      </tbody>
+    </table>
+  </div>
+</section>
+<?php endif;?>
+
 <section class="reference-panel buzon-tabla-panel"><div class="reference-table-title"><div><h2>Requerimientos</h2><p><?=(int)$total_filtrado?> resultado(s) en total · <?php if($idCliente===0 && $cliente_pagina!==null):?>Empresa <?=(int)$pagina_actual?> de <?=(int)$total_paginas?>: <?=$escBuzon($cliente_pagina['razon_social'])?> · <?=count($filas)?> requerimientos completos de esta empresa<?php else:?>Cliente seleccionado · <?=(int)$pagina_actual?> de <?=(int)$total_paginas?><?php endif;?></p></div></div>
 <div class="table-container"><table id="tablaSunafil" class="buzon-tabla-simple"><thead><tr><th>Estado</th><th>Origen</th><th>F. notificación</th><th>Cliente</th><th>Asunto</th><th>Registro</th><th>Plazo / prioridad</th><th>F. límite</th><th>PDF / acción</th></tr></thead><tbody>
 <?php if($filas===[]):?><tr><td colspan="9"><div class="reference-empty">No hay requerimientos guardados para estos filtros. Si es una empresa nueva, consulta su casilla desde el panel superior.</div></td></tr>
@@ -78,6 +102,14 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
   <td data-label="Plazo / prioridad"><?=$escBuzon($d['prioridad']?:'NORMAL')?></td>
   <td data-label="F. límite">—</td>
   <td data-label="PDF / acción"><div class="buzon-acciones-sunafil"><button type="button" class="reference-btn buzon-accion-principal" data-buzon-detalle="SUNAFIL" data-id-documento="<?=$idDocumento?>">Ver documento</button>
+    <details class="buzon-mas-acciones">
+      <summary class="reference-btn">Más acciones</summary>
+      <div class="buzon-mas-menu">
+      <a class="reference-btn" href="caso_sunafil.php?id_documento=<?=$idDocumento?>#pdf-sunafil">PDF</a>
+      <?php if($puedeConsultar):?><a class="reference-btn" href="caso_sunafil.php?id_documento=<?=$idDocumento?>#correo-sunafil">Correo</a><?php endif;?>
+      <a class="reference-btn" href="caso_sunafil.php?id_documento=<?=$idDocumento?>#seguimiento-sunafil"><?=$puedeTodos?'Asignar y seguir':'Seguimiento'?></a>
+      </div>
+    </details>
     <?php if(!empty($d['archivo'])):?><span class="reference-badge">Archivo</span><?php endif;?>
     <?php if($d['estado']==='NO_REVISADO'&&$puedeConsultar):?><form method="post" action="../../controladores/buzones/ControladorBuzonSunafil.php"><input type="hidden" name="csrf_token" value="<?=$escBuzon($csrf)?>"><input type="hidden" name="accion" value="revisado"><input type="hidden" name="id_cliente" value="<?=$idCliente?>"><input type="hidden" name="id_documento" value="<?=$idDocumento?>"><button class="reference-btn" type="submit">Marcar revisado</button></form><?php endif;?></div></td>
 </tr>

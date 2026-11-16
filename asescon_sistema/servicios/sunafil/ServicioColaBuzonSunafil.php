@@ -24,9 +24,9 @@ final class ServicioColaBuzonSunafil
         $this->prepararDirectorios();
     }
 
-    public function solicitar(int $idCliente, int $idUsuario): array
+    public function solicitar(int $idCliente, int $idUsuario, int $idDocumento = 0): array
     {
-        if ($idCliente <= 0) {
+        if ($idCliente <= 0 || $idDocumento < 0) {
             throw new InvalidArgumentException('El cliente seleccionado no es válido.');
         }
 
@@ -42,6 +42,9 @@ final class ServicioColaBuzonSunafil
 
             $estadoActual = $this->leerEstadoCliente($idCliente);
             if ($this->estadoSigueActivo($estadoActual)) {
+                if ((int)($estadoActual['id_documento'] ?? 0) !== $idDocumento) {
+                    throw new DomainException('Esta empresa ya tiene una consulta en curso. Espera a que termine y vuelve a solicitar el documento.');
+                }
                 return $estadoActual + ['reutilizada' => true];
             }
 
@@ -55,6 +58,7 @@ final class ServicioColaBuzonSunafil
             $solicitud = [
                 'id_trabajo' => $idTrabajo,
                 'id_cliente' => $idCliente,
+                'id_documento' => $idDocumento,
                 'id_usuario' => max(0, $idUsuario),
                 'solicitado_en' => $ahora,
             ];
@@ -65,8 +69,9 @@ final class ServicioColaBuzonSunafil
             $estado = [
                 'id_trabajo' => $idTrabajo,
                 'id_cliente' => $idCliente,
+                'id_documento' => $idDocumento,
                 'estado' => 'PENDIENTE',
-                'mensaje' => 'La sincronización quedó en cola y será procesada automáticamente.',
+                'mensaje' => $idDocumento > 0 ? 'PDF solicitado. Está en cola.' : 'La sincronización quedó en cola y será procesada automáticamente.',
                 'solicitado_en' => $ahora,
                 'actualizado_en' => $ahora,
                 'total' => 0,
@@ -164,6 +169,12 @@ final class ServicioColaBuzonSunafil
             'Buzón SUNAFIL sincronizado correctamente.',
             ['total' => max(0, $total), 'nuevos' => max(0, $nuevos), 'finalizado_en' => date(DATE_ATOM)]
         );
+    }
+
+    public function completarPdf(int $idCliente, string $idTrabajo): void
+    {
+        $this->actualizarEstado($idCliente, $idTrabajo, 'COMPLETADO', 'El PDF oficial está disponible para ver o descargar.',
+            ['finalizado_en' => date(DATE_ATOM)]);
     }
 
     public function fallar(int $idCliente, string $idTrabajo, string $mensaje): void

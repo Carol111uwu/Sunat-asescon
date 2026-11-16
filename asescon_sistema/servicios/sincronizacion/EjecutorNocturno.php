@@ -23,6 +23,10 @@ final class EjecutorNocturno
             }
                                                                                          
             if(in_array($estado['estado']??'',['COMPLETADO','ADJUNTOS_PENDIENTES'],true)&&substr($estado['finalizado_en']??'',0,10)>=$t['fecha']&&empty($estado['id_documento']))return ['estado'=>'COMPLETADO','registros'=>max(0,(int)($estado['total']??0)),'pdf_pendientes'=>max(0,(int)($estado['pdf_pendientes']??0)), 'codigo'=>($estado['estado']??'')==='ADJUNTOS_PENDIENTES'?'PDF_PENDIENTES':'','mensaje'=>($estado['estado']??'')==='ADJUNTOS_PENDIENTES'?'Bandeja guardada; quedan PDF pendientes.':'Bandeja guardada.'];
+            if ($modulo === 'SUNAFIL' && !empty($estado['id_documento'])
+                && in_array($estado['estado'] ?? '', ['PENDIENTE', 'PROCESANDO'], true)) {
+                return ['estado'=>'PENDIENTE', 'buzon_iniciado'=>$inicioBuzon, 'espera_buzon'=>true];
+            }
             if(!in_array($estado['estado']??'',['PENDIENTE','PROCESANDO'],true)||empty($t['trabajo_buzon'])){
                 $esReintento=($estado['estado']??'')==='ERROR';$estado=$cola->solicitar($id,0);return ['estado'=>'PENDIENTE','trabajo_buzon'=>$estado['id_trabajo']??'','buzon_iniciado'=>$inicioBuzon,'espera_buzon'=>!$esReintento,'codigo'=>$esReintento?($modulo==='SOL'?'BUZON_SOL_FALLIDO':'BUZON_SUNAFIL_FALLIDO'):''];
             }
