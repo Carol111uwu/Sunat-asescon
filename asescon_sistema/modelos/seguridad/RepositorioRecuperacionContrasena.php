@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 final class RepositorioRecuperacionContrasena
 {
+    private const CUENTA_AUTORIZADA = "u.tipo_cuenta IN ('CLIENTE','CREADOR') AND (r.es_principal=1 OR UPPER(r.codigo)='MAIN')";
+
     public function __construct(private mysqli $conexion)
     {
     }
@@ -11,13 +13,13 @@ final class RepositorioRecuperacionContrasena
     public function buscarUsuarioActivoPorCorreo(string $correo): ?array
     {
         $stmt = $this->conexion->prepare(
-            "SELECT id_usuario,usuario,correo,correo_secundario,telefono,tipo_cuenta
-             FROM usuarios
-             WHERE estado=1
-               AND tipo_cuenta IN ('CLIENTE','CREADOR')
+            "SELECT u.id_usuario,u.usuario,u.correo,u.correo_secundario,u.telefono,u.tipo_cuenta
+             FROM usuarios u JOIN roles r ON r.id_rol=u.id_rol AND r.estado=1
+             WHERE u.estado=1
+               AND " . self::CUENTA_AUTORIZADA . "
                AND (
-                    LOWER(correo)=LOWER(?)
-                    OR (tipo_cuenta='CREADOR' AND correo_secundario IS NOT NULL AND LOWER(correo_secundario)=LOWER(?))
+                    LOWER(u.correo)=LOWER(?)
+                    OR (u.tipo_cuenta='CREADOR' AND u.correo_secundario IS NOT NULL AND LOWER(u.correo_secundario)=LOWER(?))
                )
              LIMIT 1"
         );
@@ -32,11 +34,11 @@ final class RepositorioRecuperacionContrasena
     {
         $telefonoNormalizado = preg_replace('/\D+/', '', $telefono) ?? '';
         $stmt = $this->conexion->prepare(
-            "SELECT id_usuario,usuario,correo,correo_secundario,telefono,tipo_cuenta
-             FROM usuarios
-             WHERE estado=1
-               AND tipo_cuenta IN ('CLIENTE','CREADOR')
-               AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(telefono,'+',''),' ',''),'-',''),'(',''),')','')=?
+            "SELECT u.id_usuario,u.usuario,u.correo,u.correo_secundario,u.telefono,u.tipo_cuenta
+             FROM usuarios u JOIN roles r ON r.id_rol=u.id_rol AND r.estado=1
+             WHERE u.estado=1
+               AND " . self::CUENTA_AUTORIZADA . "
+               AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(u.telefono,'+',''),' ',''),'-',''),'(',''),')','')=?
              LIMIT 1"
         );
         $stmt->bind_param('s', $telefonoNormalizado);
@@ -60,7 +62,7 @@ final class RepositorioRecuperacionContrasena
     public function obtenerTokenVigente(string $tokenHash): ?array
     {
         $stmt = $this->conexion->prepare(
-            "SELECT rp.id_recuperacion,rp.id_usuario FROM recuperacion_password rp INNER JOIN usuarios u ON u.id_usuario=rp.id_usuario WHERE rp.token_hash=? AND rp.usado_en IS NULL AND rp.expira_en>=NOW() AND u.estado=1 AND u.tipo_cuenta IN ('CLIENTE','CREADOR') LIMIT 1"
+            "SELECT rp.id_recuperacion,rp.id_usuario FROM recuperacion_password rp INNER JOIN usuarios u ON u.id_usuario=rp.id_usuario INNER JOIN roles r ON r.id_rol=u.id_rol AND r.estado=1 WHERE rp.token_hash=? AND rp.usado_en IS NULL AND rp.expira_en>=NOW() AND u.estado=1 AND " . self::CUENTA_AUTORIZADA . " LIMIT 1"
         );
         $stmt->bind_param('s', $tokenHash);
         $stmt->execute();
@@ -72,7 +74,7 @@ final class RepositorioRecuperacionContrasena
     public function obtenerTokenVigenteParaActualizar(string $tokenHash): ?array
     {
         $stmt = $this->conexion->prepare(
-            "SELECT rp.id_recuperacion,rp.id_usuario FROM recuperacion_password rp INNER JOIN usuarios u ON u.id_usuario=rp.id_usuario WHERE rp.token_hash=? AND rp.usado_en IS NULL AND rp.expira_en>=NOW() AND u.estado=1 AND u.tipo_cuenta IN ('CLIENTE','CREADOR') LIMIT 1 FOR UPDATE"
+            "SELECT rp.id_recuperacion,rp.id_usuario FROM recuperacion_password rp INNER JOIN usuarios u ON u.id_usuario=rp.id_usuario INNER JOIN roles r ON r.id_rol=u.id_rol AND r.estado=1 WHERE rp.token_hash=? AND rp.usado_en IS NULL AND rp.expira_en>=NOW() AND u.estado=1 AND " . self::CUENTA_AUTORIZADA . " LIMIT 1 FOR UPDATE"
         );
         $stmt->bind_param('s', $tokenHash);
         $stmt->execute();

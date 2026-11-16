@@ -1,19 +1,33 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../../configuracion/inicializacion.php';
-require_once __DIR__.'/../../modelos/comunicaciones/ConfiguracionComunicaciones.php';
 require_once __DIR__.'/../../modelos/sunat/PadronSsco.php';
 require_once __DIR__.'/../../servicios/sunat/LectorPadronSsco.php';
 
 final class ControladorPadronSsco
 {
     public function __construct(private mysqli $conexion) {}
+    public function datos(array $entrada): array
+    {
+        asesconExigirPermiso($this->conexion, 'ALERTAS_SUNAT', 'ver');
+        $padron = new PadronSsco($this->conexion);
+        $disponible = $padron->disponible();
+        $buscar = trim((string)($entrada['ssco_buscar'] ?? ''));
+        $datos = $disponible
+            ? $padron->datos($buscar, (int)($entrada['ssco_pagina'] ?? 1))
+            : ['filas' => [], 'total' => 0, 'pagina' => 1, 'paginas' => 1, 'ultima' => null];
+        $mensaje = (string)($_SESSION['mensaje_ssco'] ?? '');
+        $error = (string)($_SESSION['error_ssco'] ?? '');
+        unset($_SESSION['mensaje_ssco'], $_SESSION['error_ssco']);
+        return compact('disponible', 'buscar', 'datos', 'mensaje', 'error');
+    }
+
     public function procesar(array $p, array $archivos): void
     {
         asesconExigirPermiso($this->conexion,'ALERTAS_SUNAT','editar');
         if ($_SERVER['REQUEST_METHOD']!=='POST' || !asesconValidarCsrf((string)($p['csrf_token']??''),'csrf_ssco')) { http_response_code(403);exit('Solicitud no válida.'); }
         try {
-            if (!(new ConfiguracionComunicaciones($this->conexion))->disponible()) { throw new DomainException('La cuenta principal debe preparar el módulo de configuración.'); }
+            if (!(new PadronSsco($this->conexion))->disponible()) { throw new DomainException('La cuenta principal debe preparar el módulo de configuración.'); }
             $lector=new LectorPadronSsco();
             if (($p['accion']??'')==='actualizar') { $registros=$lector->descargar();$origen='SUNAT'; }
             elseif (($p['accion']??'')==='importar') {
@@ -30,7 +44,7 @@ final class ControladorPadronSsco
             error_log('Padrón SSCO: '.get_class($e));
             $_SESSION['error_ssco']=$e instanceof DomainException ? $e->getMessage() : 'No se pudo guardar el padrón. Se conserva la información anterior.';
         }
-        asesconRedirigir('vistas/alertas/alertas_sunat.php');
+        asesconRedirigir('vistas/alertas/relacion_ssco.php');
     }
 }
 if (realpath((string)($_SERVER['SCRIPT_FILENAME']??''))===__FILE__) { (new ControladorPadronSsco($conexion))->procesar($_POST,$_FILES); }

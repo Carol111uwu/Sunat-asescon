@@ -10,7 +10,12 @@ final class ControladorIndicadoresMenu
 
     public function obtener(): array
     {
-        $filtro = asesconFiltroClientesSql($this->conexion, 'c');
+        try {
+            $filtro = asesconFiltroClientesSql($this->conexion, 'c');
+        } catch (Throwable $error) {
+            error_log('Indicadores del menú ASESCON: ' . get_class($error));
+            return ['sol' => 0, 'sunafil' => 0];
+        }
         return [
             'sol' => $this->contar("SELECT COUNT(*) AS total FROM buzon_sol_sunat b LEFT JOIN clientes c ON c.id_cliente=b.id_cliente WHERE b.estado='NO_REVISADO' AND ({$filtro})"),
             'sunafil' => $this->contar("SELECT COUNT(*) AS total FROM buzon_sunafil b LEFT JOIN clientes c ON c.id_cliente=b.id_cliente WHERE b.estado='NO_REVISADO' AND ({$filtro})"),

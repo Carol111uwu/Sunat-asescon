@@ -20,7 +20,7 @@ unset($_SESSION['mensaje_login']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio de sesión - ASESCON</title>
 
-    <link rel="stylesheet" href="../publico/css/autenticacion/login.css?v=<?php echo @filemtime(__DIR__ . '/../publico/css/autenticacion/login.css'); ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/autenticacion/login.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body class="pagina-inicio-sesion">
 

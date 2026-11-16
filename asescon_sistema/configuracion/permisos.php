@@ -69,8 +69,7 @@ function asesconPuedeAdministrarCuentasEquipo(mysqli $conexion): bool
 
 function asesconPuedeAutogestionarCredenciales(mysqli $conexion): bool
 {
-    $usuario = asesconUsuarioActual($conexion);
-    return in_array(strtoupper((string)($usuario['tipo_cuenta'] ?? 'EQUIPO')), ['CLIENTE', 'CREADOR'], true);
+    return asesconCuentaConPrivilegiosPrincipales(asesconUsuarioActual($conexion));
 }
 
 function asesconTienePermiso(mysqli $conexion, string $codigoModulo, string $accion = 'ver'): bool

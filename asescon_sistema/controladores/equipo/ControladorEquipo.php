@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../configuracion/inicializacion.php';
 require_once __DIR__ . '/../../modelos/seguridad/Usuario.php';
+require_once __DIR__ . '/../../modelos/seguridad/ContactoEquipo.php';
 require_once __DIR__ . '/../../servicios/seguridad/GestorContrasenas.php';
 
 final class ControladorEquipo
@@ -86,6 +87,16 @@ final class ControladorEquipo
         }
 
         $usuario = trim((string)($post['usuario'] ?? ''));
+        $nombrePublico = '';
+        if ($creando && ($post['tipo_identificacion'] ?? '') === 'RUC') {
+            $usuario = trim((string)($post['ruc_usuario'] ?? ''));
+            $ficha = $_SESSION['ficha_ruc_sunat'][$usuario] ?? [];
+            $nombrePublico = trim((string)($ficha['data']['razon_social'] ?? ''));
+            if (!preg_match('/^[0-9]{11}$/D', $usuario) || ($ficha['data']['ruc'] ?? '') !== $usuario
+                || (int)($ficha['time'] ?? 0) < time() - 1800 || $nombrePublico === '') {
+                asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'ruc_por_validar']);
+            }
+        }
         $password = (string)($post['password'] ?? '');
         $idRol = (int)($post['id_rol'] ?? 0);
         if (!preg_match('/^[A-Za-z0-9._-]{4,50}$/', $usuario)) {
@@ -97,8 +108,8 @@ final class ControladorEquipo
         if ($creando && isset($post['password_confirmacion']) && !hash_equals($password, (string)$post['password_confirmacion'])) {
             asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'password_confirmacion']);
         }
-        if (!$creando && $password !== '' && (strlen($password) < 8 || strlen($password) > 72)) {
-            asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'password']);
+        if (!$creando && $password !== '') {
+            asesconRedirigir('vistas/equipo/equipo.php', ['error' => 'usar_cambio_password']);
         }
         $correo = trim((string)($post['correo'] ?? ''));
         $correoSecundario = trim((string)($post['correo_secundario'] ?? ''));
@@ -137,8 +148,11 @@ final class ControladorEquipo
                 $stmtContacto->bind_param('sssi', $correoGuardar, $secundarioGuardar, $telefonoGuardar, $idUsuario);
                 $stmtContacto->execute();
                 $stmtContacto->close();
+                if ($nombrePublico !== '') {
+                    (new ContactoEquipo($this->conexion))->registrarNombrePublico($idUsuario, $nombrePublico);
+                }
             } else {
-                $model->actualizar($idUsuario, $usuario, $idRol, $accesoTodos, $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : null);
+                $model->actualizar($idUsuario, $usuario, $idRol, $accesoTodos);
             }
 
             if ($creando) {
@@ -282,13 +296,12 @@ $actor = asesconUsuarioActual($this->conexion);
         $sel = is_array($post['clientes_asignados'] ?? null) ? $post['clientes_asignados'] : [];
         $this->conexion->begin_transaction();
         try {
-            $s = $this->conexion->prepare('UPDATE usuarios SET acceso_todos_clientes=0 WHERE id_usuario=?');
-            if ($s) {
-                $s->bind_param('i', $id);
-                $s->execute();
-                $s->close();
-            }
-$this->guardarClientesRapidos($id, $sel, false, (int)$actor['id_usuario']);
+            $accesoTodos = isset($post['acceso_todos_clientes']) && asesconEsPrincipal($this->conexion) ? 1 : 0;
+            $s = $this->conexion->prepare('UPDATE usuarios SET acceso_todos_clientes=? WHERE id_usuario=?');
+            $s->bind_param('ii', $accesoTodos, $id);
+            $s->execute();
+            $s->close();
+            $this->guardarClientesRapidos($id, $sel, $accesoTodos === 1, (int)$actor['id_usuario']);
             $this->conexion->commit();
             asesconRegistrarAuditoria($this->conexion, 'ASIGNAR_CLIENTES', 'EQUIPO', null, 'usuarios', (string)$id, 'Asignación de clientes actualizada');
             asesconRedirigir('vistas/equipo/equipo.php', ['asignado' => 1]);

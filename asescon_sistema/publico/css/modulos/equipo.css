@@ -78,3 +78,10 @@
 .nuevo-usuario-pie{align-items:center;margin:0;padding:14px 20px;border-top:1px solid #dce4ed}
 .nuevo-usuario-pie p{margin:0 auto 0 0;color:#b42318;font-size:12px}
 @media(max-width:640px){.nuevo-usuario-grid,.nuevo-usuario-modulos,.nuevo-usuario-empresas-lista{grid-template-columns:1fr}.nuevo-usuario-pestanas{margin:0 12px}.nuevo-usuario-cuerpo{padding:16px 12px}.nuevo-usuario-pie{padding:12px;flex-wrap:wrap}}
+
+#nuevoUsuarioNombre[hidden], #nuevoUsuarioRucPanel[hidden],
+[data-selector-empresas][hidden], [data-empresa-fila][hidden], [data-empresa-vacio][hidden] {
+    display: none !important;
+}
+#nuevoUsuarioConsultarRuc { margin-top: 8px; }
+#nuevoUsuarioFichaRuc { margin: 8px 0 0; }

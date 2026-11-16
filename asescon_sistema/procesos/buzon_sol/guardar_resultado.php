@@ -47,6 +47,9 @@ try {
         $mensaje = trim((string)($respuesta['mensaje'] ?? 'No se pudo acceder al Buzón SOL.'));
         $cola->fallar($idCliente, $idTrabajo, $mensaje);
         $codigoSalida = 5;
+    } elseif ($codigoProceso !== 0) {
+        $cola->fallar($idCliente, $idTrabajo, 'La consulta SOL se interrumpió. Puedes volver a solicitarla.');
+        $codigoSalida = 4;
     } else {
         $datos = $respuesta['data'] ?? null;
         if (!is_array($datos)) {

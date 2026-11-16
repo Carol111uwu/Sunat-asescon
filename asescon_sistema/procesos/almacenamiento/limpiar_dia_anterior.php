@@ -93,20 +93,10 @@ $operaciones = [
         ['declaraciones_sunat','fecha_ultima_consulta < ?'],
                                                                          
                                                                                 
-        ['buzon_sol_sunat', '(fecha_sincronizacion IS NULL OR fecha_sincronizacion < ?)'
-            .' AND NOT EXISTS (SELECT 1 FROM buzon_sol_casos c WHERE c.id_documento=buzon_sol_sunat.id_documento)'
-            .' AND NOT EXISTS (SELECT 1 FROM buzon_sol_avances a WHERE a.id_documento=buzon_sol_sunat.id_documento)'
-            .' AND NOT EXISTS (SELECT 1 FROM cola_avisos_buzones n WHERE n.entidad=\'SUNAT\' AND n.estado=\'PENDIENTE\' AND n.id_documento=buzon_sol_sunat.id_documento)'],
-        ['buzon_sunafil', '(fecha_sincronizacion IS NULL OR fecha_sincronizacion < ?)'
-            .' AND NOT EXISTS (SELECT 1 FROM cola_avisos_buzones n WHERE n.entidad=\'SUNAFIL\' AND n.estado=\'PENDIENTE\' AND n.id_documento=buzon_sunafil.id_documento)'],
-        ['cola_avisos_buzones', 'estado=\'ENVIADO\' AND enviado_en < ?'],
         ['detracciones_archivos_sunat','importado_en < ?'],
         ['archivos_comprobantes','actualizado_en < ?'],
         ['cpe','fecha_consulta < ?'],
         ['tipos_cambio','fecha < ?'],
-        ['alertas_sunat','fecha_alerta < ?'],
-        ['padron_ssco','1=1'],
-        ['actualizacion_padron_ssco','1=1'],
         ['comprobantes_sunat','1=1'],
         ['detracciones','1=1'],
     ],
@@ -201,7 +191,12 @@ try {
             RecursiveIteratorIterator::LEAVES_ONLY
         );
         foreach ($arbol as $archivo) {
-            limpiarArchivoTemporal($archivo->getPathname(), $limiteEpoch, $ejecutar, $resumen);
+            $rutaArchivo = $archivo->getPathname();
+            $relativa = substr($rutaArchivo, strlen($raiz) + 1);
+            if (preg_match('~^sunat/(?:padron_(?:manifest|status)\.json$|padron_chunks(?:_[a-f0-9]{12})?/)~D', $relativa)) {
+                continue;
+            }
+            limpiarArchivoTemporal($rutaArchivo, $limiteEpoch, $ejecutar, $resumen);
         }
     }
 

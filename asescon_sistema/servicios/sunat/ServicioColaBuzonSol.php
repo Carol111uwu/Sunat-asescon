@@ -109,7 +109,17 @@ final class ServicioColaBuzonSol
     public function tomarSiguienteSolicitud(): ?array
     {
         $archivos = glob($this->directorioSolicitudes . DIRECTORY_SEPARATOR . 'pendiente_*.json') ?: [];
-        usort($archivos, static fn(string $a, string $b): int => (filemtime($a) ?: 0) <=> (filemtime($b) ?: 0));
+        $prioridades = [];
+        foreach ($archivos as $archivo) {
+            $solicitud = $this->leerJson($archivo);
+            $prioridades[$archivo] = [
+                !empty($solicitud['solo_adjuntos']),
+                (int)($solicitud['id_usuario'] ?? 0) === 0,
+                strtotime((string)($solicitud['solicitado_en'] ?? '')) ?: 0,
+                $archivo,
+            ];
+        }
+        usort($archivos, static fn(string $a, string $b): int => $prioridades[$a] <=> $prioridades[$b]);
 
         foreach ($archivos as $rutaPendiente) {
             $nombre = basename($rutaPendiente);

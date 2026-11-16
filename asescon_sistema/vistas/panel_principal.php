@@ -15,6 +15,7 @@ $csrfTareasDashboard=$puedeEliminarTareasDashboard?asesconCsrf('csrf_tareas'):''
 $puedeControlarSyncDashboard=asesconEsPrincipal($conexion);
 $mensajeSyncDashboard=$_SESSION['mensaje_sync_general']??null;
 unset($_SESSION['mensaje_sync_general']);
+require __DIR__ . '/../controladores/interfaz/preparar_menu_lateral.php';
 ?>
 
 <!DOCTYPE html>
@@ -23,9 +24,9 @@ unset($_SESSION['mensaje_sync_general']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - ASESCON</title>
-    <link rel="stylesheet" href="../publico/css/base/estructura_panel.css?v=<?php echo (int)@filemtime(__DIR__.'/../publico/css/base/estructura_panel.css'); ?>">
-    <link rel="stylesheet" href="../publico/css/seguridad/recordatorio_contrasena.css?v=<?php echo (int)@filemtime(__DIR__.'/../publico/css/seguridad/recordatorio_contrasena.css'); ?>">
-    <link rel="stylesheet" href="../publico/css/modulos/sincronizacion_dashboard.css?v=<?php echo (int)@filemtime(__DIR__.'/../publico/css/modulos/sincronizacion_dashboard.css'); ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/base/estructura_panel.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/seguridad/recordatorio_contrasena.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/modulos/sincronizacion_dashboard.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 <div class="app">
@@ -253,7 +254,7 @@ unset($_SESSION['mensaje_sync_general']);
         </section>
     </main>
 </div>
-<script src="../publico/js/navegacion/menu_lateral.js"></script><script src="../publico/js/navegacion/busqueda_clientes.js?v=20261014_1"></script><script src="../publico/js/navegacion/menu_movil.js"></script><script src="../publico/js/interfaz/componentes_interfaz.js?v=20260915_3"></script>
-<script src="../publico/js/interfaz/tablas_adaptables.js?v=<?php echo (int)@filemtime(__DIR__.'/../publico/js/interfaz/tablas_adaptables.js'); ?>"></script>
-<script src="../publico/js/sincronizacion/progreso_dashboard.js?v=<?php echo (int)@filemtime(__DIR__.'/../publico/js/sincronizacion/progreso_dashboard.js'); ?>" defer></script></body>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/navegacion/menu_lateral.js'), ENT_QUOTES, 'UTF-8') ?>"></script><script src="<?= htmlspecialchars(asesconRecurso('publico/js/navegacion/busqueda_clientes.js'), ENT_QUOTES, 'UTF-8') ?>"></script><script src="<?= htmlspecialchars(asesconRecurso('publico/js/navegacion/menu_movil.js'), ENT_QUOTES, 'UTF-8') ?>"></script><script src="<?= htmlspecialchars(asesconRecurso('publico/js/interfaz/componentes_interfaz.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/interfaz/tablas_adaptables.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/sincronizacion/progreso_dashboard.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script></body>
 </html>

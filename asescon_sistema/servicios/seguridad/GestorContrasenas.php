@@ -13,7 +13,8 @@ final class GestorContrasenas
     public function cambiarDeUsuario(int $idObjetivo, string $nueva): void
     {
         asesconExigirPermiso($this->conexion, 'EQUIPO', 'editar');
-        if (!asesconPuedeAdministrarUsuario($this->conexion, $idObjetivo)) {
+        if (!asesconPuedeAutogestionarCredenciales($this->conexion)
+            || !asesconPuedeAdministrarUsuario($this->conexion, $idObjetivo)) {
             throw new DomainException('usuario_no_autorizado');
         }
         $this->validarLongitud($nueva);
@@ -24,7 +25,7 @@ final class GestorContrasenas
     public function cambiarPropia(string $actual, string $nueva): void
     {
         $actor = asesconUsuarioActual($this->conexion);
-        if (!in_array(strtoupper((string)($actor['tipo_cuenta'] ?? 'EQUIPO')), ['CLIENTE', 'CREADOR'], true)) {
+        if (!asesconCuentaConPrivilegiosPrincipales($actor)) {
             throw new DomainException('usuario_no_autorizado');
         }
         $modelo = new Usuario($this->conexion);

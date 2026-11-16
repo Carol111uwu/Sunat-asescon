@@ -51,19 +51,21 @@ final class Usuario
     public function listarGestionables(int $idActor, bool $actorEsMain): array
     {
         if ($actorEsMain) {
-            $sql = "SELECT u.id_usuario,u.usuario,u.id_rol,u.estado,u.acceso_todos_clientes,u.ultimo_acceso,u.creado_por,u.fecha_creacion,
+            $sql = "SELECT u.id_usuario,u.usuario,u.id_rol,u.estado,u.acceso_todos_clientes,u.ultimo_acceso,u.creado_por,u.fecha_creacion,e.nombre AS nombre_equipo,
                            r.codigo AS rol_codigo,r.nombre AS rol_nombre,r.nivel
                     FROM usuarios u
                     INNER JOIN roles r ON r.id_rol=u.id_rol
+                    LEFT JOIN equipo e ON e.id_equipo=(SELECT MAX(e2.id_equipo) FROM equipo e2 WHERE e2.id_usuario=u.id_usuario)
                     WHERE u.tipo_cuenta='EQUIPO'
                     ORDER BY r.nivel DESC,u.usuario";
             $res = $this->conexion->query($sql);
         } else {
             $stmt = $this->conexion->prepare(
-                "SELECT u.id_usuario,u.usuario,u.id_rol,u.estado,u.acceso_todos_clientes,u.ultimo_acceso,u.creado_por,u.fecha_creacion,
+                "SELECT u.id_usuario,u.usuario,u.id_rol,u.estado,u.acceso_todos_clientes,u.ultimo_acceso,u.creado_por,u.fecha_creacion,e.nombre AS nombre_equipo,
                         r.codigo AS rol_codigo,r.nombre AS rol_nombre,r.nivel
                  FROM usuarios u
                  INNER JOIN roles r ON r.id_rol=u.id_rol
+                 LEFT JOIN equipo e ON e.id_equipo=(SELECT MAX(e2.id_equipo) FROM equipo e2 WHERE e2.id_usuario=u.id_usuario)
                  WHERE u.tipo_cuenta='EQUIPO' AND (u.id_usuario=? OR u.creado_por=?)
                  ORDER BY r.nivel DESC,u.usuario"
             );
@@ -127,21 +129,13 @@ final class Usuario
         return $id;
     }
 
-    public function actualizar(int $idUsuario, string $usuario, int $idRol, int $accesoTodos, ?string $hash = null): void
+    public function actualizar(int $idUsuario, string $usuario, int $idRol, int $accesoTodos): void
     {
-        if ($hash !== null) {
-            $stmt = $this->conexion->prepare('UPDATE usuarios SET usuario=?,password=?,id_rol=?,acceso_todos_clientes=?,fecha_cambio_password=NOW(),fecha_ultimo_aviso_password=NULL WHERE id_usuario=? LIMIT 1');
-            if (!$stmt) {
-                throw new RuntimeException('No se pudo preparar la actualización.');
-            }
-            $stmt->bind_param('ssiii', $usuario, $hash, $idRol, $accesoTodos, $idUsuario);
-        } else {
-            $stmt = $this->conexion->prepare('UPDATE usuarios SET usuario=?,id_rol=?,acceso_todos_clientes=? WHERE id_usuario=? LIMIT 1');
-            if (!$stmt) {
-                throw new RuntimeException('No se pudo preparar la actualización.');
-            }
-            $stmt->bind_param('siii', $usuario, $idRol, $accesoTodos, $idUsuario);
+        $stmt = $this->conexion->prepare('UPDATE usuarios SET usuario=?,id_rol=?,acceso_todos_clientes=? WHERE id_usuario=? LIMIT 1');
+        if (!$stmt) {
+            throw new RuntimeException('No se pudo preparar la actualización.');
         }
+        $stmt->bind_param('siii', $usuario, $idRol, $accesoTodos, $idUsuario);
         if (!$stmt->execute()) {
             $error = $stmt->error;
             $errno = $stmt->errno;

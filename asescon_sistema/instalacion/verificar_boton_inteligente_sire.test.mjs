@@ -207,7 +207,7 @@ test('RVIE/RCE renuevan el JS y CSS automáticamente para evitar botones sin man
   for(const prefijo of ['rvie','rce']){
     const vista=leer(`vistas/sunat/${prefijo}.php`);
     for(const archivo of [`${prefijo}_centro.js`,'sincronizacion_sire.js',`${prefijo}_centro.css`]){
-      assert.match(vista,new RegExp(`@filemtime\\(__DIR__ .*?${archivo.replace('.','\\.')}.*?\\)`));
+      assert.ok(vista.includes(archivo) && vista.includes('asesconRecurso('));
     }
     assert.doesNotMatch(vista,/20261029_v3/);
     assert.match(vista,new RegExp(`id="${prefijo}VerConsultar"`));

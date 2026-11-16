@@ -9,6 +9,7 @@ $datos=(new ControladorEquipo($conexion))->datosVista();extract($datos);
 $csrf=asesconCsrf('csrf_equipo');
 $puedeCrear=asesconPuedeCrearUsuarios($conexion);
 $esMain=asesconEsPrincipal($conexion);
+$puedeCambiarClaves=asesconPuedeAutogestionarCredenciales($conexion);
 $mensajesOk=[
  'creado'=>'Usuario creado. Ya puedes asignarle empresas y permisos.',
  'guardado'=>'Usuario actualizado correctamente.',
@@ -22,6 +23,8 @@ $mensajesOk=[
 $errores=[
  'csrf'=>'La sesión del formulario venció. Recarga la página e inténtalo de nuevo.',
  'usuario_formato'=>'El usuario debe tener entre 4 y 50 caracteres y usar solo letras, números, punto, guion o guion bajo.',
+ 'ruc_por_validar'=>'Consulta un RUC válido y confirma su razón social antes de guardar.',
+ 'usar_cambio_password'=>'Usa la acción Cambiar contraseña para modificar la clave.',
  'usuario_existe'=>'Ese nombre de usuario ya existe. Elige otro.',
  'password'=>'La contraseña debe tener entre 8 y 72 caracteres.',
  'password_confirmacion'=>'La confirmación de contraseña no coincide.',
@@ -34,7 +37,7 @@ $errores=[
  'bd'=>'No se pudo completar la operación. Revisa la conexión con MySQL e inténtalo nuevamente.'
 ];
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mi equipo - ASESCON</title><link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/css/base/estructura_panel.css');?>"><link rel="stylesheet" href="../../publico/css/modulos/equipo.css?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/css/modulos/equipo.css');?>"></head><body><div class="app">
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mi equipo - ASESCON</title><link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/css/base/estructura_panel.css');?>"><link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/modulos/equipo.css'), ENT_QUOTES, 'UTF-8') ?>"></head><body><div class="app">
 <?php require __DIR__.'/../componentes/menu_lateral.php';?><main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?><section class="content">
 <div class="reference-head-actions"><div class="page-header"><div><h1>Mi equipo</h1><p>Administra accesos de empresa, roles, empresas y módulos autorizados.</p></div></div><?php if($puedeCrear):?><button class="reference-btn primary" type="button" id="openNewUser">♙ ＋ Nuevo usuario</button><?php endif;?></div>
 <?php foreach($mensajesOk as $k=>$m):if(isset($_GET[$k])):?><div class="notice ok"><?php echo htmlspecialchars($m);?></div><?php endif;endforeach;?>
@@ -42,13 +45,13 @@ $errores=[
 
 
 
-<section class="reference-panel team-members-card"><div class="team-section-head"><div><h2 class="team-card-title">Miembros del equipo</h2><p>Las cuentas se identifican por usuario; nombre y correo no son obligatorios.</p></div><span class="reference-badge"><?php echo count($usuarios);?> cuentas</span></div><div class="table-container"><table class="team-reference-table"><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Registrado</th><th>Acciones</th></tr></thead><tbody>
+<section class="reference-panel team-members-card"><div class="team-section-head"><div><h2 class="team-card-title">Miembros del equipo</h2><p>El nombre de usuario o el RUC se usa para iniciar sesión.</p></div><span class="reference-badge"><?php echo count($usuarios);?> cuentas</span></div><div class="table-container"><table class="team-reference-table"><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Registrado</th><th>Acciones</th></tr></thead><tbody>
 <?php foreach($usuarios as $u):$idU=(int)$u['id_usuario'];$esMismo=$idU===(int)$actor['id_usuario'];$puedeEditar=!$esMismo&&asesconPuedeAdministrarUsuario($conexion,$idU);?>
-<tr><td data-label="Usuario"><strong><?php echo htmlspecialchars((string)$u['usuario']);?></strong><?php if($esMismo):?><small class="team-self-note">Tu cuenta</small><?php endif;?></td><td data-label="Rol"><span class="team-role-pill"><?php echo htmlspecialchars((string)$u['rol_nombre']);?></span></td><td data-label="Estado"><span class="team-state <?php echo (int)$u['estado']===1?'active':'inactive';?>"><?php echo (int)$u['estado']===1?'Activo':'Inactivo';?></span></td><td data-label="Registrado"><?php echo !empty($u['fecha_creacion'])?htmlspecialchars(date('d/m/Y',strtotime((string)$u['fecha_creacion']))):'—';?></td><td data-label="Acciones"><div class="team-actions">
+<tr><td data-label="Usuario"><strong><?php echo htmlspecialchars((string)$u['usuario']);?></strong><?php if (!empty($u['nombre_equipo'])): ?><small class="team-self-note"><?= htmlspecialchars((string)$u['nombre_equipo']) ?></small><?php endif; ?><?php if($esMismo):?><small class="team-self-note">Tu cuenta</small><?php endif;?></td><td data-label="Rol"><span class="team-role-pill"><?php echo htmlspecialchars((string)$u['rol_nombre']);?></span></td><td data-label="Estado"><span class="team-state <?php echo (int)$u['estado']===1?'active':'inactive';?>"><?php echo (int)$u['estado']===1?'Activo':'Inactivo';?></span></td><td data-label="Registrado"><?php echo !empty($u['fecha_creacion'])?htmlspecialchars(date('d/m/Y',strtotime((string)$u['fecha_creacion']))):'—';?></td><td data-label="Acciones"><div class="team-actions">
 <?php if($puedeEditar):?>
-<button class="team-icon-btn assign-client-btn" type="button" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" title="Asignar empresas">▣</button>
+<button class="team-icon-btn assign-client-btn" type="button" data-user-all="<?= (int)$u['acceso_todos_clientes'] ?>" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" title="Asignar empresas">▣</button>
 <button class="team-icon-btn menu-perm-btn" type="button" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" title="Permisos del menú">☰</button>
-<button class="team-icon-btn password-user-btn" type="button" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" title="Cambiar contraseña">⌘</button>
+<?php if ($puedeCambiarClaves): ?><button class="team-icon-btn password-user-btn" type="button" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" title="Cambiar contraseña">⌘</button><?php endif; ?>
 <?php if($puedeCrear):?><button class="team-icon-btn role-user-btn" type="button" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" data-role-id="<?php echo (int)($u['id_rol']??0);?>" title="Cambiar rol">↕</button><?php endif;?>
 <form method="post" action="../../controladores/equipo/ControladorEquipo.php" class="inline-form"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="estado"><input type="hidden" name="id_usuario" value="<?php echo $idU;?>"><input type="hidden" name="estado" value="<?php echo (int)$u['estado']===1?0:1;?>"><button class="team-icon-btn" type="submit" title="<?php echo (int)$u['estado']===1?'Desactivar':'Reactivar';?>"><?php echo (int)$u['estado']===1?'Ⅱ':'▶';?></button></form>
 <?php if(asesconTienePermiso($conexion,'EQUIPO','eliminar')):?><button class="team-icon-btn danger delete-user-btn" type="button" data-user-id="<?php echo $idU;?>" data-user-name="<?php echo htmlspecialchars((string)$u['usuario'],ENT_QUOTES,'UTF-8');?>" title="Eliminar usuario">⌫</button><?php endif;?>
@@ -60,7 +63,8 @@ $errores=[
 
 <?php if($puedeCrear):?>
 <dialog id="newUserDialog" class="team-dialog new-user-dialog" aria-labelledby="newUserTitle">
-  <form id="newUserForm" method="post" action="../../controladores/equipo/ControladorEquipo.php" autocomplete="off">
+  <form id="newUserForm" data-ficha-ruc-url="<?= htmlspecialchars(asesconUrl('api/sunat/consulta_ficha_ruc.php'), ENT_QUOTES, 'UTF-8') ?>"
+        data-ficha-ruc-csrf="<?= htmlspecialchars(asesconCsrf('csrf_ficha_ruc'), ENT_QUOTES, 'UTF-8') ?>" method="post" action="../../controladores/equipo/ControladorEquipo.php" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf,ENT_QUOTES,'UTF-8') ?>">
     <input type="hidden" name="accion" value="guardar">
     <input type="hidden" name="id_usuario" value="0">
@@ -76,7 +80,20 @@ $errores=[
     <div class="nuevo-usuario-cuerpo">
       <section class="nuevo-usuario-panel" data-nuevo-panel="acceso" role="tabpanel">
         <div class="nuevo-usuario-grid">
-          <label>Nombre de usuario *<input name="usuario" minlength="4" maxlength="50" pattern="[A-Za-z0-9._-]{4,50}" autocomplete="off" required placeholder="Nombre para iniciar sesión"></label>
+          <label>Identificación<select name="tipo_identificacion" id="nuevoUsuarioTipo">
+            <option value="NATURAL">Nombre de usuario</option>
+            <option value="RUC">RUC</option>
+          </select></label>
+          <label id="nuevoUsuarioNombre">Nombre de usuario *
+            <input name="usuario" minlength="4" maxlength="50" pattern="[A-Za-z0-9._\-]{4,50}" autocomplete="off" required placeholder="Nombre para iniciar sesión">
+          </label>
+          <div id="nuevoUsuarioRucPanel" hidden>
+            <label>RUC para iniciar sesión *
+              <input name="ruc_usuario" id="nuevoUsuarioRuc" inputmode="numeric" maxlength="11" pattern="[0-9]{11}" autocomplete="off" disabled>
+            </label>
+            <button class="reference-btn" type="button" id="nuevoUsuarioConsultarRuc">Consultar RUC</button>
+            <p class="reference-subtle" id="nuevoUsuarioFichaRuc" role="status" aria-live="polite"></p>
+          </div>
           <label>Correo electrónico<input name="correo" type="email" maxlength="180" autocomplete="off" placeholder="nombre@empresa.com"></label>
           <label>Contraseña *<input type="password" name="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
           <label>Confirmar contraseña *<input type="password" name="password_confirmacion" minlength="8" maxlength="72" autocomplete="new-password" required></label>
@@ -114,9 +131,17 @@ $errores=[
         <button type="button" class="reference-btn" id="nuevoUsuarioEmpresasToggle" aria-expanded="false" aria-controls="nuevoUsuarioEmpresas">Acceso a empresas ▾</button>
         <div id="nuevoUsuarioEmpresas" hidden>
           <?php if($esMain||(int)$actor['acceso_todos_clientes']===1):?><label class="nuevo-usuario-check"><input type="checkbox" name="acceso_todos_clientes" id="nuevoUsuarioTodasEmpresas"> Acceso a todas las empresas</label><?php endif;?>
+          <div id="nuevoUsuarioEmpresasManual" data-selector-empresas>
+            <label class="reference-field">Buscar empresa<input type="search" data-empresa-buscar placeholder="Razón social o RUC"></label>
+            <div class="assign-selection-meta">
+              <button type="button" class="link-btn" data-empresa-marcar>Seleccionar todo</button>
+              <button type="button" class="link-btn" data-empresa-limpiar>Deseleccionar todo</button>
+              <span data-empresa-conteo role="status"></span>
+            </div>
           <div class="nuevo-usuario-empresas-lista" id="nuevoUsuarioEmpresasLista">
-            <?php foreach($clientes as $c):?><label><input type="checkbox" name="clientes_asignados[]" value="<?= (int)$c['id_cliente'] ?>"><span><?= htmlspecialchars((string)$c['razon_social']) ?><small><?= htmlspecialchars((string)$c['ruc']) ?></small></span></label><?php endforeach;?>
-            <?php if($clientes===[]):?><p class="reference-subtle">No hay empresas visibles para asignar todavía.</p><?php endif;?>
+            <?php foreach($clientes as $c):?><label data-empresa-fila data-search="<?= htmlspecialchars($c['razon_social'].' '.$c['ruc'], ENT_QUOTES, 'UTF-8') ?>"><input type="checkbox" name="clientes_asignados[]" value="<?= (int)$c['id_cliente'] ?>"><span><?= htmlspecialchars((string)$c['razon_social']) ?><small><?= htmlspecialchars((string)$c['ruc']) ?></small></span></label><?php endforeach;?>
+            <p class="assign-empty" data-empresa-vacio hidden>No se encontraron empresas.</p>
+          </div>
           </div>
         </div>
       </section>
@@ -126,7 +151,7 @@ $errores=[
 </dialog>
 <?php endif;?>
 
-<dialog id="assignClientsDialog" class="team-dialog"><form method="post" action="../../controladores/equipo/ControladorEquipo.php"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="asignar_clientes"><input type="hidden" name="id_usuario" id="assignUserId"><div class="team-dialog-head"><div><h2>Seleccionar empresas</h2><p>Empresas permitidas para <strong id="assignUserName"></strong>.</p></div><button type="button" class="team-dialog-x" data-close="assignClientsDialog">×</button></div><div class="client-search-box"><span aria-hidden="true">⌕</span><input type="search" id="assignClientSearch" placeholder="Buscar por empresa o RUC" autocomplete="off"><button type="button" id="clearAssignSearch" title="Limpiar búsqueda">×</button></div><div class="assign-selection-meta"><span id="assignSelectedCount">0 empresas seleccionadas</span><span id="assignVisibleCount"></span></div><div class="assign-clients-list" id="assignClientsList"><?php foreach($clientes as $c):?><label class="assign-client-row" data-search="<?php echo htmlspecialchars((string)$c['razon_social'].' '.(string)$c['ruc'],ENT_QUOTES,'UTF-8');?>"><input type="checkbox" name="clientes_asignados[]" value="<?php echo (int)$c['id_cliente'];?>" data-client-id="<?php echo (int)$c['id_cliente'];?>"><span><strong><?php echo htmlspecialchars((string)$c['razon_social']);?></strong><small><?php echo htmlspecialchars((string)$c['ruc']);?></small></span></label><?php endforeach;?><p class="assign-empty" id="assignEmpty" hidden>No se encontraron empresas con esa búsqueda.</p></div><div class="form-actions"><button type="button" class="reference-btn" data-close="assignClientsDialog">Cancelar</button><button class="reference-btn primary">Guardar asignación</button></div></form></dialog>
+<dialog id="assignClientsDialog" class="team-dialog"><form method="post" action="../../controladores/equipo/ControladorEquipo.php"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="asignar_clientes"><input type="hidden" name="id_usuario" id="assignUserId"><div class="team-dialog-head"><div><h2>Seleccionar empresas</h2><p>Empresas permitidas para <strong id="assignUserName"></strong>.</p></div><button type="button" class="team-dialog-x" data-close="assignClientsDialog">×</button></div><label class="nuevo-usuario-check"><input type="checkbox" name="acceso_todos_clientes" id="assignGlobal"> Acceso a todas las empresas, incluidas las futuras</label><div id="assignManual" data-selector-empresas><div class="client-search-box"><span aria-hidden="true">⌕</span><input type="search" id="assignClientSearch" data-empresa-buscar placeholder="Buscar por empresa o RUC" autocomplete="off"><button type="button" id="clearAssignSearch" data-empresa-borrar-busqueda title="Limpiar búsqueda">×</button></div><div class="assign-selection-meta"><button type="button" class="link-btn" data-empresa-marcar>Seleccionar todo</button><button type="button" class="link-btn" data-empresa-limpiar>Deseleccionar todo</button><span data-empresa-conteo role="status"></span></div><div class="assign-clients-list" id="assignClientsList"><?php foreach($clientes as $c):?><label class="assign-client-row" data-empresa-fila data-search="<?php echo htmlspecialchars((string)$c['razon_social'].' '.(string)$c['ruc'],ENT_QUOTES,'UTF-8');?>"><input type="checkbox" name="clientes_asignados[]" value="<?php echo (int)$c['id_cliente'];?>" data-client-id="<?php echo (int)$c['id_cliente'];?>"><span><strong><?php echo htmlspecialchars((string)$c['razon_social']);?></strong><small><?php echo htmlspecialchars((string)$c['ruc']);?></small></span></label><?php endforeach;?><p class="assign-empty" id="assignEmpty" data-empresa-vacio hidden>No se encontraron empresas con esa búsqueda.</p></div></div><div class="form-actions"><button type="button" class="reference-btn" data-close="assignClientsDialog">Cancelar</button><button class="reference-btn primary">Guardar asignación</button></div></form></dialog>
 
 <dialog id="menuPermissionsDialog" class="team-dialog menu-permissions-dialog"><form method="post" action="../../controladores/equipo/ControladorEquipo.php"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="permisos_menu"><input type="hidden" name="id_usuario" id="menuUserId"><div class="team-dialog-head"><div><h2>Permisos del usuario</h2><p>Consulta los permisos actuales de <strong id="menuUserName"></strong> y edítalos aquí.</p></div><button type="button" class="team-dialog-x" data-close="menuPermissionsDialog">×</button></div><div class="current-permissions"><div class="current-permissions-head"><strong>Permisos actuales</strong><span id="currentPermissionCount">0 módulos</span></div><div class="current-permissions-chips" id="currentPermissionChips"></div></div><label class="menu-all-row"><input type="checkbox" name="ver_todo" id="menuAll"> <span>Ver todos los módulos permitidos por el rol</span></label><div class="menu-perm-meta"><span id="menuCount">0 de <?php echo count($modulos);?> seleccionados</span><span><button type="button" class="link-btn" id="markAllMenu">Marcar todo</button> <button type="button" class="link-btn" id="clearAllMenu">Limpiar</button></span></div><div class="menu-perm-list"><?php foreach($modulos as $m):?><label class="menu-perm-row"><input type="checkbox" name="menu[]" value="<?php echo htmlspecialchars((string)$m['codigo']);?>" data-code="<?php echo htmlspecialchars((string)$m['codigo']);?>" data-name="<?php echo htmlspecialchars((string)$m['nombre'],ENT_QUOTES,'UTF-8');?>"><span><?php echo htmlspecialchars((string)$m['nombre']);?></span><small><?php echo htmlspecialchars((string)($m['grupo']??''));?></small></label><?php endforeach;?></div><p class="permission-note">Puedes marcar o desmarcar módulos y luego guardar. Los permisos de acciones nunca superan lo permitido por el rol del usuario.</p><button class="reference-btn primary menu-save-btn">Guardar cambios de permisos</button></form></dialog>
 
@@ -134,11 +159,11 @@ $errores=[
 
 <dialog id="deleteUserDialog" class="team-dialog small danger-dialog"><form method="post" action="../../controladores/equipo/ControladorEquipo.php"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="eliminar"><input type="hidden" name="id_usuario" id="deleteUserId"><div class="team-dialog-head"><div><h2>Eliminar usuario</h2><p>Esta acción elimina la cuenta y sus asignaciones. La cuenta MAIN está protegida.</p></div><button type="button" class="team-dialog-x" data-close="deleteUserDialog">×</button></div><p class="danger-copy">Para confirmar, escribe exactamente <strong id="deleteUserName"></strong>.</p><label class="team-input-label">Confirmación<input name="confirmacion" id="deleteUserConfirm" autocomplete="off" required></label><div class="form-actions"><button type="button" class="reference-btn" data-close="deleteUserDialog">Cancelar</button><button class="reference-btn danger-solid">Eliminar definitivamente</button></div></form></dialog>
 
-<dialog id="passwordUserDialog" class="team-dialog small"><form method="post" action="../../controladores/equipo/ControladorEquipo.php" autocomplete="off"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="cambiar_password_usuario"><input type="hidden" name="id_usuario" id="passwordUserId"><div class="team-dialog-head"><div><h2>Cambiar contraseña</h2><p>Usuario: <strong id="passwordUserName"></strong></p></div><button type="button" class="team-dialog-x" data-close="passwordUserDialog">×</button></div><label class="team-input-label">Nueva contraseña<input type="password" name="password_nueva" minlength="8" maxlength="72" autocomplete="new-password" required></label><div class="form-actions"><button type="button" class="reference-btn" data-close="passwordUserDialog">Cancelar</button><button class="reference-btn primary">Guardar contraseña</button></div></form></dialog>
+<?php if ($puedeCambiarClaves): ?><dialog id="passwordUserDialog" class="team-dialog small"><form method="post" action="../../controladores/equipo/ControladorEquipo.php" autocomplete="off"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf);?>"><input type="hidden" name="accion" value="cambiar_password_usuario"><input type="hidden" name="id_usuario" id="passwordUserId"><div class="team-dialog-head"><div><h2>Cambiar contraseña</h2><p>Usuario: <strong id="passwordUserName"></strong></p></div><button type="button" class="team-dialog-x" data-close="passwordUserDialog">×</button></div><label class="team-input-label">Nueva contraseña<input type="password" name="password_nueva" minlength="8" maxlength="72" autocomplete="new-password" required></label><div class="form-actions"><button type="button" class="reference-btn" data-close="passwordUserDialog">Cancelar</button><button class="reference-btn primary">Guardar contraseña</button></div></form></dialog><?php endif; ?>
 
 
 
 <footer>© <?= (int)(new DateTimeImmutable("now", new DateTimeZone("America/Lima")))->format("Y") ?> ASESCON - Todos los derechos reservados.</footer></section></main></div>
 <script src="../../publico/js/navegacion/menu_lateral.js"></script><script src="../../publico/js/navegacion/busqueda_clientes.js?v=20261014_1"></script><script src="../../publico/js/navegacion/menu_movil.js"></script><script type="application/json" id="assignmentsData"><?php echo json_encode($asignacionesPorUsuario, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <script type="application/json" id="menuPermsData"><?php echo json_encode($permisosMenuPorUsuario, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
-<script src="../../publico/js/equipo/gestion_usuarios.js"></script><script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js'); ?>"></script></body></html>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/equipo/gestion_usuarios.js'), ENT_QUOTES, 'UTF-8') ?>"></script><script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js'); ?>"></script></body></html>

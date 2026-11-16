@@ -10,10 +10,11 @@ final class AccesoCasosSol
         if($repo===null){$repo=new RepositorioCasosSol(asesconConexionPrincipal());$repo->instalar();}
         return $repo;
     }
-    public static function filtro(mysqli $db,string $cartera,string $alias='b'):string
+    public static function filtro(mysqli $db,string $cartera,string $alias='b', bool $instalar=true):string
     {
         if(asesconEsPrincipal($db))return $cartera;
-        $repo=self::repositorio();if(!$repo||!$repo->disponible())return $cartera;
+        $repo = $instalar ? self::repositorio() : new RepositorioCasosSol(asesconConexionPrincipal());
+        if(!$repo||!$repo->disponible())return $cartera;
         $actor=(int)asesconUsuarioActual($db)['id_usuario'];
         return self::condicion($cartera,$repo->alcance($actor,true),$repo->alcance($actor),$alias);
     }

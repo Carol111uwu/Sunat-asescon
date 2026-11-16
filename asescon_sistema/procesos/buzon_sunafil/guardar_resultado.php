@@ -9,6 +9,7 @@ if (PHP_SAPI !== 'cli') {
 
 require_once dirname(__DIR__, 2) . '/configuracion/conexion.php';
 require_once dirname(__DIR__, 2) . '/modelos/buzones/BuzonSunafil.php';
+require_once dirname(__DIR__, 2) . '/servicios/archivos/ServicioArchivosPrivados.php';
 require_once dirname(__DIR__, 2) . '/servicios/sunafil/ServicioColaBuzonSunafil.php';
 
 $idTrabajo = trim((string)($argv[1] ?? ''));
@@ -63,6 +64,18 @@ try {
                 throw new RuntimeException('La respuesta no corresponde al cliente solicitado.');
             }
             $documentos = is_array($datos['notificaciones'] ?? null) ? $datos['notificaciones'] : [];
+            $archivos = new ServicioArchivosPrivados();
+            foreach ($documentos as &$documento) {
+                if (!is_array($documento)) {
+                    continue;
+                }
+                $identificador = (string) ($documento['identificador_externo'] ?? '');
+                $referencia = (string) ($documento['archivo'] ?? '');
+                $esperada = ServicioArchivosPrivados::CARPETAS['SUNAFIL'] . "/{$idCliente}/oficial/{$identificador}.pdf";
+                $documento['archivo'] = preg_match('/^SUNAFIL-[a-f0-9]{40}$/D', $identificador)
+                    && $referencia === $esperada && $archivos->resolver($referencia, 'SUNAFIL') ? $referencia : '';
+            }
+            unset($documento);
             $conexion->begin_transaction();
             try {
                 $nuevos = (new BuzonSunafil($conexion))->guardarSincronizados($idCliente, $documentos);

@@ -24,6 +24,8 @@ RUN python3 -m venv /opt/asescon-venv \
     && /opt/asescon-venv/bin/pip install --no-cache-dir -r /tmp/asescon-python-requirements.txt \
     && /opt/asescon-venv/bin/playwright install --with-deps chromium
 
+ARG ASESCON_REVISION=desarrollo
+LABEL org.opencontainers.image.revision="${ASESCON_REVISION}"
 COPY asescon_sistema ./asescon_sistema
 COPY --from=vendor /app/vendor ./asescon_sistema/vendor
 
@@ -41,6 +43,7 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/asescon.ini
 RUN chgrp -R www-data /var/www/html/asescon_sistema \
     && chmod -R g+rX /var/www/html/asescon_sistema
 
+
 # Detrás del proxy compartido: IP real del usuario y HTTPS (mod_remoteip).
 COPY docker/apache-proxy.conf /etc/apache2/conf-available/asescon-proxy.conf
 # Tareas automáticas (servicio "tareas" del compose): cron + instalador del entorno privado.
@@ -57,5 +60,8 @@ RUN sed -i 's/\r$//' /etc/cron.d/asescon /usr/local/bin/asescon-tareas /usr/loca
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://localhost/ || exit 1
+  CMD curl -fsS http://localhost/vistas/inicio_sesion.php -o /dev/null \
+    && curl -fsS http://localhost/publico/css/base/estructura_panel.css -o /dev/null \
+    && curl -fsS http://localhost/publico/css/modulos/rce_centro.css -o /dev/null \
+    && curl -fsS http://localhost/publico/js/sunat/descarga_masiva_sire.js -o /dev/null || exit 1
 

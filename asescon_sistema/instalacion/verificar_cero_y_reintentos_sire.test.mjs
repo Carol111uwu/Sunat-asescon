@@ -25,7 +25,7 @@ test('ventas y compras obligan a consultar SIRE sin modo de datos guardados', ()
     assert.match(js, /const fechaLima = \(\) =>/);
     assert.match(css, new RegExp(`\\.${prefijo}-proceso \\[hidden\\]`));
     assert.match(css, /display: none !important/);
-    assert.match(vista, /@filemtime\(__DIR__ .*?centro\.js/);
+    assert.match(vista, /asesconRecurso\(.*?centro\.js/);
   }
 });
 

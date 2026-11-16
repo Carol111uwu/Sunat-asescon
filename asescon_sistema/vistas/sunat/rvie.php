@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../../configuracion/inicializacion.php';
+asesconExigirLogin();
 require_once __DIR__ . '/../../controladores/sunat/ControladorVistaLibroSire.php';
 
 $datosVista = (new ControladorVistaLibroSire($conexion))->preparar('RVIE', $_GET);
@@ -33,12 +34,13 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="asescon-csrf-sire-masivo" content="<?= $h(asesconCsrf('csrf_sire_masivo')) ?>">
   <meta name="asescon-csrf-sire" content="<?= $h($csrfSire) ?>">
   <title>RVIE SUNAT — Ventas — ASESCON</title>
-  <link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui3">
-  <link rel="stylesheet" href="../../publico/css/modulos/sunat.css">
-  <link rel="stylesheet" href="../../publico/css/modulos/descarga_masiva_sire.css?v=<?= (int)@filemtime(__DIR__ . '/../../publico/css/modulos/descarga_masiva_sire.css') ?>">
-  <link rel="stylesheet" href="../../publico/css/modulos/rvie_centro.css?v=<?= (int)@filemtime(__DIR__ . '/../../publico/css/modulos/rvie_centro.css') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/base/estructura_panel.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/modulos/sunat.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/modulos/descarga_masiva_sire.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/modulos/rvie_centro.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 <div class="app">
@@ -187,6 +189,7 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
               <a class="reference-btn" data-rvie-excel="detalle" href="<?= $h($excelBase . '&modo=detalle') ?>">⇩ Excel detalle</a>
               <?php if (!$esAnual && !$esGlobal): ?><a class="reference-btn" data-rvie-excel="original" href="<?= $h($excelBase . '&modo=original') ?>">Excel original</a><?php endif; ?>
             </div></div>
+            <?php require __DIR__ . '/componentes/descarga_periodo_sire.php'; ?>
             <div class="sire-descarga-masiva" data-sire-masiva="rvie">
               <label for="rvieCantidadSeleccion" class="sire-masiva-cantidad">Seleccionar cantidad
                 <select id="rvieCantidadSeleccion" data-sire-cantidad>
@@ -248,14 +251,14 @@ require __DIR__ . '/componentes/acciones_comprobante_rce.php';
     </section>
   </main>
 </div>
-<script src="../../publico/js/navegacion/menu_lateral.js"></script>
-<script src="../../publico/js/navegacion/busqueda_clientes.js?v=20261014_1"></script>
-<script src="../../publico/js/navegacion/menu_movil.js"></script>
-<script src="../../publico/js/interfaz/componentes_interfaz.js?v=20260915_3"></script>
-<script src="../../publico/js/sunat/sincronizacion_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/sincronizacion_sire.js') ?>"></script>
-<script src="../../publico/js/sunat/pendientes_anuales_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/pendientes_anuales_sire.js') ?>"></script>
-<script src="../../publico/js/sunat/rvie_centro.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/rvie_centro.js') ?>"></script>
-<script src="../../publico/js/sunat/rce_comprobante.js?v=<?= (int)filemtime(__DIR__ . '/../../publico/js/sunat/rce_comprobante.js') ?>"></script>
-<script src="../../publico/js/sunat/descarga_masiva_sire.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/sunat/descarga_masiva_sire.js') ?>"></script>
-<script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?= (int)@filemtime(__DIR__ . '/../../publico/js/interfaz/tablas_adaptables.js') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/navegacion/menu_lateral.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/navegacion/busqueda_clientes.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/navegacion/menu_movil.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/interfaz/componentes_interfaz.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/sunat/sincronizacion_sire.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/sunat/pendientes_anuales_sire.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/sunat/rvie_centro.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/sunat/rce_comprobante.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/sunat/descarga_masiva_sire.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asesconRecurso('publico/js/interfaz/tablas_adaptables.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </body></html>

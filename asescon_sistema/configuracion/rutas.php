@@ -27,6 +27,14 @@ function asesconUrl(string $ruta = ''): string
     return asesconBaseUrl() . '/' . asesconNormalizarRuta($ruta);
 }
 
+function asesconRecurso(string $ruta): string
+{
+    $ruta = ltrim($ruta, '/');
+    $archivo = dirname(__DIR__) . '/' . $ruta;
+    $version = is_file($archivo) ? @hash_file('sha256', $archivo) : false;
+    return asesconUrl($ruta) . ($version ? '?v=' . substr($version, 0, 16) : '');
+}
+
 function asesconRedirigir(string $ruta, array $parametros = []): never
 {
     $url = asesconUrl($ruta);
