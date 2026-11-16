@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../servicios/archivos/ServicioArchivosPrivados.php';
+
 final class BuzonSunafil
 {
     public function __construct(private mysqli $conexion)
@@ -100,6 +102,7 @@ return $a;
     public function guardarSincronizados(int $idCliente, array $documentos): int
     {
         $guardados = 0;
+        $archivos = new ServicioArchivosPrivados();
         foreach ($documentos as $d) {
             if (!is_array($d)) {
                 throw new RuntimeException('La respuesta contiene una notificación no válida.');
@@ -116,7 +119,7 @@ return $a;
             $archivo = trim((string)($d['archivo'] ?? ''));
             $obs = trim((string)($d['observaciones'] ?? ''));
 
-            $s = $this->conexion->prepare('SELECT id_documento FROM buzon_sunafil WHERE id_cliente=? AND identificador_externo=? LIMIT 1');
+            $s = $this->conexion->prepare('SELECT id_documento,archivo FROM buzon_sunafil WHERE id_cliente=? AND identificador_externo=? LIMIT 1 FOR UPDATE');
             if (!$s) {
                 throw new RuntimeException('No se pudo verificar una notificación SUNAFIL.');
             }
@@ -127,6 +130,9 @@ return $a;
 
             if ($ex) {
                 $id = (int)$ex['id_documento'];
+                if ($archivo !== '' && $archivos->resolver((string)($ex['archivo'] ?? ''), 'SUNAFIL')) {
+                    $archivo = '';
+                }
                 $q = $this->conexion->prepare("UPDATE buzon_sunafil SET asunto=?,tipo_documento=?,categoria=?,fecha_recepcion=COALESCE(NULLIF(?,''),fecha_recepcion),prioridad=?,archivo=COALESCE(NULLIF(?,''),archivo),observaciones=COALESCE(NULLIF(?,''),observaciones),fecha_sincronizacion=NOW() WHERE id_documento=?");
                 if (!$q) {
                     throw new RuntimeException('No se pudo actualizar una notificación SUNAFIL.');
@@ -146,5 +152,37 @@ return $a;
             }
         }
         return $guardados;
+    }
+
+    public function vincularPdfOficial(int $cliente, int $documento, string $identificador, string $referencia): void
+    {
+        $archivos = new ServicioArchivosPrivados();
+        $esperada = ServicioArchivosPrivados::CARPETAS['SUNAFIL'] . "/{$cliente}/oficial/{$identificador}.pdf";
+        if (!preg_match('/^SUNAFIL-[a-f0-9]{40}$/D', $identificador) || $referencia !== $esperada
+            || !$archivos->resolver($referencia, 'SUNAFIL')) {
+            throw new DomainException('El PDF solicitado no quedó disponible.');
+        }
+        $this->conexion->begin_transaction();
+        try {
+            $consulta = $this->conexion->prepare('SELECT archivo FROM buzon_sunafil
+                WHERE id_documento=? AND id_cliente=? AND identificador_externo=? FOR UPDATE');
+            $consulta->bind_param('iis', $documento, $cliente, $identificador);
+            $consulta->execute();
+            $fila = $consulta->get_result()->fetch_assoc();
+            $consulta->close();
+            if (!$fila) {
+                throw new DomainException('La notificación ya no está disponible.');
+            }
+            if (!$archivos->resolver((string)($fila['archivo'] ?? ''), 'SUNAFIL')) {
+                $actualizar = $this->conexion->prepare('UPDATE buzon_sunafil SET archivo=? WHERE id_documento=? AND id_cliente=?');
+                $actualizar->bind_param('sii', $referencia, $documento, $cliente);
+                $actualizar->execute();
+                $actualizar->close();
+            }
+            $this->conexion->commit();
+        } catch (Throwable $error) {
+            $this->conexion->rollback();
+            throw $error;
+        }
     }
 }

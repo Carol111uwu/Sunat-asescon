@@ -409,6 +409,8 @@ final class ControladorCliente
         try {
                                                                                
                                                                             
+            require_once __DIR__ . '/../../modelos/buzones/SeguimientoNotificacionesSunafil.php';
+            (new SeguimientoNotificacionesSunafil($this->conexion))->borrarPorCliente($id);
             foreach (['consultas_declaraciones_sunat','declaraciones_oficiales_sunat',
                       'tareas','buzon_sol_sunat','buzon_sunafil','alertas_sunat','cotizaciones'] as $tabla) {
                 $stmt = $this->conexion->prepare("DELETE FROM {$tabla} WHERE id_cliente=?");
