@@ -8,6 +8,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once dirname(__DIR__, 2) . '/configuracion/conexion.php';
+require_once dirname(__DIR__, 2) . '/configuracion/rutas_privadas.php';
 require_once dirname(__DIR__, 2) . '/servicios/sunat/CargadorCredencialesSunat.php';
 require_once dirname(__DIR__, 2) . '/servicios/sunafil/ServicioColaBuzonSunafil.php';
 
@@ -39,6 +40,8 @@ try {
     $credenciales = (new CargadorCredencialesSunat($conexion))->obtenerSolPorCliente($idCliente);
     $entrada = [
         'modo' => 'bandeja',
+        'id_cliente' => $idCliente,
+        'raiz_archivos' => asesconRaizDatosPrivados(),
         'ruc' => (string)$credenciales['ruc'],
         'usuario_sol' => (string)$credenciales['usuario_sol'],
         'clave_sol' => (string)$credenciales['clave_sol'],

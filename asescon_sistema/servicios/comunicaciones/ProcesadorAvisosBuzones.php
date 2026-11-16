@@ -32,7 +32,8 @@ final class ProcesadorAvisosBuzones
                     $documento=$cola->documento($aviso);
                     if (!$documento) { $cola->estado($id,'ANULADO');continue; }
                     $ruta=$aviso['entidad']==='SUNAT' ? 'buzon_sol_sunat.php' : 'buzon_sunafil.php';
-                    $mensaje="Nueva notificación de {$aviso['entidad']}\nCliente: {$documento['razon_social']}\nRUC: {$documento['ruc']}\nAsunto: {$documento['asunto']}\n\nRevisa el documento iniciando sesión en ASESCON:\n{$base}/vistas/buzones/{$ruta}";
+                    $url = $base . '/vistas/buzones/' . $ruta . '?id_cliente=' . (int) $aviso['id_cliente'];
+                    $mensaje="Nueva notificación de {$aviso['entidad']}\nCliente: {$documento['razon_social']}\nRUC: {$documento['ruc']}\nAsunto: {$documento['asunto']}\n\nRevisa el documento iniciando sesión en ASESCON:\n{$url}";
                     (new ServicioCorreoSmtp())->enviar($config['correo_avisos'],'Nueva notificación '.$aviso['entidad'].' — '.$documento['ruc'],$mensaje,$config['nombre_remitente']);
                     $cola->estado($id,'ENVIADO');
                 } catch (Throwable $e) {

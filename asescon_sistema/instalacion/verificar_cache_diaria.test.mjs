@@ -23,8 +23,8 @@ test('limpieza diaria restringida a CLI, caché antigua y ventana de Perú',()=>
     assert.match(php,new RegExp(`'${protegido}'`));
   }
   assert.doesNotMatch(php,/\['(?:usuarios|clientes|credenciales_sunat)'/);
-  assert.match(php,/\['buzon_sol_sunat'/);
-  assert.match(php,/\['buzon_sunafil'/);
+  assert.doesNotMatch(php,/\['buzon_sol_sunat'/);
+  assert.doesNotMatch(php,/\['buzon_sunafil'/);
 });
 
 test('cron de limpieza reutiliza PHP CLI con las mismas rutas privadas y sin duplicar trabajo',()=>{

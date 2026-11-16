@@ -37,14 +37,17 @@ if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/mantenimiento.flag" ]; then exit 0
 if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/pausa.flag" ]; then exit 0; fi
 if [ ! -x "$PYTHON_BIN" ]; then echo 'Falta instalar el entorno Python privado.' >>"$LOG";exit 1;fi
 printf '%s\n' "$(date +%s)" > "$RUNTIME/ultima_ejecucion_cron"
-if [ "$(TZ=America/Lima date +%H)" = "02" ]; then
-    "$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/programar_adjuntos.php" >>"$LOG" 2>&1 || true
-fi
+PRECARGA_REVISADA=0
 LIMITE_LOTE=$(( $(date +%s) + 50 ))
 while [ "$(date +%s)" -lt "$LIMITE_LOTE" ]; do
 if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/pausa.flag" ]; then exit 0; fi
 PREPARADO="$("$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/preparar_solicitud.php" 2>>"$LOG")"
 if [ -z "$PREPARADO" ]; then
+    if [ "$PRECARGA_REVISADA" -eq 0 ] && [ "$((10#${RELOJ_LIMA:2:2} % 15))" -eq 0 ]; then
+        PRECARGA_REVISADA=1
+        "$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/programar_adjuntos.php" >>"$LOG" 2>&1 || true
+        continue
+    fi
     exit 0
 fi
 

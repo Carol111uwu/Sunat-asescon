@@ -1,3 +1,19 @@
+2026-11-16 | Menú solicitado y acceso a Relación SSCO
+- Reorganiza la navegación lateral y agrupa Utilitarios dentro de Extras.
+- Relación SSCO tiene una vista independiente con los mismos permisos y datos.
+
+2026-11-16 | Mi equipo, menú Buzón y permisos de Apache
+- Mi equipo: cuentas por RUC con datos públicos, selección masiva de empresas y cambio de clave reservado al Creador y cliente MAIN.
+- Menú SUNAT: agrupa SOL y SUNAFIL en Buzón.
+- Buzón SOL: reintenta adjuntos en intervalos de 15 minutos cuando queda libre y prioriza las solicitudes manuales.
+- Se conserva el arreglo de permisos de Docker del commit 719e73d.
+
+2026-11-16 | Integración ASESCON para VPS
+- Reconstrucción con permisos de lectura, recursos web versionados y comprobación de CSS/JS.
+- RCE y RVIE: descarga de todo el período en ZIP de 100 reportes y selección RCE ampliada.
+- Alertas desde notificaciones de buzones, descarga SUNAFIL por enlaces PDF oficiales y correo con acceso a la bandeja.
+- Índice Padrón RUC con activación atómica y conservación de catálogos y metadatos de buzones.
+
 2026-11-09 12:49:13 America/Lima
 
 2026-11-11 America/Lima — Actualización local de RCE y usuarios

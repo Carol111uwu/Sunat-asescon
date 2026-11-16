@@ -31,15 +31,17 @@ test('La API del reporte verifica sesión, cliente, permisos y CSRF antes de env
 
 test('El PDF se presenta como reporte informativo y no como comprobante fiscal original', () => {
   const documento = leer('servicios/sunat/DocumentoComprobanteRce.php');
-  assert.match(documento, /Reporte informativo/);
-  assert.match(documento, /consulta el comprobante original/);
+  const generador = leer('servicios/sunat/ReporteComprobanteSirePdf.php');
+  assert.match(documento, /new ReporteComprobanteSirePdf/);
+  assert.match(generador, /Reporte informativo/);
+  assert.match(generador, /consulta el comprobante electrónico original/);
   assert.match(documento, /function excel\(/);
   assert.match(documento, /function pdf\(/);
 });
 
-test('SIRE permanece como primer subgrupo del menú SUNAT', () => {
-  const menu = leer('vistas/componentes/menu_lateral.php');
-  assert.match(menu, /GRUPO_SIRE/);
+test('SIRE permanece como primer subgrupo de Tributario', () => {
+  const menu = leer('configuracion/menu_lateral.php');
+  assert.match(menu, /tributarioMenu[\s\S]*?sireMenu/);
   assert.match(menu, /RCE \(Compras\)/);
   assert.match(menu, /RVIE \(Ventas\)/);
   assert.match(menu, /Dashboard SIRE/);
@@ -62,7 +64,7 @@ test('RCE permite seleccionar algunos o todos los comprobantes de la página y e
   assert.match(script, /function aplicarFiltros\(/);
   assert.match(api, /asesconPuedeVerCliente/);
   assert.match(api, /asesconValidarCsrf/);
-  assert.match(api, /60 comprobantes/);
+  assert.match(api, /100 comprobantes/);
   assert.match(api, /new DocumentoComprobanteRce/);
   assert.match(api, /ZipArchive/);
   assert.match(api, /ExportadorExcelSire/);

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 import time
 import unicodedata
 import json
@@ -287,8 +289,7 @@ def table_records(page, section: str) -> list[dict[str, Any]]:
                     txt = clean(link.get("text", ""))
                     if not pdf and (".pdf" in href.lower() or "pdf" in txt.lower()):
                                                                               
-                        parsed = urlparse(href)
-                        if parsed.scheme == "https" and parsed.hostname == HOST and not parsed.query:
+                        if is_official_pdf_link(href):
                             pdf = href
 
                 ident = hashlib.sha256(identifier_seed.encode("utf-8", "ignore")).hexdigest()[:40]
@@ -299,7 +300,8 @@ def table_records(page, section: str) -> list[dict[str, Any]]:
                     "categoria": (section or "SUNAFIL")[:80],
                     "fecha_recepcion": fecha_iso,
                     "prioridad": "NORMAL",
-                    "archivo": pdf[:255],
+                    "enlace_pdf": pdf,
+                    "archivo": "",
                     "observaciones": joined[:2000],
                 })
     return records
@@ -382,7 +384,71 @@ def read_inbox(page) -> list[dict[str, Any]]:
             raise RuntimeError("La bandeja supera el límite de 30 páginas. No se guardaron resultados parciales.")
     if not recognized:
         raise RuntimeError("La sesión abrió, pero no se reconoció la bandeja ni un aviso de bandeja vacía. No se guardaron resultados.")
-    return list({r["identificador_externo"]: r for r in records}.values())
+    unicas = {}
+    for registro in records:
+        identificador = registro["identificador_externo"]
+        if identificador not in unicas or registro.get("enlace_pdf"):
+            unicas[identificador] = registro
+    return list(unicas.values())
+
+def is_official_pdf_link(url: str) -> bool:
+    parts = urlparse(url)
+    return (parts.scheme == "https" and parts.netloc == HOST
+            and not re.search(r"acuse|confirm|aceptar|marcar|constancia.?lectura", folded(url)))
+
+
+def guardar_adjuntos(page, records: list[dict[str, Any]], carpeta: str, cliente: int) -> int:
+    if not carpeta or cliente < 1:
+        return 0
+    relativo = Path("almacenamiento/sunafil/buzon_sunafil/adjuntos") / str(cliente) / "oficial"
+    directorio = Path(carpeta) / relativo
+    limite = 16 * 1024 * 1024
+    fecha_limite = time.monotonic() + 27
+    descargados = 0
+    intentos = 0
+    directorio.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for registro in records:
+        enlace = registro.pop("enlace_pdf", "")
+        identificador = registro["identificador_externo"]
+        if not re.fullmatch(r"SUNAFIL-[a-f0-9]{40}", identificador):
+            continue
+        nombre = identificador + ".pdf"
+        destino = directorio / nombre
+        if destino.is_file():
+            with destino.open("rb") as prueba:
+                if prueba.read(5) == b"%PDF-":
+                    registro["archivo"] = (relativo / nombre).as_posix()
+                    continue
+        if not enlace or not is_official_pdf_link(enlace) or intentos >= 12 or time.monotonic() > fecha_limite:
+            continue
+        intentos += 1
+        respuesta = None
+        temporal = None
+        try:
+            respuesta = page.context.request.get(enlace, timeout=4000, max_redirects=0)
+            tipo = respuesta.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            longitud = respuesta.headers.get("content-length", "")
+            if (not respuesta.ok or tipo not in {"application/pdf", "application/octet-stream"}
+                    or (longitud.isdigit() and int(longitud) > limite)):
+                continue
+            pdf = respuesta.body()
+            if len(pdf) > limite or not pdf.startswith(b"%PDF-"):
+                continue
+            with NamedTemporaryFile(dir=directorio, prefix=".sunafil-", delete=False) as archivo:
+                temporal = Path(archivo.name)
+                archivo.write(pdf)
+            temporal.replace(destino)
+            registro["archivo"] = (relativo / nombre).as_posix()
+            descargados += 1
+        except Exception:
+            sys.stderr.write("SUNAFIL: un PDF no estuvo disponible en esta consulta.\n")
+        finally:
+            if respuesta is not None:
+                respuesta.dispose()
+            if temporal is not None:
+                temporal.unlink(missing_ok=True)
+    return descargados
+
 
 def main() -> None:
     try:
@@ -424,6 +490,14 @@ def main() -> None:
                 if modo == "bandeja":
                     data["notificaciones"] = read_inbox(page)
                     data["cantidad"] = len(data["notificaciones"])
+                    try:
+                        data["pdf_descargados"] = guardar_adjuntos(
+                            page, data["notificaciones"], str(req.get("raiz_archivos", "")), int(req.get("id_cliente", 0))
+                        )
+                    except OSError:
+                        sys.stderr.write("SUNAFIL: no se pudo guardar uno o más PDF en el volumen privado.\n")
+                    for notificacion in data["notificaciones"]:
+                        notificacion.pop("enlace_pdf", None)
             finally:
                 context.close()
                 browser.close()

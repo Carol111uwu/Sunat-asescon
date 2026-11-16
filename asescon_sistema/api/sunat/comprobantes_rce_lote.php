@@ -34,8 +34,8 @@ if ($accion === 'correo' && !asesconTienePermiso($conexion, 'RCE', 'editar')) {
 }
 
 $seleccion = json_decode((string)($_POST['seleccion'] ?? ''), true);
-if (!is_array($seleccion) || !array_is_list($seleccion) || count($seleccion) < 1 || count($seleccion) > 60) {
-    $responderError(422, 'Selecciona entre 1 y 60 comprobantes de la página actual.');
+if (!is_array($seleccion) || !array_is_list($seleccion) || count($seleccion) < 1 || count($seleccion) > 100) {
+    $responderError(422, 'Selecciona entre 1 y 100 comprobantes de la página actual.');
 }
 $destinatario = '';
 if ($accion === 'correo') {

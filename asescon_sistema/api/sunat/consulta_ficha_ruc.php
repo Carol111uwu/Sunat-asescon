@@ -45,6 +45,11 @@ try {
             http_response_code(422);
             throw new InvalidArgumentException('El RUC no corresponde a la empresa seleccionada.');
         }
+    } elseif (($input['contexto'] ?? '') === 'equipo') {
+        if (!asesconPuedeCrearUsuarios($conexion)) {
+            http_response_code(403);
+            throw new RuntimeException('No tienes permiso para crear cuentas de equipo.');
+        }
     } elseif (!asesconTienePermiso($conexion, 'CLIENTES', 'crear')) {
         http_response_code(403);
         throw new RuntimeException('No tienes permiso para consultar datos SUNAT de un cliente nuevo.');

@@ -44,9 +44,9 @@
   casillas.forEach(c => c.addEventListener('change', actualizar));
   marcarTodo.addEventListener('change', () => {
     const actuales = visibles();
-    actuales.forEach((c, i) => { c.checked = marcarTodo.checked && i < 60; });
-    if (marcarTodo.checked && actuales.length > 60) {
-      estado.textContent = 'Se seleccionaron los primeros 60 comprobantes visibles. Para continuar, descarga el siguiente grupo.';
+    actuales.forEach((c, i) => { c.checked = marcarTodo.checked && i < 100; });
+    if (marcarTodo.checked && actuales.length > 100) {
+      estado.textContent = 'Se seleccionaron los primeros 100 comprobantes visibles. Para continuar, descarga el siguiente grupo.';
     }
     actualizar();
   });
@@ -54,9 +54,9 @@
     if (!elegirCantidad.value) return;
     const actuales = visibles();
     const pedido = elegirCantidad.value === 'todos' ? actuales.length : Number(elegirCantidad.value);
-    actuales.forEach((c, i) => { c.checked = i < Math.min(60, pedido); });
-    estado.textContent = pedido > 60
-      ? 'Se seleccionaron 60 comprobantes de esta página; puedes procesar el resto después.'
+    actuales.forEach((c, i) => { c.checked = i < Math.min(100, pedido); });
+    estado.textContent = pedido > 100
+      ? 'Se seleccionaron 100 comprobantes de esta página; puedes procesar el resto después.'
       : '';
     actualizar();
   });
@@ -121,7 +121,7 @@
   function datosFormulario(accion) {
     const seleccion = datosSeleccionados();
     if (!seleccion.length) throw new Error('Selecciona por lo menos un comprobante visible.');
-    if (seleccion.length > 60) throw new Error('El máximo es 60 comprobantes por descarga o envío.');
+    if (seleccion.length > 100) throw new Error('El máximo es 100 comprobantes por descarga o envío.');
     const datos = new FormData();
     datos.set('csrf_token', token);
     datos.set('accion', accion);

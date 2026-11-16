@@ -13,12 +13,19 @@ x-entorno-asescon: &entorno-asescon
   ASESCON_FORCE_HTTPS: ${ASESCON_FORCE_HTTPS:-0}
   ASESCON_URL_PUBLICA: ${ASESCON_URL_PUBLICA:-http://localhost:8080}
   ASESCON_RECURSOS_PRIVADOS: /var/www/html/asescon_recursos_privados
+  ASESCON_SMTP_HOST: ${ASESCON_SMTP_HOST:-}
+  ASESCON_SMTP_PORT: ${ASESCON_SMTP_PORT:-}
+  ASESCON_SMTP_USER: ${ASESCON_SMTP_USER:-}
+  ASESCON_SMTP_PASSWORD: ${ASESCON_SMTP_PASSWORD:-}
+  ASESCON_SMTP_SEGURIDAD: ${ASESCON_SMTP_SEGURIDAD:-}
   TZ: America/Lima
 
 services:
   app:
     build:
       context: .
+      args:
+        ASESCON_REVISION: ${ASESCON_REVISION:-desarrollo}
     image: asescon-sistema:local
     restart: unless-stopped
     # Solo en esta PC (127.0.0.1). En el VPS se quita: el tráfico entra por el proxy compartido.
@@ -44,6 +51,8 @@ services:
   tareas:
     build:
       context: .
+      args:
+        ASESCON_REVISION: ${ASESCON_REVISION:-desarrollo}
     image: asescon-sistema:local
     restart: unless-stopped
     command: ["asescon-tareas"]

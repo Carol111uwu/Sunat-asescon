@@ -83,7 +83,9 @@ final class EjecutorNocturno
             require_once __DIR__.'/../sunat/ServicioPadronSunat.php';
             $padron=new ServicioPadronSunat();
             $padron->actualizarAhora(false);
-            if(!$padron->cacheDisponible())throw new RuntimeException('PADRON_RUC_NO_DISPONIBLE');
+            if (!$padron->cacheVigente()) {
+                throw new RuntimeException('El Padrón RUC aún se está actualizando o el índice disponible está desactualizado.');
+            }
             return ['estado'=>'COMPLETADO','mensaje'=>'Catálogo de RUC disponible para consultas del día.'];
         }
         if($modulo==='SSCO'){

@@ -37,7 +37,7 @@ final class ServicioPadronSunat
 
         $manifest = $this->leerManifest();
         $prefix = substr($ruc, 0, 3);
-        $chunk = $this->chunksDir . DIRECTORY_SEPARATOR . 'ruc_' . $prefix . '.txt';
+        $chunk = $this->directorioIndice($manifest) . DIRECTORY_SEPARATOR . 'ruc_' . $prefix . '.txt';
 
         if (!is_file($chunk)) {
             throw new ExcepcionSunat('El RUC no aparece en el Padrón Reducido oficial de SUNAT.');
@@ -219,14 +219,22 @@ final class ServicioPadronSunat
         return (time() - $actualizado) < ConfiguracionSunat::PADRON_REFRESH_SECONDS;
     }
 
+    private function directorioIndice(array $manifest): string
+    {
+        $generacion = (string) ($manifest['generacion'] ?? '');
+        return preg_match('/^[a-f0-9]{12}$/D', $generacion)
+            ? $this->chunksDir . '_' . $generacion
+            : $this->chunksDir;
+    }
+
     private function cacheUtilizable(): bool
     {
-        if (!is_file($this->manifestPath) || !is_dir($this->chunksDir)) {
+        $manifest = $this->leerManifest();
+        if ((int) ($manifest['records_indexed'] ?? 0) < 1) {
             return false;
         }
-
-        $archivos = glob($this->chunksDir . DIRECTORY_SEPARATOR . 'ruc_*.txt');
-        return is_array($archivos) && count($archivos) > 0;
+        $archivos = glob($this->directorioIndice($manifest) . DIRECTORY_SEPARATOR . 'ruc_*.txt');
+        return is_array($archivos) && $archivos !== [];
     }
 
     private function actualizarDesdeSunat(): void
@@ -241,9 +249,13 @@ final class ServicioPadronSunat
         @set_time_limit(0);
         @ini_set('memory_limit', '512M');
 
-        $tempBase = $this->storageDir . DIRECTORY_SEPARATOR . 'tmp_' . bin2hex(random_bytes(6));
+        $generacion = bin2hex(random_bytes(6));
+        $tempBase = $this->storageDir . DIRECTORY_SEPARATOR . 'tmp_' . $generacion;
         $tempZip = $tempBase . '.zip';
         $tempChunks = $tempBase . '_chunks';
+        $manifestTemp = $tempBase . '_manifest.json';
+        $indiceNuevo = $this->chunksDir . '_' . $generacion;
+        $activado = false;
         $this->crearDirectorio($tempChunks);
 
         try {
@@ -261,9 +273,9 @@ final class ServicioPadronSunat
                 'generated_at_unix' => time(),
                 'records_indexed' => $registros,
                 'header' => $headerUtf8,
+                'generacion' => $generacion,
             ];
 
-            $manifestTemp = $tempBase . '_manifest.json';
             if (
                 @file_put_contents(
                     $manifestTemp,
@@ -275,15 +287,23 @@ final class ServicioPadronSunat
             }
 
             $this->actualizarProgreso('Activando índice', 97, 'Activando el índice local optimizado.');
-            $this->reemplazarDirectorio($tempChunks, $this->chunksDir);
-            if (!@rename($manifestTemp, $this->manifestPath)) {
-                if (!@copy($manifestTemp, $this->manifestPath)) {
-                    throw new ExcepcionSunat('No se pudo activar el manifiesto actualizado del padrón SUNAT.');
+            if (!@rename($tempChunks, $indiceNuevo) || !@rename($manifestTemp, $this->manifestPath)) {
+                throw new ExcepcionSunat('No se pudo activar el nuevo índice. El catálogo anterior continúa disponible.');
+            }
+            $activado = true;
+            foreach (glob($this->chunksDir . '_*', GLOB_ONLYDIR) ?: [] as $anterior) {
+                $edad = @filemtime($anterior);
+                if ($anterior !== $indiceNuevo && $edad !== false && $edad < time() - 86400
+                    && preg_match('/_([a-f0-9]{12}|old_[a-f0-9]{6})$/D', $anterior)) {
+                    $this->eliminarDirectorio($anterior);
                 }
-                @unlink($manifestTemp);
             }
         } finally {
             @unlink($tempZip);
+            @unlink($manifestTemp);
+            if (!$activado && is_dir($indiceNuevo)) {
+                $this->eliminarDirectorio($indiceNuevo);
+            }
             if (is_dir($tempChunks)) {
                 $this->eliminarDirectorio($tempChunks);
             }
@@ -699,27 +719,6 @@ final class ServicioPadronSunat
         }
     }
 
-    private function reemplazarDirectorio(string $origen, string $destino): void
-    {
-        $backup = $destino . '_old_' . bin2hex(random_bytes(3));
-        if (is_dir($destino)) {
-            if (!@rename($destino, $backup)) {
-                $this->eliminarDirectorio($destino);
-            }
-        }
-
-        if (!@rename($origen, $destino)) {
-            if (is_dir($backup) && !is_dir($destino)) {
-                @rename($backup, $destino);
-            }
-            throw new ExcepcionSunat('No se pudo activar el nuevo índice local del padrón SUNAT.');
-        }
-
-        if (is_dir($backup)) {
-            $this->eliminarDirectorio($backup);
-        }
-    }
-
     private function eliminarDirectorio(string $dir): void
     {
         if (!is_dir($dir)) {
@@ -763,7 +762,7 @@ final class ServicioPadronSunat
         if ($texto === '') {
             return '';
         }
-        if (function_exists('mb_check_encoding') && mb_check_encoding($texto, 'UTF-8')) {
+        if (preg_match('//u', $texto) === 1) {
             return $texto;
         }
         if (function_exists('mb_convert_encoding')) {

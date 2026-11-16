@@ -96,3 +96,107 @@
     actualizar();
   });
 })();
+
+/* Descarga completa del periodo: ZIP por lotes, no restringida a la tabla visible. */
+(() => {
+  'use strict';
+  const csrf = document.querySelector('meta[name="asescon-csrf-sire-masivo"]')?.content;
+  document.querySelectorAll('[data-sire-periodo-zip]').forEach(panel => {
+    const boton = panel.querySelector('[data-sire-descargar-periodo]');
+    const detener = panel.querySelector('[data-sire-detener-periodo]');
+    const estado = panel.querySelector('[data-sire-progreso]');
+    if (!boton || !detener || !estado || !csrf) return;
+    let ocupado = false;
+    let offset = 0;
+    let peticion = null;
+    let totalConocido = 0;
+
+    const nombreArchivo = (respuesta, lote) => {
+      const encabezado = respuesta.headers.get('Content-Disposition') || '';
+      const nombre = encabezado.match(/filename="([^"\\/]+)"/)?.[1];
+      return nombre || `ASESCON-${panel.dataset.sirePeriodoZip.toUpperCase()}-lote-${lote}.zip`;
+    };
+    detener.addEventListener('click', () => {
+      peticion?.abort();
+      estado.textContent = `Descarga detenida. Puedes continuar a partir del registro ${offset + 1}.`;
+    });
+    boton.addEventListener('click', async () => {
+      if (ocupado) return;
+      ocupado = true;
+      boton.disabled = true;
+      detener.hidden = false;
+      let lotes = 0;
+      let errores = 0;
+      try {
+        while (true) {
+          peticion = new AbortController();
+          const cuerpo = new URLSearchParams({
+            csrf_token: csrf,
+            libro: panel.dataset.sirePeriodoZip.toUpperCase(),
+            cliente: panel.dataset.sireCliente,
+            periodo: panel.dataset.sirePeriodo,
+            excluir_anteriores: panel.dataset.sireExcluir,
+            tipo: panel.dataset.sireTipo || '',
+            offset: String(offset),
+          });
+          estado.textContent = `Preparando ZIP ${lotes + 1}… (${offset} de ${totalConocido || '?'} comprobantes procesados)`;
+          const respuesta = await fetch(panel.dataset.sireZipUrl, {
+            method: 'POST',
+            body: cuerpo,
+            credentials: 'same-origin',
+            cache: 'no-store',
+            signal: peticion.signal,
+          });
+          if (!respuesta.ok) {
+            const aviso = await respuesta.json().catch(() => ({}));
+            throw new Error(aviso.mensaje || `El servidor devolvió HTTP ${respuesta.status}`);
+          }
+          if (!(respuesta.headers.get('Content-Type') || '').includes('application/zip')) {
+            throw new Error('La respuesta no contiene un archivo ZIP.');
+          }
+          const total = Number(respuesta.headers.get('X-ASESCON-Total'));
+          const siguiente = Number(respuesta.headers.get('X-ASESCON-Siguiente'));
+          if (!Number.isFinite(total) || !Number.isFinite(siguiente) || siguiente <= offset) {
+            throw new Error('La respuesta de la descarga no contiene un rango válido.');
+          }
+          const erroresLote = Number(respuesta.headers.get('X-ASESCON-Errores')) || 0;
+          const blob = await respuesta.blob();
+          if (!blob.size) throw new Error('El ZIP recibido está vacío.');
+          const url = URL.createObjectURL(blob);
+          const enlace = document.createElement('a');
+          enlace.href = url;
+          enlace.download = nombreArchivo(respuesta, lotes + 1);
+          enlace.hidden = true;
+          document.body.appendChild(enlace);
+          enlace.click();
+          enlace.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+          lotes++;
+          errores += erroresLote;
+          offset = siguiente;
+          totalConocido = total;
+          estado.textContent = `ZIP ${lotes} solicitado. ${offset} de ${total} registros procesados. Reportes fallidos: ${errores}.`;
+          if (offset >= total) {
+            estado.textContent += ' Descarga completa; revisa los manifiestos de cada ZIP y los permisos de descargas múltiples del navegador.';
+            offset = 0;
+            totalConocido = 0;
+            break;
+          }
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          estado.textContent = `Detenido tras ${lotes} ZIP. Puedes continuar desde el registro ${offset + 1}.`;
+        } else {
+          console.warn('No se completó la descarga masiva SIRE:', error);
+          estado.textContent = `Descarga interrumpida tras ${lotes} ZIP: ${error.message}. Reintenta para continuar.`;
+        }
+      } finally {
+        ocupado = false;
+        peticion = null;
+        detener.hidden = true;
+        boton.disabled = false;
+        boton.textContent = offset > 0 ? `Continuar descarga completa desde ${offset + 1}` : 'Descargar todo el período (ZIP)';
+      }
+    });
+  });
+})();

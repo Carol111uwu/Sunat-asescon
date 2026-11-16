@@ -6,6 +6,13 @@ final class PadronSsco
 {
     public function __construct(private mysqli $conexion) {}
 
+    public function disponible(): bool
+    {
+        $r = $this->conexion->query("SELECT COUNT(*) n FROM information_schema.tables
+            WHERE table_schema=DATABASE() AND table_name IN ('padron_ssco','actualizacion_padron_ssco')");
+        return (int)$r->fetch_assoc()['n'] === 2;
+    }
+
     public function recientes(): array
     {
         $total=(int)$this->conexion->query('SELECT COUNT(*) n FROM padron_ssco')->fetch_assoc()['n'];

@@ -14,6 +14,21 @@ final class ContactoEquipo
         }
         return $actual;
     }
+    public function registrarNombrePublico(int $id, string $nombre): void
+    {
+        $nombre = mb_substr($nombre, 0, 120, 'UTF-8');
+        $correo = '';
+        $this->insertar($id, $nombre, $correo);
+    }
+
+    private function insertar(int $id, string $nombre, string $correo): void
+    {
+        $stmt = $this->db->prepare("INSERT INTO equipo(id_usuario,nombre,correo,estado) VALUES(?,?,?,'ACTIVO')");
+        $stmt->bind_param('iss', $id, $nombre, $correo);
+        $stmt->execute();
+        $stmt->close();
+    }
+
     public function guardar(int $id,string $nombre,string $correo): void
     {
         $nombre=trim($nombre);$correo=trim($correo);
@@ -23,9 +38,14 @@ final class ContactoEquipo
             $s=$this->db->prepare("SELECT id_usuario FROM usuarios WHERE id_usuario=? AND tipo_cuenta='EQUIPO' FOR UPDATE");$s->bind_param('i',$id);$s->execute();if(!$s->get_result()->fetch_assoc())throw new DomainException('El integrante no está disponible.');
             $s=$this->db->prepare('UPDATE usuarios SET correo=? WHERE id_usuario=?');$s->bind_param('si',$correo,$id);$s->execute();
             $s=$this->db->prepare('SELECT id_equipo FROM equipo WHERE id_usuario=? ORDER BY id_equipo DESC LIMIT 1');$s->bind_param('i',$id);$s->execute();$equipo=$s->get_result()->fetch_assoc();
-            if($equipo){$eid=(int)$equipo['id_equipo'];$s=$this->db->prepare('UPDATE equipo SET nombre=?,correo=? WHERE id_equipo=?');$s->bind_param('ssi',$nombre,$correo,$eid);}
-            else {$s=$this->db->prepare("INSERT INTO equipo(id_usuario,nombre,correo,estado) VALUES(?,?,?,'ACTIVO')");$s->bind_param('iss',$id,$nombre,$correo);}
-            $s->execute();
+            if ($equipo) {
+                $eid = (int)$equipo['id_equipo'];
+                $s = $this->db->prepare('UPDATE equipo SET nombre=?,correo=? WHERE id_equipo=?');
+                $s->bind_param('ssi', $nombre, $correo, $eid);
+                $s->execute();
+            } else {
+                $this->insertar($id, $nombre, $correo);
+            }
             if($this->disponible()){$s=$this->db->prepare('UPDATE contactos_equipo_asescon SET nombre=?,correo=? WHERE id_usuario=?');$s->bind_param('ssi',$nombre,$correo,$id);$s->execute();}
             $this->db->commit();
         }catch(Throwable $e){$this->db->rollback();throw $e;}
