@@ -1,21 +1,29 @@
 # ASESCON con Docker
 
-## Inicio local
+## Configuración de producción
 
-1. Copia `.env.example` como `.env` y reemplaza ambas contraseñas.
-2. Importa en MariaDB el respaldo inicial de las bases `asescon` y `asescon_sunat`. Las migraciones incluidas en `asescon_sistema/base_datos/migraciones` son incrementales y no crean todo el esquema desde cero.
-3. Ejecuta:
+El archivo `compose.yaml` usa `https://sistema.asescon.net`, HTTPS y la red externa `proxy_net`.
+Las claves, usuarios y nombres de las bases se cargan desde el archivo `.env` existente de la VPS.
+La conexión entre los contenedores utiliza `db:3306`. El código PHP sigue leyendo las variables `ASESCON_DB_*` y `ASESCON_DB_SUNAT_*`.
+El `Dockerfile` conserva los permisos de lectura de Apache.
 
-   ```powershell
-   docker compose config
-   docker compose build
-   docker compose up -d
-   docker compose ps
-   ```
+Los servicios habituales son `app`, `tareas` y `db`. Redis y el worker SOL están disponibles con el perfil `prueba-workers`.
+La actualización de una VPS ya instalada usa los volúmenes y el entorno privado existentes.
+Después de fusionar el pull request, desde `/srv/asescon/app` se ejecuta `docker compose up -d --build --no-deps app tareas`.
 
-4. Abre `http://localhost:8080` (o el puerto definido en `.env`).
+## Uso local opcional
 
-Los documentos privados, secretos y datos de MariaDB se guardan en volúmenes Docker y no entran en la imagen ni en Git.
+El archivo `compose.local.yaml` requiere una selección explícita. Usa `localhost:8081`, desactiva HTTPS y permite trabajar sin la red externa del proxy.
+
+Para reutilizar el entorno de pruebas de tu compañera se requiere su `.env` local y sus volúmenes de prueba.
+
+```powershell
+docker compose -f compose.yaml -f compose.local.yaml config --quiet
+docker compose -f compose.yaml -f compose.local.yaml up -d --build app tareas
+```
+
+Para ejecutar también las pruebas del worker SOL se añade `--profile prueba-workers`.
+El perfil de pruebas tiene las consultas del worker habilitadas en `compose.local.yaml` y necesita credenciales autorizadas.
 
 ## Importar respaldos
 

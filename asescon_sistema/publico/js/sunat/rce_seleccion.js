@@ -1,7 +1,12 @@
 (() => {
+let cerrarOpciones;
+function iniciar() {
   'use strict';
   const raiz = document.getElementById('rceSeleccionControles');
-  if (!raiz) return;
+  if (!raiz) {
+    cerrarOpciones?.abort();
+    return;
+  }
 
   const endpoint = '../../api/sunat/comprobantes_rce_lote.php';
   const token = raiz.dataset.csrf;
@@ -111,12 +116,14 @@
     opciones.hidden = !opciones.hidden;
     enviar.setAttribute('aria-expanded', String(!opciones.hidden));
   });
+  cerrarOpciones?.abort();
+  cerrarOpciones = new AbortController();
   document.addEventListener('click', evento => {
     if (!evento.target.closest('#rceEnviarGrupo')) {
       opciones.hidden = true;
       enviar.setAttribute('aria-expanded', 'false');
     }
-  });
+  }, {signal: cerrarOpciones.signal});
 
   function datosFormulario(accion) {
     const seleccion = datosSeleccionados();
@@ -244,4 +251,7 @@
   });
   document.querySelectorAll('.sire-detail-row').forEach(fila => observer.observe(fila, {attributes: true, attributeFilter: ['hidden']}));
   actualizar();
+}
+iniciar();
+document.addEventListener('asescon:sire-resultados', iniciar);
 })();

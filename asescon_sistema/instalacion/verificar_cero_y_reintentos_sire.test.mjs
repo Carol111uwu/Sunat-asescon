@@ -8,18 +8,19 @@ import vm from 'node:vm';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = ruta => readFileSync(resolve(raiz, ruta), 'utf8');
 
-test('ventas y compras obligan a consultar SIRE sin modo de datos guardados', () => {
+test('ventas y compras ofrecen datos guardados y consultan solo períodos faltantes', () => {
   for (const [libro, prefijo] of [['RVIE','rvie'], ['RCE','rce']]) {
-    const vista = leer(`vistas/sunat/${prefijo}.php`);
+    const vista = leer(`vistas/sunat/${prefijo}.php`) + leer(`vistas/sunat/componentes/resultados_${prefijo}.php`);
     const js = leer(`publico/js/sunat/${prefijo}_centro.js`);
     const css = leer(`publico/css/modulos/${prefijo}_centro.css`);
-    assert.doesNotMatch(vista, new RegExp(`id="${prefijo}VerGuardados"`), libro);
+    assert.match(vista, new RegExp(`id="${prefijo}VerGuardados"`), libro);
     assert.match(vista, new RegExp(`id="${prefijo}VerConsultar"`), libro);
     assert.doesNotMatch(vista, new RegExp(`id="${prefijo}ForzarSunat"`), libro);
     assert.doesNotMatch(vista, new RegExp(`id="${prefijo}ConsultarSunat"`), libro);
     assert.match(js, /addEventListener\('submit'/);
     assert.doesNotMatch(js, /mostrarGuardado\(\)|forzarSunat\?\.checked/);
-    assert.match(js, /const pendientes = tareas\.filter\(tarea => tarea\.mesConsulta <= mesActual\)/);
+    assert.match(js, /if \(tarea\.mesConsulta > mesActual\) continue/);
+  assert.match(js, /pendientes\.push\(tarea\)/);
     assert.match(js, /resultado\.sin_comprobantes !== true/);
     assert.match(js, /periodoElegido > mesActual/);
     assert.match(js, /const fechaLima = \(\) =>/);
@@ -35,7 +36,7 @@ test('un cero exige cabecera compatible, ticket terminado, identidad e integrida
   const lectura = leer('modelos/sunat/RepositorioLecturaSire.php');
   assert.match(mapper, /\$propuestaSinComprobantes = \$detalles === \[\] && \$estructuraReconocida && \$omitidas === 0/);
   assert.match(mapper, /validarEvidenciaCero\(\$evidencia, \$rucEsperado, \$periodo, \$codLibro, \$archivos\)/);
-  for (const condicion of ["'TICKET_SIRE_TERMINADO'", "['ruc']", "['periodo']", "['libro']", "['ticket']", "['hash_zip']", "['hash_archivos']", "hash_file('sha256'"]) {
+  for (const condicion of ["'TICKET_SIRE_TERMINADO'", "['ruc']", "['periodo']", "['libro']", "['ticket']", "['hash_zip']", "['hash_archivos']", "ArchivoTextoSire::hash("]) {
     assert.ok(mapper.includes(condicion), `Falta comprobación: ${condicion}`);
   }
   assert.match(mapper, /FOR UPDATE/);

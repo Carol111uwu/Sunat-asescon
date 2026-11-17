@@ -25,11 +25,6 @@ $pintarMenu = static function (array $nodos, bool $raiz = false) use (&$pintarMe
                     <?php $pintarMenu($nodo['elementos']); ?>
                 </div>
             </div>
-        <?php } elseif (isset($nodo['cerrar'])) { ?>
-            <form action="<?= $escMenu(asesconUrl('vistas/cerrar_sesion.php')) ?>" method="post" class="submenu-salida">
-                <input type="hidden" name="csrf_token" value="<?= $escMenu(asesconCsrf('csrf_salida')) ?>">
-                <button type="submit" class="logout"><span class="sub-icon" aria-hidden="true"><?= $icono ?></span><?= $texto ?></button>
-            </form>
         <?php } else { ?>
             <a href="<?= $escMenu(asesconUrl($nodo['ruta'])) ?>" class="<?= trim(($raiz ? 'menu-item ' : '') . ($activo ? 'active' : '')) ?>"
                <?= $activo ? 'aria-current="page"' : '' ?>>
@@ -42,6 +37,7 @@ $pintarMenu = static function (array $nodos, bool $raiz = false) use (&$pintarMe
     }
 };
 ?>
+<?php if (!defined('ASESCON_TEMA_INCLUIDO')) require __DIR__ . '/recursos_tema.php'; ?>
 <aside class="sidebar" id="sidebarPrincipal">
     <div class="logo-area">
         <div class="logo-icon">
@@ -53,5 +49,13 @@ $pintarMenu = static function (array $nodos, bool $raiz = false) use (&$pintarMe
     <nav class="menu" aria-label="Menú principal">
         <?php $pintarMenu($menuLateral, true); ?>
     </nav>
+
+    <div class="logout-area">
+        <form action="<?= $escMenu(asesconUrl('vistas/cerrar_sesion.php')) ?>" method="post">
+            <input type="hidden" name="csrf_token" value="<?= $escMenu(asesconCsrf('csrf_salida')) ?>">
+            <button type="submit" class="logout"><span class="logout-icon" aria-hidden="true">↪</span>Cerrar sesión</button>
+        </form>
+        <?php require __DIR__ . '/selector_tema.php'; ?>
+    </div>
 </aside>
 <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>

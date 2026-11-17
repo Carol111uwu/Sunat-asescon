@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/ExcepcionSunat.php';
+require_once __DIR__ . '/ArchivoTextoSire.php';
 require_once __DIR__ . '/ServicioSireSunat.php';
 
 final class MapeadorSunat
@@ -257,7 +258,7 @@ $stmt->close();
             throw new ExcepcionSunat('No se pudieron verificar todas las partes del archivo SIRE vacío.');
         }
         foreach ($archivos as $i => $archivo) {
-            $hash = is_file($archivo) ? hash_file('sha256', $archivo) : false;
+            $hash = ArchivoTextoSire::hash($archivo);
             if (!is_string($hash) || !hash_equals($hash, (string)($hashes[$i] ?? ''))) {
                 throw new ExcepcionSunat('La integridad del archivo SIRE vacío no pudo comprobarse.');
             }
@@ -266,7 +267,7 @@ $stmt->close();
 
     private function leerArchivo(string $archivo, string $periodo, string $codLibro): array
     {
-        $h = @fopen($archivo, 'rb');
+        $h = ArchivoTextoSire::abrir($archivo);
         if ($h === false) {
             throw new ExcepcionSunat('No se pudo abrir el archivo SIRE descargado.');
         }

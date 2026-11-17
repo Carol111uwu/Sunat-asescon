@@ -18,3 +18,5 @@ asescon_sistema/php.ini
 # Configuración privada con contraseñas (correo, SMS, base de datos): nunca dentro de la imagen.
 asescon_sistema/configuracion/*.servidor.php
 asescon_recursos_privados
+
+/compose.local.yaml

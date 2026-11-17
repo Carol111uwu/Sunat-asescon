@@ -97,7 +97,14 @@ class Elemento {
     const resultados = acciones.map(accion => accion({currentTarget:this, preventDefault(){}}));
     return resultados.at(-1);
   }
-  append(...hijos) { this.children.push(...hijos); }
+  append(...hijos) {
+    for (const hijo of hijos) if (hijo instanceof Elemento) hijo.padre = this;
+    this.children.push(...hijos);
+  }
+  replaceWith(hijo) {
+    hijo.padre = this.padre;
+    this.padre.children[this.padre.children.indexOf(this)] = hijo;
+  }
   replaceChildren(...hijos) { this.children = hijos; }
   querySelectorAll(selector) {
     const descendientes = this.children.flatMap(hijo =>
@@ -138,9 +145,16 @@ function crearVista(modulo, sincronizarLibro, {almacenamiento = new Map(), inven
   elegir(`${modulo}Resultados`).querySelectorAll = () => [];
   elegir(`${modulo}Resultados`).querySelector = () => null;
   const ventanas = [];
+  const actualizaciones = [];
   const window = {
     location: {href:`https://sistema.asescon.net/vistas/sunat/${modulo}.php`, assign(url){this.assigned=url;}},
     confirm: () => true,
+    AsesconDatosGuardadosSire: {
+      vincularInventario(libro, boton) { boton.addEventListener('click', () => {}); },
+      llave: (id, periodo) => `${id}|${periodo}`,
+      leer: async () => inventario,
+      actualizarVista: async (id, url, inicial) => { actualizaciones.push({id, url, inicial}); }
+    },
     localStorage: {
       getItem: key => almacenamiento.get(key) ?? null,
       setItem: (key, value) => almacenamiento.set(key, value),
@@ -152,6 +166,7 @@ function crearVista(modulo, sincronizarLibro, {almacenamiento = new Map(), inven
     }
   };
   const document = {
+    addEventListener() {},
     getElementById: elegir,
     querySelectorAll: () => [],
     createElement: tag => new Elemento(tag),
@@ -164,13 +179,13 @@ function crearVista(modulo, sincronizarLibro, {almacenamiento = new Map(), inven
   };
   vm.runInNewContext(leer('publico/js/sunat/pendientes_anuales_sire.js'), contexto);
   vm.runInNewContext(leer(`publico/js/sunat/${modulo}_centro.js`), contexto);
-  return {elegir, ventanas, window, almacenamiento};
+  return {elegir, ventanas, window, almacenamiento, actualizaciones};
 }
 
 for (const modulo of ['rvie', 'rce']) {
-  test(`${modulo.toUpperCase()}: el código no ofrece volver al modo de datos guardados`, async () => {
+  test(`${modulo.toUpperCase()}: la vista permite ver datos guardados`, async () => {
     const {elegir} = crearVista(modulo, async () => ({descargado:true,procesado:true,cantidad_registros:0,sin_comprobantes:true}));
-    assert.equal(elegir(`${modulo}VerGuardados`).listeners.click, undefined);
+    assert.equal(elegir(`${modulo}VerGuardados`).listeners.click.length, 1);
     assert.equal(elegir(`${modulo}ForzarSunat`).listeners.click, undefined);
   });
 
@@ -210,7 +225,7 @@ for (const modulo of ['rvie', 'rce']) {
     assert.equal(llamadas.length, 1, 'Solo existe un lote en curso.');
     completar({descargado:true,procesado:true,cantidad_registros:2,sin_comprobantes:false});
     await lote;
-    assert.equal(elegir(`${modulo}VerConsultar`).textContent, 'Consultar');
+    assert.equal(elegir(`${modulo}VerConsultar`).textContent, 'Ver/consultar');
     assert.equal(elegir(`${modulo}VerConsultar`).disabled, false);
   });
 
@@ -229,7 +244,8 @@ for (const modulo of ['rvie', 'rce']) {
     await elegir(`${modulo}ConsultaFormulario`).disparar('submit');
     assert.deepEqual(llamadas, Array.from({length:12}, (_,i) => '2021'+String(i+1).padStart(2,'0')));
     assert.match(elegir(`${modulo}Contadores`).textContent, /0 errores · 1 sin confirmar/);
-    assert.match(elegir(`syncStatus${modulo.toUpperCase()}`).textContent, /sin detener el lote/);
+    assert.match(elegir(`syncStatus${modulo.toUpperCase()}`).textContent, /11 consultas completadas · 0 con error · 1 sin confirmar/);
+    assert.equal(vista.actualizaciones.length, 2, 'Actualiza los datos aun cuando un mes falla.');
     const filas = elegir(`${modulo}ListaProcesos`).children;
     const mayo = filas.find(f => f.value === 5);
     const junio = filas.find(f => f.value === 6);
@@ -243,7 +259,8 @@ for (const modulo of ['rvie', 'rce']) {
     await elegir(`${modulo}ConsultaFormulario`).enCurso;
     assert.equal(llamadas.length, 13);
     assert.equal(llamadas.at(-1), '202105', 'El reintento no repite enero, febrero, marzo ni abril.');
-    assert.equal(elegir(`${modulo}Mes`).value, '05');
+    assert.equal(elegir(`${modulo}Mes`).value, '00');
+    assert.equal(elegir(`${modulo}ListaProcesos`).children.length, 12);
     assert.equal(elegir(`${modulo}VerConsultar`).disabled, false);
   });
 

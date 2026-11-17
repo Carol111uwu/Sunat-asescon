@@ -20,8 +20,8 @@ test('El período identifica mes actual/seleccionado y año actual/seleccionado 
 
 for(const modulo of ['rce','rvie']){
   test(`${modulo.toUpperCase()}: una explicación y un solo estado del interruptor`,()=>{
-    const html=leer(`vistas/sunat/${modulo}.php`);
-    assert.match(html,/Propuesta SUNAT: 0 comprobantes' : 'Resultados de la consulta'/);
+    const html=leer(`vistas/sunat/${modulo}.php`) + leer(`vistas/sunat/componentes/resultados_${modulo}.php`);
+    assert.match(html,/Propuesta SUNAT: 0 comprobantes/);
     assert.match(html,/Período SIRE: <\?= \$h\(\$periodo\) \?>/);
     assert.ok((html.match(/\$h\(\$periodoContexto\)/g)||[]).length>=2);
     assert.equal((html.match(/Filtro desactivado/g)||[]).length,1);

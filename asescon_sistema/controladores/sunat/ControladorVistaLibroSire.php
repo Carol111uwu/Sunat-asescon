@@ -20,6 +20,7 @@ final class ControladorVistaLibroSire
         }
         asesconExigirPermiso($this->conexion, $libro, 'ver');
         $repo = new RepositorioLecturaSire($this->conexion);
+        $repo->usarSoloCacheDeHoy();
         $filtro = asesconFiltroClientesSql($this->conexion, 'c');
                                                                                                
         $filas = [];

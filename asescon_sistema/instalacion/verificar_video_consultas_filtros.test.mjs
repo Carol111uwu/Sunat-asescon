@@ -22,7 +22,7 @@ test('El interruptor de fechas funciona tanto en mes como en vista anual, sin bo
   assert.match(repo,/d\.fecha_emision < /);
   assert.match(vista,/comprobantesExcluidos/);
   for(const modulo of ['rce','rvie']){
-    const html=leer(`vistas/sunat/${modulo}.php`);
+    const html=leer(`vistas/sunat/${modulo}.php`) + leer(`vistas/sunat/componentes/resultados_${modulo}.php`);
     assert.match(html,/no borra registros/);
     assert.match(html,/Filtro activado · /);
     assert.match(html,/Excel original sigue íntegro/);
@@ -49,10 +49,10 @@ test('Recuperación local rellena campos vacíos en lugar de reimportar y sustit
 
 test('Los tres mensajes del video están atendidos en Compras y Ventas',()=>{
   for(const modulo of ['rce','rvie']){
-    const html=leer(`vistas/sunat/${modulo}.php`);
+    const html=leer(`vistas/sunat/${modulo}.php`) + leer(`vistas/sunat/componentes/resultados_${modulo}.php`);
     const js=leer(`publico/js/sunat/${modulo}_centro.js`);
     const css=leer(`publico/css/modulos/${modulo}_centro.css`);
-    assert.match(html,/consulta anual solicita cada mes a SUNAT en orden/);
+    assert.match(html,/SUNAT recibe solo consultas de períodos faltantes/);
     assert.match(html,/Mostrar solo comprobantes emitidos en el período seleccionado/);
     assert.doesNotMatch(html,new RegExp(`id="${modulo}RecuperarDatos"`));
     assert.match(js,/mesesElegidos\.map\(mesConsulta/);

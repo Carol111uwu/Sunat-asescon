@@ -1,14 +1,21 @@
 <?php
 declare(strict_types=1);
+
+require_once __DIR__ . '/ArchivoTextoSire.php';
                                                                            
 final class LectorDetalleSireCompleto
 {
     public function leer(string $ruta):array
     {
         if(!is_file($ruta)||filesize($ruta)>25*1024*1024)throw new DomainException('El original no está disponible o excede 25 MB.');
-        $f=fopen($ruta,'rb');$filas=[];$ancho=0;$delimitador='';
+        $f = ArchivoTextoSire::abrir($ruta);
+        if ($f === false) throw new DomainException('No se pudo abrir el original.');
+        $filas=[];$ancho=0;$delimitador='';
+        $bytes = 0;
         try{
-            while(($linea=fgets($f))!==false){
+            while (($linea = fgets($f, 25 * 1024 * 1024 + 1)) !== false) {
+                $bytes += strlen($linea);
+                if ($bytes > 25 * 1024 * 1024) throw new DomainException('El detalle original supera 25 MB.');
                 $linea=rtrim($linea,"\r\n");if($linea==='')continue;
                 $linea=preg_replace('/^\xEF\xBB\xBF/','',$linea)??$linea;
                 if(!preg_match('//u',$linea)){

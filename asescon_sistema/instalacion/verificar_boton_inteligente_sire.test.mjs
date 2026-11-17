@@ -60,9 +60,18 @@ function entorno(libro, inventario, {periodo='202510', sinConector=false, fechaF
     location:{href:`https://sistema.asescon.net/vistas/sunat/${prefijo}.php?cliente=7&mes=${periodo.slice(4)}&anio=${periodo.slice(0,4)}`,
       assign:url=>rutas.push(url)},
     confirm:()=>true,
+    AsesconDatosGuardadosSire: {
+      vincularInventario() {},
+      llave: (id, periodo) => `${id}|${periodo}`,
+      async actualizarVista(id, url) { rutas.push(url.href); },
+      async leer() {
+        return inventario.filter(fila => !fila.fecha_actualizacion || fila.fecha_actualizacion.startsWith(fechaPeru()));
+      },
+    },
     AsesconSireSync:sinConector?undefined:conector
   };
   const document = {
+    addEventListener() {},
     getElementById:id=>elementos.get(id)||null,
     querySelectorAll:()=>[],
     createElement:tag=>inicializar(`creado-${tag}-${elementos.size}`),
@@ -85,10 +94,10 @@ function entorno(libro, inventario, {periodo='202510', sinConector=false, fechaF
 }
 
 for(const libro of ['RVIE','RCE']){
-  test(`${libro}: un mes histórico consultado hoy vuelve a pedir datos a SUNAT`,async()=>{
+  test(`${libro}: un mes histórico consultado hoy se recupera de caché`,async()=>{
     const e=entorno(libro,[{id_cliente:7,periodo:'202510',fecha_actualizacion:fechaPeru()+' 08:00:00',cantidad_registros:6}]);
     await e.enviar();
-    assert.equal(e.remotas.length,1);
+    assert.equal(e.remotas.length,0);
     assert.equal(e.rutas.length,1);
     assert.doesNotMatch(e.rutas[0],/ver_guardado=1/);
   });
@@ -105,19 +114,19 @@ for(const libro of ['RVIE','RCE']){
     assert.deepEqual(e.remotas,[{id:7,libro,periodo:'202510'}]);
   });
 
-  test(`${libro}: dos pulsaciones consecutivas hacen dos consultas reales`,async()=>{
+  test(`${libro}: dos pulsaciones sobre datos guardados reutilizan el mismo resultado`,async()=>{
     const e=entorno(libro,[{id_cliente:7,periodo:'202510',fecha_actualizacion:fechaPeru()+' 08:00:00'}]);
     await e.enviar();
     await e.enviar();
-    assert.equal(e.remotas.length,2);
-    assert.equal(e.elementos.get(libro.toLowerCase()+'VerConsultar').textContent,'Consultar');
+    assert.equal(e.remotas.length,0);
+    assert.equal(e.elementos.get(libro.toLowerCase()+'VerConsultar').textContent,'Ver/consultar');
   });
 
-  test(`${libro}: mes actual consultado hoy se vuelve a solicitar remotamente`,async()=>{
+  test(`${libro}: cero comprobantes confirmado hoy se recupera de caché`,async()=>{
     const p=fechaPeru().slice(0,7).replace('-','');
     const e=entorno(libro,[{id_cliente:7,periodo:p,fecha_actualizacion:fechaPeru()+' 08:30:00',cantidad_registros:0}],{periodo:p});
     await e.enviar();
-    assert.equal(e.remotas.length,1);
+    assert.equal(e.remotas.length,0);
     assert.equal(e.rutas.length,1);
   });
 
@@ -128,26 +137,26 @@ for(const libro of ['RVIE','RCE']){
     assert.equal(e.remotas.length,1);
   });
 
-  test(`${libro}: consultar es obligatorio, sin casilla de consulta local`,async()=>{
+  test(`${libro}: los períodos faltantes se consultan con el botón Ver/consultar`,async()=>{
     const e=entorno(libro,[{id_cliente:7,periodo:'202510',fecha_actualizacion:'2025-11-01 08:00:00',cantidad_registros:6}]);
     await e.enviar();
     assert.equal(e.remotas.length,1);
-    assert.doesNotMatch(leer(`vistas/sunat/${libro.toLowerCase()}.php`),/ForzarSunat|ver_guardado|Ver\/consultar/);
+    assert.match(leer(`vistas/sunat/${libro.toLowerCase()}.php`),/Ver\/consultar/);
   });
 
   test(`${libro}: la vista anual solicita todos los meses`,async()=>{
     const e=entorno(libro,[],{periodo:'202500'});
     await e.enviar();
     assert.equal(e.remotas.length,12);
-    assert.equal(e.rutas.length,1);
+    assert.equal(e.rutas.length,2);
   });
 
-  test(`${libro}: anual consulta enero-diciembre uno por uno, incluso meses ya consultados`,async()=>{
-    const e=entorno(libro,[{id_cliente:7,periodo:'202501',fecha_actualizacion:'2025-01-31 19:00:00',cantidad_registros:8}],{periodo:'202500'});
+  test(`${libro}: anual consulta de febrero a diciembre si enero ya está guardado`,async()=>{
+    const e=entorno(libro,[{id_cliente:7,periodo:'202501',fecha_actualizacion:fechaPeru()+' 08:00:00',cantidad_registros:8}],{periodo:'202500'});
     await e.enviar();
-    assert.deepEqual(e.remotas.map(t=>t.periodo),Array.from({length:12},(_,i)=>'2025'+String(i+1).padStart(2,'0')));
+    assert.deepEqual(e.remotas.map(t=>t.periodo),Array.from({length:11},(_,i)=>'2025'+String(i+2).padStart(2,'0')));
     assert.ok(e.remotas.every(t=>t.id===7&&t.libro===libro));
-    assert.equal(e.rutas.length,1,'Al completar el lote sin fallos se actualiza la misma vista automáticamente.');
+    assert.equal(e.rutas.length,2,'Al completar el lote sin fallos se actualiza la misma vista automáticamente.');
     assert.match(e.elementos.get(libro.toLowerCase()+'Contadores').textContent,/12\/12/);
   });
 
@@ -183,23 +192,22 @@ for(const libro of ['RVIE','RCE']){
     e.elementos.get(libro.toLowerCase()+'VerConsultar').dataset.soloLectura='1';
     await e.enviar();
     assert.equal(e.remotas.length,0);
-    assert.match(e.elementos.get('syncStatus'+libro).textContent,/no tiene permiso/);
+    assert.match(e.elementos.get('syncStatus'+libro).textContent,/acceso de lectura/);
   });
 
-  test(`${libro}: no ofrece recuperar resultados sin consultar SUNAT`,async()=>{
+  test(`${libro}: lista períodos guardados y conserva la consulta para los faltantes`,async()=>{
     const e=entorno(libro,[],{periodo:'202510'});
     const prefijo=libro.toLowerCase();
-    assert.doesNotMatch(leer(`vistas/sunat/${prefijo}.php`),new RegExp(`${prefijo}RecuperarDatos`));
+    assert.match(leer(`vistas/sunat/${prefijo}.php`),new RegExp(`${prefijo}VerGuardados`));
     assert.doesNotMatch(leer(`publico/js/sunat/${prefijo}_centro.js`),/post\('reprocesar'/);
     await e.enviar();
     assert.equal(e.remotas.length,1);
   });
 
-  test(`${libro}: informa cuando falta el conector en vez de ignorar el clic`,async()=>{
+  test(`${libro}: permite la consulta local nativa si falta el conector`, () => {
     const e=entorno(libro,[],{sinConector:true});
-    await e.enviar();
-    assert.match(e.elementos.get('syncStatus'+libro).textContent,/No se cargó el módulo/);
-    assert.equal(e.elementos.get(libro.toLowerCase()+'Proceso').hidden,false);
+    assert.equal(e.elementos.get(libro.toLowerCase()+'ConsultaFormulario').eventos.has('submit'),false);
+    assert.match(leer(`vistas/sunat/${libro.toLowerCase()}.php`),/<form method="get"/);
   });
 }
 
@@ -211,7 +219,6 @@ test('RVIE/RCE renuevan el JS y CSS automáticamente para evitar botones sin man
     }
     assert.doesNotMatch(vista,/20261029_v3/);
     assert.match(vista,new RegExp(`id="${prefijo}VerConsultar"`));
-    assert.match(vista,new RegExp(`id="${prefijo}VerConsultar" disabled`));
-    assert.match(vista,/>Consultar<\/button>/);
+    assert.match(vista,/>Ver\/consultar<\/button>/);
   }
 });

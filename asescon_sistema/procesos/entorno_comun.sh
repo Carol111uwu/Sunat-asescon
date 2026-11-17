@@ -22,7 +22,7 @@ PHP_BIN="$(resolver_php_asescon)" || { echo 'Falta PHP CLI 8.2 o superior con my
 export ASESCON_PHP_CLI="$PHP_BIN"
 PYTHON_BIN="${ASESCON_PYTHON_CLI:-${ASESCON_PYTHON_BIN:-$RECURSOS_PRIVADOS/entorno_buzon_sol/bin/python}}"
 export ASESCON_RECURSOS_PRIVADOS="$RECURSOS_PRIVADOS" ASESCON_PYTHON_CLI="$PYTHON_BIN"
-export PLAYWRIGHT_BROWSERS_PATH="$RECURSOS_PRIVADOS/navegadores_playwright"
+export PLAYWRIGHT_BROWSERS_PATH="${ASESCON_PLAYWRIGHT_BROWSERS_PATH:-$RECURSOS_PRIVADOS/navegadores_playwright}"
 export PIP_CACHE_DIR="$RECURSOS_PRIVADOS/cache_pip" XDG_CACHE_HOME="$RECURSOS_PRIVADOS/cache_linux" TMPDIR="$RECURSOS_PRIVADOS/temporales"
                                                                                 
 unset ASESCON_CHROMIUM

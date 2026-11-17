@@ -1,0 +1,19 @@
+services:
+  app:
+    image: asescon-sistema:prueba-workers
+    ports: !override
+      - "127.0.0.1:8081:80"
+    networks: !override
+      default: {}
+      redis_net: {}
+    environment:
+      ASESCON_URL_PUBLICA: http://localhost:8081
+      ASESCON_FORCE_HTTPS: "0"
+
+  worker-sol:
+    image: asescon-sistema:prueba-workers
+    environment:
+      ASESCON_WORKER_SOL_ACTIVO: "1"
+
+  tareas:
+    image: asescon-sistema:prueba-workers

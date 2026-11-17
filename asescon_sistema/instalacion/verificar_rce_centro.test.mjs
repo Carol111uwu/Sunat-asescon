@@ -8,27 +8,28 @@ const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = ruta => readFileSync(resolve(raiz, ruta), 'utf8');
 
 test('RCE conserva la misma estructura de consulta central de RVIE, sin enlaces al Dashboard', () => {
-  const vista = leer('vistas/sunat/rce.php');
+  const vista = leer('vistas/sunat/rce.php') + leer('vistas/sunat/componentes/resultados_rce.php');
   for (const id of ['rceCliente', 'rceMes', 'rceAnio',
     'rceVerConsultar', 'rceVerEstado', 'rceBarraProgreso', 'rceListaProcesos',
     'rceResultados', 'toggleExcluirAnteriores']) {
     assert.ok(vista.includes(id), `Falta ${id}`);
   }
   assert.equal((vista.match(/⇩ Excel resumen/g) || []).length, 1);
-  assert.ok(!vista.includes('id="rceVerGuardados"'));
+  assert.ok(vista.includes('id="rceVerGuardados"'));
   assert.ok(!vista.includes('id="rceForzarSunat"'));
   assert.ok(!vista.includes('resumen_global_sire.php'));
   assert.ok(!vista.includes('btnSyncRCE'));
   assert.ok(!vista.includes('Dashboard SIRE'));
 });
 
-test('RCE consulta períodos directamente sin recuperar un inventario anual al entrar', () => {
+test('RCE consulta períodos faltantes tras leer el inventario', () => {
   const js = leer('publico/js/sunat/rce_centro.js');
   assert.doesNotMatch(js, /post\('inventario', \{libro:'RCE'\}/);
-  assert.match(js, /const pendientes = tareas\.filter\(tarea => tarea\.mesConsulta <= mesActual\)/);
+  assert.match(js, /if \(tarea\.mesConsulta > mesActual\) continue/);
+  assert.match(js, /pendientes\.push\(tarea\)/);
   assert.doesNotMatch(js, /forzarSunat|!vigente\(tarea\)|reanudacion/);
   assert.match(js, /sincronizarLibro\(Number\(tarea\.opcion\.value\), 'RCE', tarea\.mesConsulta/);
-  assert.match(js, /progreso\(importados \+ errores \+ sinConfirmar/);
+  assert.match(js, /progreso\(reutilizados \+ importados \+ errores \+ sinConfirmar/);
   assert.match(js, /resultado\.sin_comprobantes !== true/);
   assert.doesNotMatch(js, /detenerSolicitado|Ver selección|Ver resultados actualizados/);
   assert.match(js, /Reintentar solo mes/);
@@ -39,7 +40,7 @@ test('RCE consulta períodos directamente sin recuperar un inventario anual al e
 });
 
 test('RCE permite ocultar y volver a mostrar el estado sin interrumpir la consulta', () => {
-  const vista = leer('vistas/sunat/rce.php');
+  const vista = leer('vistas/sunat/rce.php') + leer('vistas/sunat/componentes/resultados_rce.php');
   const js = leer('publico/js/sunat/rce_centro.js');
   assert.match(vista, /id="rceVerEstado" aria-controls="rceProceso" aria-expanded="false"/);
   assert.match(js, /botonEstado\.textContent = 'Ocultar estado de consultas'/);
@@ -50,8 +51,8 @@ test('RCE permite ocultar y volver a mostrar el estado sin interrumpir la consul
 });
 
 test('RCE presenta proveedores reales, PDF/archivos y consolidados paginados por empresa', () => {
-  const vista = leer('vistas/sunat/rce.php');
-  assert.match(vista, /componentes\/botones_comprobante_sire\.php/);
+  const vista = leer('vistas/sunat/rce.php') + leer('vistas/sunat/componentes/resultados_rce.php');
+  assert.match(vista, /\/botones_comprobante_sire\.php/);
   const contenidoVista = vista + '\n' + leer('vistas/sunat/componentes/botones_comprobante_sire.php');
   const modelo = leer('modelos/sunat/RepositorioLecturaSire.php');
   const controlador = leer('controladores/sunat/ControladorVistaLibroSire.php');

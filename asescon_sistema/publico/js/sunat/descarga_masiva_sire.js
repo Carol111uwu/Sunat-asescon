@@ -1,5 +1,6 @@
 /* Seleccion y descarga independiente de reportes PDF SIRE (RCE/RVIE). */
 (() => {
+function iniciarSeleccion() {
   'use strict';
   document.querySelectorAll('[data-sire-masiva]').forEach(panel => {
     const seccion = panel.closest('[data-tab-panel]');
@@ -88,17 +89,17 @@
       }
       trabajando = false;
       actualizar();
-      progreso.textContent += ' Si Chrome bloquea varias descargas, permite descargas automáticas para localhost:8080.';
+      progreso.textContent += ' Si el navegador bloquea varias descargas, habilita las descargas automáticas para este sitio.';
     });
     // Actualizar contador si los filtros existentes ocultan filas.
     const observador = new MutationObserver(actualizar);
     filas.forEach(f => observador.observe(f, { attributes: true, attributeFilter: ['style', 'hidden'] }));
     actualizar();
   });
-})();
+}
 
 /* Descarga completa del periodo: ZIP por lotes, no restringida a la tabla visible. */
-(() => {
+function iniciarPeriodo() {
   'use strict';
   const csrf = document.querySelector('meta[name="asescon-csrf-sire-masivo"]')?.content;
   document.querySelectorAll('[data-sire-periodo-zip]').forEach(panel => {
@@ -199,4 +200,12 @@
       }
     });
   });
+}
+
+function iniciar() {
+  iniciarSeleccion();
+  iniciarPeriodo();
+}
+iniciar();
+document.addEventListener('asescon:sire-resultados', iniciar);
 })();

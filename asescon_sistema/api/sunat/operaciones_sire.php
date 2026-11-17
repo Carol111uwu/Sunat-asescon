@@ -75,7 +75,13 @@ try {
         asesconExigirPermiso($conexion, $libro, 'ver');
         require_once __DIR__ . '/../../modelos/sunat/RepositorioLecturaSire.php';
         $repo = new RepositorioLecturaSire($conexion);
-        $data = ['periodos' => $repo->listarPeriodosGuardados($libro, asesconFiltroClientesSql($conexion, 'c'))];
+        $repo->usarSoloCacheDeHoy();
+        $data = ['periodos' => $repo->listarPeriodosGuardados(
+            $libro,
+            asesconFiltroClientesSql($conexion, 'c'),
+            $idCliente,
+            (string)($input['anio'] ?? '')
+        )];
     } else {
     $controlador = new ControladorOperacionesSire($conexion);
     $data = match ($accion) {

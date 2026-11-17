@@ -1,4 +1,5 @@
 (() => {
+function iniciar() {
   'use strict';
   const boton = document.getElementById('rceLoteIndividual');
   const estado = document.getElementById('rceSeleccionEstado');
@@ -61,4 +62,7 @@
     estado.textContent += ' Si tu navegador bloquea las descargas múltiples, permite descargas automáticas para este sitio.';
   });
   actualizar();
+}
+iniciar();
+document.addEventListener('asescon:sire-resultados', iniciar);
 })();

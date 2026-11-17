@@ -1,7 +1,9 @@
 (() => {
+function iniciar() {
   const correo = document.getElementById('rceCorreo');
   const formulario = document.getElementById('rceCorreoFormulario');
   const whatsapp = document.getElementById('rceWhatsApp');
+  if (!whatsapp) return;
   const compartir = whatsapp.querySelector('[data-rce-compartir]');
   const descargar = whatsapp.querySelector('[data-rce-descargar]');
   let archivoCompartir = null;
@@ -97,4 +99,7 @@
       }
     }
   });
+}
+iniciar();
+document.addEventListener('asescon:sire-resultados', iniciar);
 })();

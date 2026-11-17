@@ -69,7 +69,6 @@ function asesconMenuLateral(callable $permiso, string $activo, array $gruposClie
                     $enlace('UTIL_WHATSAPP', 'Notificaciones WhatsApp', '◉', 'vistas/utilitarios/notificaciones_whatsapp.php', 'UTILITARIOS'),
                     $enlace('CONFIGURACION_CORREO', 'Configuración de correo', '✉', 'vistas/comunicaciones/configuracion_correo.php'),
                 ]),
-                ['cerrar' => true, 'texto' => 'Cerrar sesión', 'icono' => '↪', 'activo' => false],
             ]),
         ]),
     ]));

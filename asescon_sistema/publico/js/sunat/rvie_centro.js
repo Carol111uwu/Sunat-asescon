@@ -3,23 +3,15 @@
   const $ = id => document.getElementById(id);
   const cliente = $('rvieCliente');
   if (!cliente) return;
-  if (!window.AsesconSireSync) {
-    $('rvieConsultaFormulario')?.addEventListener('submit', event => {
-      event.preventDefault();
-      const panel = $('rvieProceso');
-      if (panel) { panel.hidden = false; panel.scrollIntoView({block:'nearest'}); }
-      const texto = $('syncStatusRVIE');
-      if (texto) texto.textContent = 'No se cargó el módulo de conexión SIRE. Recarga con Ctrl+F5 antes de consultar SUNAT. No se realizó ninguna consulta.';
-    });
-    return;
-  }
+  const guardados = window.AsesconDatosGuardadosSire;
+  if (!window.AsesconSireSync || !guardados) return;
+  guardados.vincularInventario('RVIE', $('rvieVerGuardados'), $('rvieInventario'));
 
   const mes = $('rvieMes');
   const anio = $('rvieAnio');
-  const excluir = $('toggleExcluirAnteriores');
+  let excluir = $('toggleExcluirAnteriores');
   const consultar = $('rvieVerConsultar');
                                                                                             
-  consultar.disabled = consultar.dataset.soloLectura === '1';
   const proceso = $('rvieProceso');
   const estado = $('syncStatusRVIE');
   const barra = $('rvieBarraProgreso');
@@ -33,6 +25,7 @@
   let trabajando = false;
   let estadoOcultoPorUsuario = false;
   let recuperacionSolicitada = null;
+  let reintentoSolicitado = null;
   let pausaSolicitada = false;
   let reanudarPausa = null;
   const registroPendientes = window.AsesconPendientesAnualesSire?.crear({
@@ -51,7 +44,7 @@
     url.searchParams.set('mes', mes.value);
     url.searchParams.set('anio', anio.value);
     url.searchParams.set('excluir_anteriores', excluir?.checked ? '1' : '0');
-    ['periodo', 'pagina', 'tipo', 'vista'].forEach(k => url.searchParams.delete(k));
+    ['periodo', 'pagina', 'tipo', 'vista', 'fragmento'].forEach(k => url.searchParams.delete(k));
     return url;
   };
   const verSeleccion = () => { window.location.assign(urlVista().toString()); };
@@ -61,17 +54,8 @@
     return `${dato('year')}-${dato('month')}-${dato('day')}`;
   };
 
-  const actualizarExcel = () => {
-    const filtro = periodo();
-    document.querySelectorAll('[data-rvie-excel]').forEach(link => {
-      const params = new URLSearchParams({
-        libro: 'RVIE', id_cliente: cliente.value, periodo: filtro,
-        excluir_anteriores: excluir?.checked ? '1' : '0',
-        modo: link.dataset.rvieExcel || 'resumen'
-      });
-      link.href = '../../api/sunat/exportar_sire_excel.php?' + params.toString();
-    });
-  };
+  const actualizarResultados = (url, guardarFiltros) =>
+    guardados.actualizarVista('rvieDatosVista', url, guardarFiltros);
 
   function mostrarProceso() {
     if (estadoOcultoPorUsuario) return;
@@ -85,15 +69,16 @@
     mostrarProceso();
     estado.textContent = texto;
   }
-  function insertarEstado(etiqueta, resultado, clase, tarea = null) {
+  function insertarEstado(etiqueta, resultado, clase, tarea, reintentar = false) {
     const elemento = document.createElement('li');
     elemento.className = clase;
+    elemento.dataset.sireTarea = guardados.llave(tarea.opcion.value, tarea.mesConsulta);
     const mesNumero = Number(tarea?.mesConsulta?.slice(4) || (etiqueta.match(/(0[1-9]|1[0-2])\/20\d{2}$/) || [])[1] || 0);
     if (mesNumero >= 1 && mesNumero <= 12) elemento.value = mesNumero;
     const titulo = document.createElement('strong');
     titulo.textContent = etiqueta + ' — ';
     elemento.append(titulo, document.createTextNode(resultado));
-    if (tarea && consultar.dataset.soloLectura !== '1') {
+    if (reintentar && consultar.dataset.soloLectura !== '1') {
       const boton = document.createElement('button');
       boton.type = 'button';
       boton.className = 'reference-btn sire-reintentar-mes';
@@ -101,20 +86,19 @@
       boton.disabled = trabajando;
       boton.addEventListener('click', () => {
         if (trabajando) return;
-        cliente.value = String(tarea.opcion.value);
-        mes.value = tarea.mesConsulta.slice(4);
-        anio.value = tarea.mesConsulta.slice(0, 4);
-        actualizarExcel();
-        $('rvieConsultaFormulario')?.requestSubmit();
+        reintentoSolicitado = tarea;
+        formulario.requestSubmit();
       });
       elemento.append(document.createTextNode(' · '), boton);
     }
-    lista.append(elemento);
+    const anterior = [...lista.children].find(fila => fila.dataset.sireTarea === elemento.dataset.sireTarea);
+    if (anterior) anterior.replaceWith(elemento);
+    else lista.append(elemento);
   }
-  function progreso(revisados, total, importados, errores, sinConfirmar = 0) {
+  function progreso(revisados, total, importados, errores, sinConfirmar = 0, guardados = 0) {
     const porcentaje = total ? Math.round(revisados * 100 / total) : 0;
     barra.value = porcentaje;
-    contadores.textContent = `${revisados}/${total} períodos revisados · ${importados} consultas completadas · ${errores} errores · ${sinConfirmar} sin confirmar`;
+    contadores.textContent = `${revisados}/${total} períodos revisados · ${guardados} guardados · ${importados} consultas completadas · ${errores} errores · ${sinConfirmar} sin confirmar`;
   }
   botonEstado?.addEventListener('click', () => {
     if (!proceso.hidden) {
@@ -161,47 +145,56 @@
   }
 
   function cambioSeleccion() {
-    actualizarExcel();
     if (trabajando && avisoSeleccion) {
       avisoSeleccion.hidden = false;
-      avisoSeleccion.textContent = 'Cambiaste los filtros. El lote actual sigue con su selección original; cuando termine, pulsa «Consultar» para aplicar los nuevos filtros.';
+      avisoSeleccion.textContent = 'Cambiaste los filtros. El lote actual sigue con su selección original; cuando termine, pulsa «Ver/consultar» para aplicar los nuevos filtros.';
     }
   }
   cliente.addEventListener('change', cambioSeleccion);
   mes.addEventListener('change', cambioSeleccion);
   anio.addEventListener('change', cambioSeleccion);
-  excluir?.addEventListener('change', () => {
-    actualizarExcel();
-    if (trabajando) cambioSeleccion();
-    else verSeleccion();
-  });
-  actualizarExcel();
-  $('rvieConsultaFormulario')?.addEventListener('submit', async event => {
+  function vincularFiltro() {
+    excluir = $('toggleExcluirAnteriores');
+    excluir?.addEventListener('change', () => {
+      if (trabajando) cambioSeleccion();
+      else verSeleccion();
+    });
+  }
+  vincularFiltro();
+  formulario?.addEventListener('submit', async event => {
     event.preventDefault();
     if (trabajando) return;
+    const reintento = reintentoSolicitado;
+    reintentoSolicitado = null;
+    const urlResultados = reintento ? new URL(window.location.href) : urlVista();
+    const loteRecuperacion = recuperacionSolicitada;
+    recuperacionSolicitada = null;
     estadoOcultoPorUsuario = false;
     trabajando = true;
     consultar.disabled = true;
-    consultar.textContent = 'Consultando…';
-    consultar.title = 'La consulta actual sigue en orden; no se iniciará otro lote simultáneo.';
+    consultar.textContent = 'Verificando datos…';
     if (avisoSeleccion) avisoSeleccion.hidden = true;
     barra.hidden = false;
-    lista.replaceChildren();
+    if (!reintento) lista.replaceChildren();
+    lista.querySelectorAll('.sire-reintentar-mes').forEach(boton => { boton.disabled = true; });
     progreso(0, 0, 0, 0);
-    const loteRecuperacion = recuperacionSolicitada;
-    recuperacionSolicitada = null;
     const periodoElegido = periodo();
     const clienteElegido = String(cliente.value);
-    const anioElegido = String(anio.value);
+    const anioElegido = reintento?.mesConsulta.slice(0, 4) || String(anio.value);
     const anualElegido = esAnual();
     const opciones = (Number(cliente.value) > 0 ? [cliente.selectedOptions[0]] : elementosClientes())
       .map(opcion => ({value: opcion.value, nombre: nombre(opcion)}));
     try {
       if (!opciones.length) throw new Error('No hay empresas disponibles para consultar con tu cuenta.');
       if (!/^20\d{2}(00|0[1-9]|1[0-2])$/.test(periodoElegido)) throw new Error('Selecciona un año y mes válidos.');
-      mensaje('Preparando consulta oficial a SUNAT SIRE...');
+      mensaje('Leyendo los resultados guardados…');
+      if (!reintento) await actualizarResultados(urlResultados, true);
+      if (consultar.dataset.soloLectura === '1') {
+        mensaje('Resultados guardados disponibles. Tu cuenta tiene acceso de lectura.');
+        return;
+      }
       const mesActual = fechaLima().slice(0, 7).replace('-', '');
-      if (!anualElegido && periodoElegido > mesActual && !loteRecuperacion) {
+      if (!anualElegido && periodoElegido > mesActual && !loteRecuperacion && !reintento) {
         mensaje('El mes aún no comienza en Perú. Selecciona un período vigente para consultar SUNAT.');
         return;
       }
@@ -212,33 +205,51 @@
         ? Array.from({length: anioConsultado === anioVigente ? Number(mesActual.slice(4)) : 12}, (_, indice) => anioElegido + String(indice + 1).padStart(2, '0'))
         : [periodoElegido];
                                                                                     
-      const tareas = loteRecuperacion || opciones.flatMap(opcion => mesesElegidos.map(mesConsulta => ({opcion, mesConsulta})));
-                                                                                             
-      const pendientes = tareas.filter(tarea => tarea.mesConsulta <= mesActual);
+      const tareas = reintento ? [reintento] : loteRecuperacion
+        || opciones.flatMap(opcion => mesesElegidos.map(mesConsulta => ({opcion, mesConsulta})));
+      const filas = await guardados.leer('RVIE', {
+        anio: anioElegido,
+        id_cliente: reintento ? Number(reintento.opcion.value) : Number(clienteElegido)
+      });
+      const disponibles = new Map(filas.map(fila => [guardados.llave(fila.id_cliente, fila.periodo), fila]));
+      const pendientes = [];
+      let reutilizados = 0;
+      const etiquetaDe = tarea => tarea.opcion.nombre + ' · ' + tarea.mesConsulta.slice(4) + '/' + tarea.mesConsulta.slice(0, 4);
+      for (const tarea of tareas) {
+        if (tarea.mesConsulta > mesActual) continue;
+        const fila = disponibles.get(guardados.llave(tarea.opcion.value, tarea.mesConsulta));
+        if (!fila) {
+          pendientes.push(tarea);
+          continue;
+        }
+        reutilizados++;
+        registroPendientes?.resuelto(tarea);
+        insertarEstado(etiquetaDe(tarea), Number(fila.cantidad_registros) === 0
+          ? 'Resultado guardado: propuesta SUNAT con 0 comprobantes.'
+          : `Resultado guardado: ${Number(fila.cantidad_registros)} comprobantes.`, 'rvie-ok', tarea);
+      }
+      if (reintento && reutilizados > 0) await actualizarResultados(urlResultados, false);
       if (!pendientes.length) {
-        mensaje('Los períodos seleccionados aún no están disponibles para consultar a SUNAT.');
+        progreso(reutilizados, reutilizados, 0, 0, 0, reutilizados);
+        mensaje(reutilizados
+          ? `Se mostraron ${reutilizados} períodos guardados. No se consultó SUNAT.`
+          : 'Los períodos seleccionados aún no están disponibles para consultar a SUNAT.');
         return;
       }
-      if (consultar.dataset.soloLectura === '1') {
-        mensaje('Tu cuenta no tiene permiso para ejecutar consultas SIRE.');
+      if (pendientes.length > 1 && !window.confirm(
+        `RVIE: se consultarán ${pendientes.length} períodos pendientes. ${reutilizados} ya estaban guardados. ¿Continuar?`
+      )) {
+        mensaje('La consulta a SUNAT fue cancelada. Los resultados guardados siguen disponibles.');
         return;
       }
-      mensaje(loteRecuperacion
-        ? `Recuperando únicamente ${pendientes.length} mes(es) que quedaron sin completar del año ${anioElegido}. Los demás meses no se volverán a solicitar.`
-        : `Consultando ${pendientes.length} período(s) directamente a SUNAT SIRE, uno por uno.`);
-      if (pendientes.length > 1 && !window.confirm(loteRecuperacion
-        ? `Ventas RVIE: recuperar solo ${pendientes.length} meses pendientes de ${anioElegido}, sin repetir los que ya terminaron. ¿Continuar?`
-        : `Ventas RVIE: ${pendientes.length} consultas individuales (${mesesElegidos.length} mes(es) por empresa, ${opciones.length} empresa(s)). Todas se solicitarán a SUNAT. Pueden tardar varios minutos. ¿Iniciar?`)) {
-        mensaje('La consulta a SUNAT fue cancelada.');
-        return;
-      }
+      consultar.textContent = 'Consultando…';
       registroPendientes?.marcarTodos(pendientes);
       if (pausar) { pausar.hidden = pendientes.length <= 1; pausar.textContent = 'Pausar después del mes actual'; }
       let importados = 0, errores = 0, sinConfirmar = 0;
-      progreso(0, pendientes.length, importados, errores);
+      progreso(reutilizados, reutilizados + pendientes.length, importados, errores, sinConfirmar, reutilizados);
       for (const tarea of pendientes) {
         await esperarPausa();
-        const etiqueta = tarea.opcion.nombre + ' · ' + tarea.mesConsulta.slice(4) + '/' + tarea.mesConsulta.slice(0, 4);
+        const etiqueta = etiquetaDe(tarea);
         mensaje(`Consultando mes ${Number(tarea.mesConsulta.slice(4))} de ${tarea.mesConsulta.slice(0, 4)} · ${tarea.opcion.nombre} (${importados + errores + sinConfirmar + 1}/${pendientes.length})...`);
         try {
           const resultado = await AsesconSireSync.sincronizarLibro(Number(tarea.opcion.value), 'RVIE', tarea.mesConsulta, paso => {
@@ -253,30 +264,29 @@
           registroPendientes?.resuelto(tarea);
           insertarEstado(etiqueta, resultado.sin_comprobantes
             ? 'Propuesta de SUNAT validada: 0 comprobantes (no significa presentación oficial).'
-            : `${Number(resultado.cantidad_registros || 0)} comprobantes importados`, 'rvie-ok');
+            : `${Number(resultado.cantidad_registros || 0)} comprobantes importados`, 'rvie-ok', tarea);
         } catch (error) {
           if (error.pendiente === true) {
             sinConfirmar++;
             registroPendientes?.marcarTodos([tarea], 'sin_confirmar');
-            insertarEstado(etiqueta, `${String(error.message || error)} · Mes ${Number(tarea.mesConsulta.slice(4))} pendiente de confirmar (no se considera vacío). Puedes reintentar únicamente este mes.`, 'rvie-pendiente', tarea);
+            insertarEstado(etiqueta, `${String(error.message || error)} · Mes ${Number(tarea.mesConsulta.slice(4))} pendiente de confirmar (no se considera vacío). Puedes reintentar únicamente este mes.`, 'rvie-pendiente', tarea, true);
           } else {
             errores++;
             registroPendientes?.marcarTodos([tarea], 'error');
-            insertarEstado(etiqueta, `${String(error.message || error)} · No se recibió una confirmación válida. Puedes reintentar únicamente este mes.`, 'rvie-error', tarea);
+            insertarEstado(etiqueta, `${String(error.message || error)} · No se recibió una confirmación válida. Puedes reintentar únicamente este mes.`, 'rvie-error', tarea, true);
           }
         }
-        progreso(importados + errores + sinConfirmar, pendientes.length, importados, errores, sinConfirmar);
+        progreso(reutilizados + importados + errores + sinConfirmar, reutilizados + pendientes.length, importados, errores, sinConfirmar, reutilizados);
         if (pendientes.length > 1) await new Promise(r => setTimeout(r, 1200));
       }
-      if (sinConfirmar || errores) {
-        mensaje(`Se consultaron ${pendientes.length} períodos sin detener el lote: ${importados} completados, ${errores} con error y ${sinConfirmar} sin confirmar. Puedes usar «Reintentar solo mes» en los que falten.`);
-      } else {
-        mensaje('SUNAT confirmó todos los períodos solicitados. Se actualizará la vista para mostrar los resultados.');
-      }
-      if (importados > 0 && errores === 0 && sinConfirmar === 0) {
-        setTimeout(() => {
-          if (!trabajando && periodo() === periodoElegido && String(cliente.value) === clienteElegido) verSeleccion();
-        }, 1500);
+      const resumen = `${reutilizados} guardados · ${importados} consultas completadas · ${errores} con error · ${sinConfirmar} sin confirmar.`;
+      mensaje(resumen + (errores || sinConfirmar ? ' Puedes reintentar únicamente los períodos afectados.' : ''));
+      if (importados > 0) {
+        try {
+          await actualizarResultados(urlResultados, false);
+        } catch (error) {
+          mensaje(resumen + ' Para cargar los resultados guardados, pulsa «Ver/consultar» de nuevo.');
+        }
       }
     } catch (error) {
       mensaje('No se pudo preparar la consulta: ' + String(error.message || error));
@@ -285,21 +295,22 @@
       pausaSolicitada = false;
       reanudarPausa = null;
       if (pausar) { pausar.hidden = true; pausar.textContent = 'Pausar después del mes actual'; }
-      consultar.disabled = consultar.dataset.soloLectura === '1';
-      consultar.textContent = 'Consultar';
+      consultar.disabled = false;
+      consultar.textContent = 'Ver/consultar';
       consultar.title = '';
       lista.querySelectorAll?.('.sire-reintentar-mes').forEach(boton => { boton.disabled = false; });
       registroPendientes?.actualizar();
-      if (avisoSeleccion && !avisoSeleccion.hidden) avisoSeleccion.textContent = 'La consulta terminó. Pulsa «Consultar» para aplicar aquí los filtros que cambiaste.';
+      if (avisoSeleccion && !avisoSeleccion.hidden) avisoSeleccion.textContent = 'La consulta terminó. Pulsa «Ver/consultar» para aplicar aquí los filtros que cambiaste.';
     }
   });
 
-  const tabs = $('rvieResultados');
+  let tabs = $('rvieResultados');
   function abrirDetalle(tipo = '') {
     if (!tabs) return;
-    const global = cliente.value === '0';
+    const global = $('rvieDatosVista').dataset.sireCliente === '0';
     if (global && tipo) {
-      const url = urlVista();
+      const url = new URL(window.location.href);
+      url.searchParams.delete('pagina');
       url.searchParams.set('vista', 'detalle');
       url.searchParams.set('tipo', tipo);
       window.location.assign(url.toString());
@@ -312,16 +323,25 @@
     if (limpiar) { limpiar.hidden = !tipo; limpiar.textContent = tipo ? 'Ver todos · ' + tipo : 'Ver todos'; }
     tabs.querySelector('[data-tab-panel="rvie-detalle"]')?.scrollIntoView({behavior:'smooth',block:'start'});
   }
-  tabs?.querySelectorAll('[data-tab-target]').forEach(btn => btn.addEventListener('click', () => {
-    tabs.querySelectorAll('[data-tab-target]').forEach(b => b.classList.toggle('active', b === btn));
-    tabs.querySelectorAll('[data-tab-panel]').forEach(p => { p.hidden = p.dataset.tabPanel !== btn.dataset.tabTarget; });
-  }));
-  tabs?.querySelectorAll('[data-open-sire-detail]').forEach(fila => {
-    const abrir = () => abrirDetalle(fila.dataset.sireTipo || '');
-    fila.addEventListener('click', abrir);
-    fila.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+  function vincularResultados() {
+    tabs = $('rvieResultados');
+    tabs?.querySelectorAll('[data-tab-target]').forEach(btn => btn.addEventListener('click', () => {
+      tabs.querySelectorAll('[data-tab-target]').forEach(b => b.classList.toggle('active', b === btn));
+      tabs.querySelectorAll('[data-tab-panel]').forEach(p => { p.hidden = p.dataset.tabPanel !== btn.dataset.tabTarget; });
+    }));
+    tabs?.querySelectorAll('[data-open-sire-detail]').forEach(fila => {
+      const abrir = () => abrirDetalle(fila.dataset.sireTipo || '');
+      fila.addEventListener('click', abrir);
+      fila.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+      });
     });
+    tabs?.querySelector('.sire-clear-filter')?.addEventListener('click', () => abrirDetalle());
+  }
+  vincularResultados();
+  document.addEventListener('asescon:sire-resultados', event => {
+    if (event.detail.id !== 'rvieDatosVista') return;
+    vincularFiltro();
+    vincularResultados();
   });
-  tabs?.querySelector('.sire-clear-filter')?.addEventListener('click', () => abrirDetalle());
 })();

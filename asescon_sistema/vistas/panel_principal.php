@@ -27,8 +27,9 @@ require __DIR__ . '/../controladores/interfaz/preparar_menu_lateral.php';
     <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/base/estructura_panel.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/seguridad/recordatorio_contrasena.css'), ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/modulos/sincronizacion_dashboard.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <?php require __DIR__ . '/componentes/recursos_tema.php'; ?>
 </head>
-<body>
+<body class="pagina-dashboard">
 <div class="app">
     <?php require __DIR__ . '/componentes/menu_lateral.php'; ?>
     <main class="main-content">
