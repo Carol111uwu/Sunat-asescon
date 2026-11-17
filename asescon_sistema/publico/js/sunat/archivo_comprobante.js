@@ -1,4 +1,5 @@
 (() => {
+function iniciar() {
  const modal=document.getElementById('archivoComprobanteModal');if(!modal)return;const get=id=>document.getElementById(id);let version=0,origen=null;
  async function abrir(b){const actual=++version;origen=b;get('archivoComprobantePdf').removeAttribute('src');get('archivoComprobantePdf').hidden=true;get('archivoComprobanteEnlaces').replaceChildren();get('archivoComprobanteEstado').textContent='Cargando…';modal.querySelectorAll('form input:not([type=hidden]),form select,form button').forEach(x=>x.disabled=true);get('archivoComprobanteFormulario')?.reset();if(!modal.open)modal.showModal();
   try{const k=JSON.parse(b.dataset.archivoComprobante);const url=new URL(modal.dataset.url,location.href);Object.entries(k).forEach(([n,v])=>url.searchParams.set(n,v));const r=await fetch(url,{credentials:'same-origin'});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.mensaje||'No se pudo cargar.');if(actual!==version||!modal.open)return;const d=j.data;
@@ -8,4 +9,7 @@
   }catch(e){if(actual===version)get('archivoComprobanteEstado').textContent=e.message;}
  }
  document.querySelectorAll('[data-archivo-comprobante]').forEach(b=>b.addEventListener('click',()=>abrir(b)));modal.querySelector('[data-archivo-cerrar]').addEventListener('click',()=>modal.close());modal.addEventListener('close',()=>{version++;get('archivoComprobantePdf').removeAttribute('src');origen?.focus();});get('archivoComprobanteTipo')?.addEventListener('change',e=>get('archivoComprobanteSubida').accept={PDF:'.pdf',XML:'.xml',CDR:'.zip'}[e.target.value]);
+}
+iniciar();
+document.addEventListener('asescon:sire-resultados', iniciar);
 })();

@@ -43,7 +43,7 @@ while [ "$(date +%s)" -lt "$LIMITE_LOTE" ]; do
 if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/pausa.flag" ]; then exit 0; fi
 PREPARADO="$("$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/preparar_solicitud.php" 2>>"$LOG")"
 if [ -z "$PREPARADO" ]; then
-    if [ "$PRECARGA_REVISADA" -eq 0 ] && [ "$((10#${RELOJ_LIMA:2:2} % 15))" -eq 0 ]; then
+    if [ "${ASESCON_WORKER_SOLO_PENDIENTES:-0}" != "1" ] && [ "$PRECARGA_REVISADA" -eq 0 ] && [ "$((10#${RELOJ_LIMA:2:2} % 15))" -eq 0 ]; then
         PRECARGA_REVISADA=1
         "$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/programar_adjuntos.php" >>"$LOG" 2>&1 || true
         continue

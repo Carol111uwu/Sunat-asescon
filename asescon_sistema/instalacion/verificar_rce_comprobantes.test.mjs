@@ -8,8 +8,8 @@ const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = ruta => readFileSync(resolve(raiz, ruta), 'utf8');
 
 test('RCE muestra acciones para consultar, descargar y compartir el reporte', () => {
-  const vista = leer('vistas/sunat/rce.php');
-  assert.match(vista, /componentes\/botones_comprobante_sire\.php/);
+  const vista = leer('vistas/sunat/rce.php') + leer('vistas/sunat/componentes/resultados_rce.php');
+  assert.match(vista, /\/botones_comprobante_sire\.php/);
   const contenidoVista = vista + '\n' + leer('vistas/sunat/componentes/botones_comprobante_sire.php');
   for (const texto of ['data-rce-correo', 'data-rce-whatsapp', 'formato=xlsx',
     'vista=previa', 'rce_comprobante.js', 'acciones_comprobante_rce.php']) {
@@ -49,7 +49,7 @@ test('SIRE permanece como primer subgrupo de Tributario', () => {
 });
 
 test('RCE permite seleccionar algunos o todos los comprobantes de la página y exportarlos juntos', () => {
-  const vista = leer('vistas/sunat/rce.php');
+  const vista = leer('vistas/sunat/rce.php') + leer('vistas/sunat/componentes/resultados_rce.php');
   const script = leer('publico/js/sunat/rce_seleccion.js');
   const api = leer('api/sunat/comprobantes_rce_lote.php');
   for (const selector of ['rceMarcarTodos', 'rceLimpiarSeleccion', 'rceLotePdf',

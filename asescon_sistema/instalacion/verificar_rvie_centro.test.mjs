@@ -8,13 +8,13 @@ const base = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ver = ruta => readFileSync(resolve(base, ruta), 'utf8');
 
 test('RVIE conserva filtros y la consulta en el mismo módulo, sin listado histórico permanente', () => {
-  const vista = ver('vistas/sunat/rvie.php');
+  const vista = ver('vistas/sunat/rvie.php') + ver('vistas/sunat/componentes/resultados_rvie.php');
   for (const id of ['rvieCliente', 'rvieMes', 'rvieAnio',
     'rvieVerConsultar', 'rvieBarraProgreso', 'rvieListaProcesos',
     'toggleExcluirAnteriores']) assert.ok(vista.includes(id), `Falta ${id}`);
   assert.equal((vista.match(/⇩ Excel resumen/g) || []).length, 1);
   assert.ok(!vista.includes('rvieExcelTop'));
-  assert.ok(!vista.includes('id="rvieVerGuardados"'));
+  assert.ok(vista.includes('id="rvieVerGuardados"'));
   assert.ok(!vista.includes('id="rvieForzarSunat"'));
   assert.ok(!vista.includes('resumen_global_sire.php'));
   assert.ok(!vista.includes('Sincronizar todas en segundo plano'));
@@ -22,15 +22,16 @@ test('RVIE conserva filtros y la consulta en el mismo módulo, sin listado hist�
   assert.ok(!vista.includes('Dashboard SIRE'));
 });
 
-test('La consulta remota se hace en cada clic y admite un año de meses individuales', () => {
+test('RVIE admite un año de meses individuales y consulta los períodos faltantes', () => {
   const js = ver('publico/js/sunat/rvie_centro.js');
   assert.doesNotMatch(js, /post\('inventario'/);
-  assert.match(js, /const pendientes = tareas\.filter\(tarea => tarea\.mesConsulta <= mesActual\)/);
+  assert.match(js, /if \(tarea\.mesConsulta > mesActual\) continue/);
+  assert.match(js, /pendientes\.push\(tarea\)/);
   assert.doesNotMatch(js, /forzarSunat|!vigente\(tarea\)|reanudacion/);
-  assert.match(js, /rvieConsultaFormulario'\)\?\.addEventListener\('submit'/);
+  assert.match(js, /formulario\?\.addEventListener\('submit'/);
   assert.doesNotMatch(js, /mostrarGuardado\(\)/);
   assert.match(js, /AsesconSireSync\.sincronizarLibro/);
-  assert.match(js, /progreso\(importados \+ errores \+ sinConfirmar/);
+  assert.match(js, /progreso\(reutilizados \+ importados \+ errores \+ sinConfirmar/);
   assert.match(js, /resultado\.sin_comprobantes !== true/);
   assert.doesNotMatch(js, /detenerSolicitado|Ver selección|Ver resultados actualizados/);
   assert.match(js, /Reintentar solo mes/);
@@ -40,7 +41,7 @@ test('La consulta remota se hace en cada clic y admite un año de meses individu
 });
 
 test('RVIE permite ocultar y volver a mostrar el estado sin interrumpir la consulta', () => {
-  const vista = ver('vistas/sunat/rvie.php');
+  const vista = ver('vistas/sunat/rvie.php') + ver('vistas/sunat/componentes/resultados_rvie.php');
   const js = ver('publico/js/sunat/rvie_centro.js');
   assert.match(vista, /id="rvieVerEstado" aria-controls="rvieProceso" aria-expanded="false"/);
   assert.match(js, /botonEstado\.textContent = 'Ocultar estado de consultas'/);

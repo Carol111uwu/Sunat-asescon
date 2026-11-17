@@ -26,9 +26,9 @@ test('los selectores globales conviven con los botones independientes de RVIE y 
   assert.match(selector, /select\.dispatchEvent\(new Event\('change'/);
   assert.match(selector, /select\.value = opcion\.value/);
   for(const prefijo of ['rvie','rce']){
-    const vista=leer(`vistas/sunat/${prefijo}.php`);
+    const vista=leer(`vistas/sunat/${prefijo}.php`) + leer(`vistas/sunat/componentes/resultados_${prefijo}.php`);
     const js=leer(`publico/js/sunat/${prefijo}_centro.js`);
-    assert.doesNotMatch(vista,new RegExp(`id="${prefijo}VerGuardados"`));
+    assert.match(vista,new RegExp(`id="${prefijo}VerGuardados"`));
     assert.match(vista,new RegExp(`id="${prefijo}VerConsultar"`));
     assert.doesNotMatch(vista,new RegExp(`id="${prefijo}ForzarSunat"`));
     assert.match(js,/const fechaLima =/);
@@ -42,7 +42,7 @@ test('el importador preserva datos anteriores y la selección de años no altera
   const periodos=leer('servicios/sunat/PeriodosSire.php');
   assert.match(mapper,/FOR UPDATE/);
   assert.match(mapper,/Ya tiene comprobantes guardados/i);
-  assert.match(mapper,/hash_file\('sha256'/);
+  assert.match(mapper,/ArchivoTextoSire::hash\(/);
   assert.match(lectura,/d\.importe_total,d\.estado_registro,h\.id_cliente/);
   assert.match(periodos,/ANIO_INICIAL = 2021/);
 });

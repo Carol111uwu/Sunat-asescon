@@ -21,6 +21,7 @@ unset($_SESSION['mensaje_login']);
     <title>Inicio de sesión - ASESCON</title>
 
     <link rel="stylesheet" href="<?= htmlspecialchars(asesconRecurso('publico/css/autenticacion/login.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <?php require __DIR__ . '/componentes/recursos_tema.php'; ?>
 </head>
 <body class="pagina-inicio-sesion">
 
@@ -28,12 +29,17 @@ unset($_SESSION['mensaje_login']);
     <header class="identidad-asescon">
         <img
             class="logo-asescon-oficial"
-            src="../publico/img/autenticacion/logo-asescon-oficial.png?v=<?php echo @filemtime(__DIR__ . '/../publico/img/autenticacion/logo-asescon-oficial.png'); ?>"
+            src="<?= htmlspecialchars(asesconRecurso('publico/img/autenticacion/logo-asescon-oficial.png'), ENT_QUOTES, 'UTF-8') ?>"
             alt="ASESCON - Contadores y Abogados"
         >
+        <div class="identidad-asescon-oscura">
+            <img src="<?= htmlspecialchars(asesconRecurso('publico/img/logos/isotipo-asescon-blanco-dorado.png'), ENT_QUOTES, 'UTF-8') ?>" alt="">
+            <div><strong>ASESCON</strong><span>CONTADORES Y ABOGADOS</span></div>
+        </div>
     </header>
 
     <section class="tarjeta-inicio-sesion" aria-labelledby="titulo-inicio-sesion">
+        <?php require __DIR__ . '/componentes/selector_tema.php'; ?>
         <header class="encabezado-inicio-sesion">
             <h1 id="titulo-inicio-sesion">Bienvenido</h1>
             <p>Acceso al sistema</p>

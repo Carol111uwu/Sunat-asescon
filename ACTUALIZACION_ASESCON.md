@@ -1,10 +1,24 @@
 # Actualización ASESCON
 
-Base de integración: GitHub, commit `719e73d`, que incluye la corrección de permisos de lectura para Apache. Este paquete contiene el proyecto completo sin la carpeta `.git`. Conserva los archivos SQL del repositorio. La actualización se instala sobre las bases y volúmenes actuales mediante una reconstrucción de los servicios de aplicación.
+Base del paquete actualizada el 17 de noviembre de 2026. Parte de `main` en el commit `77ce096`, que ya incluye las integraciones anteriores y SUNAFIL. Para aplicar esta actualización se reconstruyen los servicios de aplicación con las bases y los volúmenes existentes. Este paquete no requiere migraciones nuevas.
 
-## Cambios
+## Preparación de producción del 17 de noviembre
 
-- Menú en el orden solicitado: Dashboard, General, Buzón electrónico, Tributario, AFPs y Extras. Utilitarios y el cierre de sesión quedan en Extras. Relación SSCO tiene su propia pantalla, con búsqueda y actualización del padrón existente.
+La configuración principal usa el dominio `https://sistema.asescon.net`, HTTPS y `proxy_net`.
+`compose.local.yaml` permite seleccionar explícitamente el entorno de pruebas de la PC.
+Las credenciales se toman del archivo `.env` existente en la VPS. Los valores del entorno local acompañaban al ZIP recibido y se excluyen de este paquete para publicación.
+Redis y el worker SOL quedan disponibles en el perfil opcional `prueba-workers`.
+
+## Cambios del 17 de noviembre
+
+- Cerrar sesión queda fijo al pie del menú. Los iconos de sol y luna están a su derecha en la misma fila y en la tarjeta de inicio de sesión. El navegador recuerda el tema elegido. El tema completo se aplica al inicio de sesión y al Dashboard.
+- En RCE y RVIE, **Ver datos guardados** muestra RUC, razón social, año y meses de la caché del día. **Ver/consultar** presenta primero los resultados locales y consulta a SUNAT los períodos faltantes.
+- Las consultas registran el progreso por empresa y período. Los resultados correctos se refrescan al terminar el lote aunque otros fallen. El reintento individual conserva la selección original del lote y un cero confirmado cuenta como resultado disponible.
+- Las propuestas se importan a MariaDB para consulta durante el día. El TXT/CSV íntegro se conserva comprimido para **Excel original** y la recuperación local. El ZIP recibido se usa durante la extracción y se elimina al terminar. Los PDF, Excel y ZIP de exportación se preparan al solicitarlos. El cron sigue limpiando la caché del día anterior dentro de su ventana de 00:40 a 01:50, hora de Perú.
+
+## Cambios anteriores
+
+- Menú en el orden solicitado: Dashboard, General, Buzón electrónico, Tributario, AFPs y Extras. Utilitarios queda en Extras. Relación SSCO tiene su propia pantalla, con búsqueda y actualización del padrón existente.
 - Mi equipo permite una cuenta por nombre o por RUC. La ficha pública completa el nombre o razón social. El RUC se guarda como usuario de inicio de sesión y la razón social en la ficha de equipo existente.
 - La búsqueda de empresas mantiene la selección. Los botones Seleccionar todo y Deseleccionar todo aplican a las empresas de la lista completa, incluidas las ocultas por la búsqueda. El permiso para todas las empresas futuras se guarda aparte.
 - Solo el Creador y el cliente MAIN pueden cambiar contraseñas. La recuperación por correo o SMS aplica esa misma regla.
@@ -17,31 +31,94 @@ Base de integración: GitHub, commit `719e73d`, que incluye la corrección de pe
 
 ## Publicación desde PowerShell y VS Code
 
-1. Crea una copia de trabajo nueva mediante Git. Comprueba que `git rev-parse --short HEAD` muestre `719e73d` antes de aplicar el ZIP. Si GitHub ya avanzó, integra las diferencias con esa versión antes de superponer los archivos.
+La ruta de publicación es carpeta nueva, archivos del ZIP, rama en GitHub, pull request a `main` y actualización de la VPS.
+Usa la terminal PowerShell de VS Code. El indicador debe comenzar por `PS`. Si muestra `MINGW64`, cambia a PowerShell antes de pegar estos comandos.
+
+### 1. Preparar la carpeta
+
+Este bloque mueve la carpeta anterior a `D:\Ant\pasado` y vuelve a clonar el repositorio en `D:\Ant\Sunat-asescon`.
 
 ```powershell
-New-Item -ItemType Directory -Force 'D:\Ant' | Out-Null
+$ErrorActionPreference = 'Stop'
 Set-Location 'D:\Ant'
-git clone https://github.com/Carol111uwu/Sunat-asescon.git Sunat-asescon-actualizado
-Set-Location 'D:\Ant\Sunat-asescon-actualizado'
-git rev-parse --short HEAD
-git switch -c mejora/asescon-integrado
+
+if (Test-Path '.\Sunat-asescon') {
+    New-Item -ItemType Directory -Force '.\pasado' | Out-Null
+    $respaldo = '.\pasado\Sunat-asescon-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff')
+    Move-Item '.\Sunat-asescon' $respaldo
+}
+
+git clone https://github.com/Carol111uwu/Sunat-asescon.git Sunat-asescon
+if ($LASTEXITCODE -ne 0) { throw 'PARA. Falló la descarga de GitHub.' }
+
+Set-Location '.\Sunat-asescon'
+git switch -c mejora/vps-tema-sire
+if ($LASTEXITCODE -ne 0) { throw 'PARA. No se pudo crear la rama.' }
+
+git config --local user.name 'Carol111uwu'
+git config --local user.email '01zqcarol@gmail.com'
 code .
 ```
 
-2. Extrae el ZIP en una carpeta temporal. Copia el contenido extraído a `D:\Ant\Sunat-asescon-actualizado`. Al terminar, `Dockerfile`, `compose.yaml` y `asescon_sistema` deben quedar directamente en la carpeta del clon.
-3. Revisa la lista de archivos antes del commit. Las credenciales, `.env` y los datos de producción se quedan en la VPS.
+Sigue cuando veas `Switched to a new branch 'mejora/vps-tema-sire'`.
+Para si aparece `fatal`, `error` o un mensaje `PARA`.
+
+### 2. Copiar los archivos
+
+Extrae `ASESCON_LISTO_VPS_20261117.zip` en Descargas. Copia todo su contenido dentro de `D:\Ant\Sunat-asescon` y acepta reemplazar los archivos.
+En esa carpeta deben quedar directamente `asescon_sistema`, `docker`, `Dockerfile` y `compose.yaml`.
+La carpeta `.git` creada por el clon permite enviar los cambios al repositorio.
+
+### 3. Revisar y preparar el commit
 
 ```powershell
-git status --short
-git diff --check
+Set-Location 'D:\Ant\Sunat-asescon'
+git branch --show-current
+git config user.name
+git --no-pager diff --check
+if ($LASTEXITCODE -ne 0) { throw 'PARA. Hay errores de formato para revisar.' }
+
 git add -A
-git diff --cached --name-status
-git commit -m "Integra SIRE, buzones y despliegue ASESCON"
-git push -u origin mejora/asescon-integrado
+if ($LASTEXITCODE -ne 0) { throw 'PARA. No se pudieron preparar los archivos.' }
+
+git --no-pager diff --cached --shortstat
+git --no-pager diff --cached --check
+if ($LASTEXITCODE -ne 0) { throw 'PARA. Hay errores de formato para revisar.' }
+
+git --no-pager diff --cached --name-only -- .env asescon_secure asescon_datos_privados asescon_sistema/base_datos
 ```
 
-4. En GitHub, abre un pull request hacia `main`, revisa los cambios y fusiónalo cuando pasen las pruebas.
+Sigue si la rama es `mejora/vps-tema-sire`, el nombre es `Carol111uwu`, aparecen archivos modificados y el último comando devuelve una salida vacía.
+Los avisos de conversión LF/CRLF pueden aparecer durante `git add`. Los errores de formato incluyen archivo y línea y requieren revisión.
+Para si el último comando muestra archivos privados o de bases de datos.
+
+### 4. Guardar y subir
+
+```powershell
+git commit -m "Prepara ASESCON para VPS e integra tema y consultas SIRE"
+if ($LASTEXITCODE -ne 0) { throw 'PARA. El commit no se creó.' }
+
+git log -1 --format="%h %an <%ae>"
+```
+
+Sigue cuando el autor sea `Carol111uwu <01zqcarol@gmail.com>`.
+
+```powershell
+git push -u origin mejora/vps-tema-sire
+if ($LASTEXITCODE -ne 0) { throw 'PARA. GitHub rechazó la subida.' }
+
+git status -sb
+```
+
+Sigue si aparece `[new branch]`, la rama queda enlazada a `origin/mejora/vps-tema-sire` y el estado final muestra únicamente la línea de la rama.
+Para si aparece `rejected`, `Authentication failed` o `fatal`.
+
+### 5. Integrar en main
+
+Abre [el formulario de pull request](https://github.com/Carol111uwu/Sunat-asescon/compare/main...mejora/vps-tema-sire?expand=1).
+Comprueba `base: main` y `compare: mejora/vps-tema-sire`. Pulsa **Create pull request**.
+Con las revisiones y comprobaciones requeridas completadas y sin conflictos, pulsa **Merge pull request** y **Confirm merge**.
+El estado **Merged** confirma la integración. Si GitHub muestra conflictos o comprobaciones fallidas, detén la publicación y resuélvelos antes de la VPS.
 
 ## Publicación en la VPS
 
@@ -64,8 +141,8 @@ docker compose ps
 docker compose logs --tail 60 app tareas
 ```
 
-La reconstrucción usa los mismos volúmenes y el `.env` de la VPS. No ejecutar `docker compose down -v` ni importar SQL para este despliegue. Verifica el panel después del login, una consulta RUC, un ZIP con 100 comprobantes disponibles, un aviso por correo y un PDF de cada buzón. En Mi equipo, prueba una cuenta por RUC, una por nombre, la asignación masiva y las restricciones de cambio de clave. Si la configuración SMTP está en `.env`, Compose pasa sus variables existentes a ambos servicios. El correo automático enlaza a la bandeja protegida.
+La reconstrucción usa los mismos volúmenes y el `.env` de la VPS. No ejecutar `docker compose down -v` ni importar SQL para este despliegue. Verifica Cerrar sesión, el tema en login y Dashboard, y Ver datos guardados en Compras y Ventas. Con una empresa autorizada, consulta un período faltante y verifica después la consulta local, el Excel original y la descarga del período. Comprueba también el estado del servicio de tareas y su próxima limpieza en la VPS.
 
 ## Pruebas y alcance
 
-Se verificó sintaxis PHP y se generó un ZIP de 100 reportes en cada libro con datos de prueba. La recepción de correo y la descarga oficial requieren una sesión y configuración autorizadas en la VPS. El código y los datos de producción se despliegan por separado.
+Las pruebas del proyecto y la sintaxis PHP se comprobaron localmente. También se probaron el flujo de resultados parciales, la lectura del original comprimido y la generación de Excel con datos de prueba. La consulta a SUNAT y el cron se verifican en el entorno de despliegue.

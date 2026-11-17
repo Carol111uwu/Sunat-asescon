@@ -1,0 +1,190 @@
+.sidebar .logout-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: #c5d8eb;
+}
+
+.sidebar .logout {
+    white-space: nowrap;
+}
+
+.selector-tema {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.selector-tema button {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-family: "Segoe UI Symbol", "DejaVu Sans", sans-serif;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.selector-tema [aria-pressed="true"], .selector-tema button:hover {
+    color: #e8be63;
+}
+
+.selector-tema button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -3px;
+    border-radius: 4px;
+}
+
+.selector-tema-sol { font-size: 23px; }
+.selector-tema-luna { font-size: 20px; }
+
+.pagina-inicio-sesion .tarjeta-inicio-sesion { position: relative; }
+.pagina-inicio-sesion .selector-tema {
+    position: absolute;
+    top: 8px;
+    right: 13px;
+    color: #365675;
+}
+.pagina-inicio-sesion .selector-tema [aria-pressed="true"] { color: #876020; }
+.identidad-asescon-oscura { display: none; }
+
+[data-tema="oscuro"] :is(.pagina-dashboard, .pagina-inicio-sesion) {
+    color-scheme: dark;
+    --fondo-tema: #0a1829;
+    --superficie-tema: #11243a;
+    --superficie-elevada-tema: #172e49;
+    --campo-tema: #0c1d31;
+    --enlace-tema: #a3cafa;
+    --texto: #e9f0fa;
+    --texto-secundario: #aebfd3;
+    --borde: #2a415b;
+    --azul-claro: #1b3552;
+    --sombra: 0 4px 20px rgb(0 12 30 / 27%);
+    background: var(--fondo-tema);
+    color: var(--texto);
+}
+
+[data-tema="oscuro"] .sidebar {
+    background: linear-gradient(180deg, #0b294a, #081c35);
+}
+
+[data-tema="oscuro"] .sidebar .logout-area { background: #091e37; }
+[data-tema="oscuro"] .sidebar .logout { color: #ff9298; }
+[data-tema="oscuro"] .sidebar .menu-item.active { color: #11243a; }
+
+[data-tema="oscuro"] .pagina-dashboard :is(.topbar, .card, .panel, .panel-riesgo, .reference-panel,
+    .reference-metric, .account-menu-panel, .quick-search-box, .rce-dialogo, .visor-documento) {
+    background: var(--superficie-tema);
+    color: var(--texto);
+    border-color: var(--borde);
+}
+
+[data-tema="oscuro"] .pagina-dashboard :is(.date, .fecha-riesgo, .riesgo-resumen-card, .tabla-riesgo th, thead,
+    .reference-status-strip, .reference-event, .reference-tab .count, .avatar, .panel-icon,
+    .account-menu-avatar, .reference-btn:not(.primary, .gold), .reference-priority-item) {
+    background: var(--superficie-elevada-tema);
+    color: var(--texto);
+    border-color: var(--borde);
+}
+
+[data-tema="oscuro"] .pagina-dashboard :is(.card-button, .topbar-search-trigger, .quick-search-box input,
+    .reference-field input, .reference-field textarea, .reference-field select) {
+    background: var(--campo-tema);
+    color: var(--texto);
+    border-color: var(--borde);
+}
+
+[data-tema="oscuro"] .pagina-dashboard :is(.page-header h1, .card-number, .panel-title h2, .panel-riesgo-header h2,
+    .riesgo-resumen-card > strong, .riesgo-ruc, .reference-section-title, .reference-metric strong,
+    .reference-table-title h2, .reference-tab.active, .reference-gauge strong, .user-area, .user-arrow,
+    .topbar-menu-toggle, .topbar-search-trigger .search-icon, .topbar-search-trigger .search-copy) {
+    color: var(--texto);
+}
+
+[data-tema="oscuro"] .pagina-dashboard :is(.card p, .card-title, .panel-riesgo-kicker, .fecha-riesgo span,
+    .riesgo-resumen-card > span, .riesgo-resumen-card > small, .riesgo-vacio, .tabla-riesgo th,
+    .reference-empty, .alert-time, .quick-search-hint) {
+    color: var(--texto-secundario);
+}
+
+[data-tema="oscuro"] .pagina-dashboard :is(.tabla-riesgo, .tabla-riesgo td, .alert-item, .panel-footer, .panel-header,
+    .table-container td, .table-container th) {
+    border-color: var(--borde);
+}
+
+[data-tema="oscuro"] .pagina-dashboard :is(.content a:not(.reference-btn, .card-button), .view-all, .panel-footer a,
+    .account-menu-copy strong, .account-menu-title) { color: var(--enlace-tema); }
+
+[data-tema="oscuro"] .pagina-dashboard :is(.reference-btn:hover:not(.primary, .gold), .card-button:hover,
+    .tabla-riesgo tbody tr:hover, .table-container tbody tr:hover, .quick-search-item:hover) {
+    background: #203b59;
+    color: var(--texto);
+}
+
+[data-tema="oscuro"] .pagina-dashboard .reference-btn.primary { background: #235583; border-color: #386b9b; }
+[data-tema="oscuro"] .pagina-dashboard .reference-btn.primary:hover { background: #2f6598; }
+
+[data-tema="oscuro"] .pagina-dashboard .sync-dashboard-mini {
+    background: var(--superficie-tema);
+    border-color: var(--borde);
+}
+
+[data-tema="oscuro"] .pagina-dashboard .sync-dashboard-mini :is(strong, small, #syncMiniEstado) { color: var(--texto); }
+[data-tema="oscuro"] .pagina-dashboard .sync-mini-ver {
+    background: var(--superficie-elevada-tema);
+    color: var(--enlace-tema);
+    border-color: var(--borde);
+}
+
+[data-tema="oscuro"] .pagina-inicio-sesion {
+    --color-fondo-login: var(--fondo-tema);
+    --color-azul-asescon: var(--enlace-tema);
+    --color-azul-asescon-oscuro: var(--texto);
+    --color-texto-secundario: var(--texto-secundario);
+    --color-borde-tarjeta: var(--borde);
+    --color-borde-campo: #365374;
+    --color-fondo-campo: var(--campo-tema);
+    --color-error-fondo: #352033;
+    --color-error-borde: #834c58;
+    --color-error-texto: #ffd2d5;
+    --sombra-tarjeta: var(--sombra);
+}
+
+[data-tema="oscuro"] .logo-asescon-oficial { display: none; }
+
+[data-tema="oscuro"] .identidad-asescon-oscura {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 4vw, 28px);
+    min-height: clamp(108px, 27vw, 216px);
+    color: var(--texto);
+}
+
+.identidad-asescon-oscura img { width: clamp(64px, 16vw, 136px); height: auto; }
+.identidad-asescon-oscura strong { display: block; font-size: clamp(25px, 6vw, 72px); line-height: 1; }
+.identidad-asescon-oscura span {
+    display: block;
+    margin-top: 9px;
+    color: #e8be63;
+    font-size: clamp(9px, 2vw, 15px);
+    letter-spacing: .12em;
+}
+
+[data-tema="oscuro"] .tarjeta-inicio-sesion { background: var(--superficie-tema); }
+[data-tema="oscuro"] .control-campo-acceso input { color: var(--texto); }
+[data-tema="oscuro"] .icono-campo-acceso { filter: brightness(0) invert(.8); }
+[data-tema="oscuro"] .pagina-inicio-sesion .selector-tema { color: var(--texto-secundario); }
+[data-tema="oscuro"] .pagina-inicio-sesion .selector-tema [aria-pressed="true"] { color: #e8be63; }
+
+@media (max-width: 400px) {
+    .pagina-inicio-sesion .tarjeta-inicio-sesion { padding-top: 49px; }
+}
+
+[data-tema="oscuro"] .enlace-recuperar-contrasena { color: var(--enlace-tema); }
+[data-tema="oscuro"] .enlace-recuperar-contrasena:hover { color: #e8be63; }

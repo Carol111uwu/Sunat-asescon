@@ -21,7 +21,7 @@ test('RVIE y RCE paginan clientes y conservan el Excel global por lotes', () => 
   assert.doesNotMatch(controlador, /ceil\(\$totalDetallesGlobales\s*\/\s*\$porPagina\)/);
   assert.match(leer('controladores/sunat/ControladorExportacionSire.php'), /obtenerDetallesGlobales\(/);
   for (const vista of ['rvie', 'rce']) {
-    const php = leer(`vistas/sunat/${vista}.php`);
+    const php = leer(`vistas/sunat/${vista}.php`) + leer(`vistas/sunat/componentes/resultados_${vista}.php`);
     assert.match(php, /max\(1, count\(\$clientesPaginados\)\)/);
     assert.match(php, /Siguiente empresa/);
     assert.match(php, /\$clientePagina\['ruc'\]/);

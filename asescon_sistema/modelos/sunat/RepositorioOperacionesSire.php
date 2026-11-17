@@ -138,7 +138,7 @@ final class RepositorioOperacionesSire
     ): void {
         $zip = isset($guardado['zip']) ? (string)$guardado['zip'] : null;
         $datos = isset($guardado['archivos'][0]) ? (string)$guardado['archivos'][0] : null;
-        $nomZip = $zip ? basename($zip) : null;
+        $nomZip = $guardado['nombre_zip'] ?? ($zip ? basename($zip) : null);
         $nomDat = $datos ? basename($datos) : null;
         $hashZip = trim((string)($guardado['hash_zip'] ?? '')) ?: null;
         $hashDatos = trim((string)($guardado['hash_archivos'][0] ?? '')) ?: null;

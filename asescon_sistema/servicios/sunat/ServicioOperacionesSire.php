@@ -225,9 +225,7 @@ class ServicioOperacionesSire
                 (string)$binario['body'], (string)($binario['filename'] ?? '')
             );
         }
-        $guardado = $inspector->registrarConjuntoTicket(
-            (string)$cliente['ruc'], $periodo, $codigo, $ticket, $partes
-        );
+        $guardado = $inspector->combinarPartes($partes);
         $mapeo = (new MapeadorSunat($this->conexion))->importarArchivos(
             $idCliente,
             $periodo,
@@ -243,6 +241,7 @@ class ServicioOperacionesSire
                 'hash_archivos' => $guardado['hash_archivos'] ?? [],
             ]
         );
+        $inspector->confirmarCache((string)$cliente['ruc'], $periodo, $codigo, $ticket, $guardado);
         $cantidad = (int)$mapeo['cantidad_registros'];
         $this->repositorio->marcarDescarga($idCliente, $periodo, $nombre, $ticket, $guardado, $cantidad, $mapeo);
         $this->auditar('DESCARGAR_SIRE',

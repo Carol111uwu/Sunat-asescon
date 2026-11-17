@@ -6,6 +6,8 @@ require_once __DIR__ . '/ExcepcionSunat.php';
 require_once __DIR__ . '/ServicioSireSunat.php';
 require_once __DIR__ . '/../../configuracion/archivos_historicos.php';
 
+require_once __DIR__ . '/ArchivoTextoSire.php';
+
 final class InspectorArchivosSire
 {
     private string $baseDir;
@@ -41,76 +43,73 @@ final class InspectorArchivosSire
         $this->crearDirectorio($directorio);
 
         $hashZip = hash('sha256', $binario);
-        $zipExistente = $this->buscarArchivoPorHash($directorio, $hashZip, ['zip']);
-        $nombreZip = $this->sanearNombre($nombreSugerido);
-        if ($nombreZip === '' || !str_ends_with(strtolower($nombreZip), '.zip')) {
-            $nombreZip = strtolower($codLibro === ServicioSireSunat::LIBRO_RVIE ? 'rvie' : 'rce')
-                . '_' . $periodo . '_' . preg_replace('/[^A-Za-z0-9_-]/', '', $ticket) . '.zip';
+        $nombreZip = $this->sanearNombre(basename($nombreSugerido));
+        if (!str_ends_with(strtolower($nombreZip), '.zip')) {
+            $nombreZip = 'propuesta_' . $periodo . '.zip';
         }
 
-        if ($zipExistente !== null) {
-            $zipPath = $zipExistente;
-            $zipReutilizado = true;
-        } else {
-            $zipPath = $this->nombreDisponible($directorio, $nombreZip);
-            if (@file_put_contents($zipPath, $binario, LOCK_EX) === false) {
-                throw new ExcepcionSunat('No se pudo guardar el archivo descargado desde SUNAT.');
-            }
-            $zipReutilizado = false;
-        }
-
-        $archivos = [];
-        $hashArchivos = [];
-        if (!$this->pareceZip($binario) && $this->pareceTexto($binario)) {
-            $hash = hash('sha256', $binario);
-            $existente = $this->buscarArchivoPorHash($directorio, $hash, ['txt', 'csv']);
-            if ($existente !== null) {
-                $txtPath = $existente;
-            } else {
-                $txtPath = $this->nombreDisponible($directorio, 'contenido_' . $periodo . '.txt');
-                if (@file_put_contents($txtPath, $binario, LOCK_EX) === false) {
-                    throw new ExcepcionSunat('SUNAT devolvió texto, pero ASESCON no pudo guardarlo.');
+        if ($this->pareceZip($binario)) {
+            $temporal = $directorio . DIRECTORY_SEPARATOR . '_recepcion_' . bin2hex(random_bytes(8)) . '.zip';
+            try {
+                if (@file_put_contents($temporal, $binario, LOCK_EX) !== strlen($binario)) {
+                    throw new ExcepcionSunat('No se pudo preparar la extracción del archivo de SUNAT.');
+                }
+                $resultado = class_exists('ZipArchive')
+                    ? $this->extraerConZipArchive($temporal, $directorio)
+                    : $this->extraerConHerramientaSistema($temporal, $directorio);
+            } finally {
+                if (is_file($temporal)) {
+                    @unlink($temporal);
                 }
             }
-            $archivos = [$txtPath];
-            $hashArchivos = [$hash];
+        } elseif ($this->pareceTexto($binario)) {
+            $ruta = $this->guardarTextoComprimido($directorio, 'contenido_' . $periodo . '.txt', $binario, $hashZip);
+            $resultado = ['archivos' => [$ruta], 'hashes' => [$hashZip]];
         } else {
-            $resultadoExtraccion = class_exists('ZipArchive')
-                ? $this->extraerConZipArchive($zipPath, $directorio)
-                : $this->extraerConHerramientaSistema($zipPath, $directorio);
-            $archivos = $resultadoExtraccion['archivos'];
-            $hashArchivos = $resultadoExtraccion['hashes'];
+            throw new ExcepcionSunat('SUNAT devolvió un archivo que no es ZIP, TXT ni CSV.');
         }
 
-        if ($archivos === []) {
+        if ($resultado['archivos'] === []) {
             throw new ExcepcionSunat('El archivo SIRE fue descargado, pero no contiene TXT/CSV que ASESCON pueda visualizar.');
         }
 
-        $metadata = $this->guardarMetadata(
-            $directorio,
-            $ruc,
-            $periodo,
-            $codLibro,
-            $ticket,
-            $zipPath,
-            $hashZip,
-            $archivos,
-            $hashArchivos
-        );
-        $this->limpiarRetencion();
-
         return [
-            'directorio' => $directorio,
-            'zip' => $zipPath,
-            'zip_reutilizado' => $zipReutilizado,
+            'nombre_zip' => $nombreZip,
             'hash_zip' => $hashZip,
-            'archivos' => $archivos,
-            'hash_archivos' => $hashArchivos,
-            'metadata' => $metadata,
+            'archivos' => $resultado['archivos'],
+            'hash_archivos' => $resultado['hashes'],
         ];
     }
 
-    public function registrarConjuntoTicket(string $ruc, string $periodo, string $codLibro, string $ticket, array $partes): array
+    private function guardarTextoComprimido(string $directorio, string $nombre, string $contenido, string $hash): string
+    {
+        // El hash corresponde al texto original, independientemente del formato almacenado.
+        $destino = $directorio . DIRECTORY_SEPARATOR . $hash . '.' . strtolower(pathinfo($nombre, PATHINFO_EXTENSION)) . '.gz';
+        if (is_file($destino) && ArchivoTextoSire::hash($destino) === $hash) {
+            if (!@touch($destino)) {
+                throw new ExcepcionSunat('No se pudo renovar la caché SIRE.');
+            }
+            return $destino;
+        }
+        $comprimido = gzencode($contenido, 6);
+        $temporal = tempnam($directorio, '.sire_');
+        if ($temporal === false) {
+            throw new ExcepcionSunat('No se pudo reservar un archivo temporal para SIRE.');
+        }
+        try {
+            if ($comprimido === false || @file_put_contents($temporal, $comprimido) !== strlen($comprimido)
+                || !@rename($temporal, $destino)) {
+                throw new ExcepcionSunat('No se pudo guardar el texto SIRE comprimido.');
+            }
+        } finally {
+            if (is_file($temporal)) {
+                @unlink($temporal);
+            }
+        }
+        return $destino;
+    }
+
+    public function combinarPartes(array $partes): array
     {
         if ($partes === []) {
             throw new ExcepcionSunat('SUNAT no devolvió ninguna parte descargable del ticket.');
@@ -120,7 +119,7 @@ final class InspectorArchivosSire
         $hashes = [];
         $partesZip = [];
         foreach ($partes as $parte) {
-            $partesZip[] = ['zip' => basename((string)$parte['zip']), 'sha256' => (string)$parte['hash_zip']];
+            $partesZip[] = ['zip' => (string)$parte['nombre_zip'], 'sha256' => (string)$parte['hash_zip']];
             foreach ($parte['archivos'] as $i => $ruta) {
                 $hash = (string)($parte['hash_archivos'][$i] ?? '');
                 if ($hash === '' || !is_file((string)$ruta)) {
@@ -137,16 +136,17 @@ final class InspectorArchivosSire
         $guardado['archivos'] = $rutas;
         $guardado['hash_archivos'] = $hashes;
         $guardado['cantidad_partes'] = count($partes);
-        $directorio = $this->directorioOperacion($ruc, $periodo, $codLibro);
-        $rutaMetadata = $this->guardarMetadata($directorio, $ruc, $periodo, $codLibro, $ticket,
-            (string)$guardado['zip'], (string)$guardado['hash_zip'], $rutas, $hashes);
-        $metadata = json_decode((string)file_get_contents($rutaMetadata), true);
-        $metadata['partes_zip'] = $partesZip;
-        if (file_put_contents($rutaMetadata, json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
-            throw new ExcepcionSunat('No se pudo guardar la lista completa de partes del ticket.');
-        }
-        $guardado['metadata'] = $rutaMetadata;
+        $guardado['partes_zip'] = $partesZip;
         return $guardado;
+    }
+
+    public function confirmarCache(string $ruc, string $periodo, string $codLibro, string $ticket, array $guardado): void
+    {
+        $directorio = $this->directorioOperacion($ruc, $periodo, $codLibro);
+        $this->guardarMetadata($directorio, $ruc, $periodo, $codLibro, $ticket,
+            $guardado['nombre_zip'], $guardado['hash_zip'], $guardado['archivos'],
+            $guardado['hash_archivos'], $guardado['partes_zip']);
+        $this->limpiarRetencion();
     }
 
     private function extraerConZipArchive(string $zipPath, string $directorio): array
@@ -171,25 +171,10 @@ final class InspectorArchivosSire
                 }
                 $contenido = $zip->getFromIndex($i);
                 if (!is_string($contenido)) {
-                    continue;
+                    throw new ExcepcionSunat('No se pudo leer una de las partes del ZIP de SUNAT.');
                 }
                 $hash = hash('sha256', $contenido);
-                $existente = $this->buscarArchivoPorHash($directorio, $hash, ['txt', 'csv']);
-                if ($existente !== null) {
-                    $archivos[] = $existente;
-                    $hashes[] = $hash;
-                    continue;
-                }
-
-                $nombreSeguro = $this->sanearNombre(basename(str_replace('\\', '/', $nombreInterno)));
-                if ($nombreSeguro === '') {
-                    $nombreSeguro = 'sire_' . ($i + 1) . '.' . $extension;
-                }
-                $destino = $this->nombreDisponible($directorio, $nombreSeguro);
-                if (@file_put_contents($destino, $contenido, LOCK_EX) === false) {
-                    throw new ExcepcionSunat('No se pudo guardar un archivo de datos SIRE.');
-                }
-                $archivos[] = $destino;
+                $archivos[] = $this->guardarTextoComprimido($directorio, $nombreInterno, $contenido, $hash);
                 $hashes[] = $hash;
             }
         } finally {
@@ -276,25 +261,13 @@ final class InspectorArchivosSire
                     continue;
                 }
 
-                $nombreSeguro = $this->sanearNombre($archivo->getBasename());
-                if ($nombreSeguro === '') {
-                    $nombreSeguro = 'sire_' . (count($archivos) + 1) . '.' . $extension;
+                $contenido = file_get_contents($archivo->getPathname());
+                if ($contenido === false) {
+                    throw new ExcepcionSunat('No se pudo leer una de las partes de SIRE.');
                 }
-                $hash = hash_file('sha256', $archivo->getPathname());
-                if (!is_string($hash)) {
-                    continue;
-                }
-                $existente = $this->buscarArchivoPorHash($directorio, $hash, ['txt', 'csv']);
-                if ($existente !== null) {
-                    $archivos[] = $existente;
-                    $hashes[] = $hash;
-                    continue;
-                }
-                $destino = $this->nombreDisponible($directorio, $nombreSeguro);
-                if (@copy($archivo->getPathname(), $destino)) {
-                    $archivos[] = $destino;
-                    $hashes[] = $hash;
-                }
+                $hash = hash('sha256', $contenido);
+                $archivos[] = $this->guardarTextoComprimido($directorio, $archivo->getFilename(), $contenido, $hash);
+                $hashes[] = $hash;
             }
 
             return ['archivos' => $archivos, 'hashes' => $hashes];
@@ -406,7 +379,7 @@ final class InspectorArchivosSire
             throw new ExcepcionSunat('El archivo SIRE que se intenta visualizar ya no existe.');
         }
 
-        $handle = @fopen($archivo, 'rb');
+        $handle = ArchivoTextoSire::abrir($archivo);
         if ($handle === false) {
             throw new ExcepcionSunat('No se pudo abrir el archivo SIRE descargado.');
         }
@@ -506,35 +479,6 @@ final class InspectorArchivosSire
         return trim($nombre, '._');
     }
 
-    private function buscarArchivoPorHash(string $directorio, string $hash, array $extensiones): ?string
-    {
-        foreach ($extensiones as $extension) {
-            foreach (glob($directorio . DIRECTORY_SEPARATOR . '*.' . $extension) ?: [] as $archivo) {
-                if (!is_file($archivo)) {
-                    continue;
-                }
-                $hashExistente = hash_file('sha256', $archivo);
-                if (is_string($hashExistente) && hash_equals($hash, $hashExistente)) {
-                    return $archivo;
-                }
-            }
-        }
-        return null;
-    }
-
-    private function nombreDisponible(string $directorio, string $nombre): string
-    {
-        $base = pathinfo($nombre, PATHINFO_FILENAME);
-        $ext = pathinfo($nombre, PATHINFO_EXTENSION);
-        $destino = $directorio . DIRECTORY_SEPARATOR . $nombre;
-        $n = 2;
-        while (is_file($destino)) {
-            $destino = $directorio . DIRECTORY_SEPARATOR . $base . '_' . $n . ($ext !== '' ? '.' . $ext : '');
-            $n++;
-        }
-        return $destino;
-    }
-
     private function guardarMetadata(
         string $dir,
         string $ruc,
@@ -544,7 +488,8 @@ final class InspectorArchivosSire
         string $zip,
         string $hashZip,
         array $archivos,
-        array $hashArchivos
+        array $hashArchivos,
+        array $partesZip
     ): string {
         $path = $dir . DIRECTORY_SEPARATOR . 'metadata.json';
         $detalleArchivos = [];
@@ -563,14 +508,22 @@ final class InspectorArchivosSire
             'descargado_en' => date(DATE_ATOM),
             'zip' => basename($zip),
             'hash_zip' => $hashZip,
+            'partes_zip' => $partesZip,
             'archivos' => $detalleArchivos,
         ];
-        if (@file_put_contents(
-            $path,
-            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            LOCK_EX
-        ) === false) {
-            throw new ExcepcionSunat('No se pudo guardar la metadata SIRE.');
+        $contenido = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $temporal = tempnam($dir, '.metadata_');
+        if ($temporal === false) {
+            throw new ExcepcionSunat('No se pudo preparar la metadata SIRE.');
+        }
+        try {
+            if (@file_put_contents($temporal, $contenido) !== strlen($contenido) || !@rename($temporal, $path)) {
+                throw new ExcepcionSunat('No se pudo guardar la metadata SIRE.');
+            }
+        } finally {
+            if (is_file($temporal)) {
+                @unlink($temporal);
+            }
         }
         return $path;
     }
@@ -611,7 +564,7 @@ final class InspectorArchivosSire
                 continue;
             }
             $ext = strtolower($archivo->getExtension());
-            if (!in_array($ext, ['zip', 'txt', 'csv'], true) || $archivo->getMTime() >= $limite) {
+            if (!in_array($ext, ['zip', 'txt', 'csv', 'gz'], true) || $archivo->getMTime() >= $limite) {
                 continue;
             }
             $real = $archivo->getRealPath();

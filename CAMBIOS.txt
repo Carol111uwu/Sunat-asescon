@@ -1,3 +1,16 @@
+2026-11-17 | Preparación para sistema.asescon.net
+- Configuración predeterminada de producción con HTTPS y red proxy_net.
+- Configuración local opcional en compose.local.yaml, con uso explícito.
+- Credenciales cargadas mediante el entorno privado existente de la VPS.
+- Redis y worker SOL conservados en el perfil opcional prueba-workers.
+- Normaliza finales de línea de scripts y configuración al usar Git en Windows.
+
+2026-11-17 | Tema y resultados guardados SIRE
+- Cerrar sesión vuelve al pie del menú con el selector de tema a la derecha.
+- Agrega el tema azul marino al login y Dashboard y guarda la preferencia del navegador.
+- RCE y RVIE reutilizan propuestas confirmadas del día y actualizan los resultados aunque algún período falle.
+- Comprime los datos originales por período y conserva la limpieza diaria existente.
+
 2026-11-16 | Menú solicitado y acceso a Relación SSCO
 - Reorganiza la navegación lateral y agrupa Utilitarios dentro de Extras.
 - Relación SSCO tiene una vista independiente con los mismos permisos y datos.

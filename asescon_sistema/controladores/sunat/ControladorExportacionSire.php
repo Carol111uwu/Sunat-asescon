@@ -27,6 +27,7 @@ final class ControladorExportacionSire
         if (!PeriodosSire::permitido($periodo)) throw new InvalidArgumentException('Período fuera del intervalo 2021–mes actual.');
 
         $repo = new RepositorioLecturaSire($this->conexion);
+        $repo->usarSoloCacheDeHoy();
         $global = $idCliente === 0;
         $cliente = $global ? null : $repo->obtenerCliente($idCliente);
         if (!$global && !$cliente) throw new RuntimeException('Cliente no encontrado.');
@@ -59,11 +60,17 @@ final class ControladorExportacionSire
         if($modo==='original'){
             if ($global) throw new DomainException('El archivo original solo se descarga por empresa y mes. Usa Excel detalle para ver un consolidado.');
             if($esAnual)throw new DomainException('Selecciona un mes para exportar el archivo original completo.');
+            if ($repo->obtenerCabeceraPeriodo($libro, $idCliente, $periodo)['estado'] !== 'PROCESADO') {
+                throw new DomainException('Todavía no hay una propuesta confirmada para este período en la caché de hoy.');
+            }
             require_once __DIR__.'/../../servicios/sunat/InspectorArchivosSire.php';
             require_once __DIR__.'/../../servicios/sunat/LectorDetalleSireCompleto.php';
             $inspector=new InspectorArchivosSire(null,$this->conexion);
             $codigo=$libro==='RCE'?ServicioSireSunat::LIBRO_RCE:ServicioSireSunat::LIBRO_RVIE;
             $cache=$inspector->obtenerCache((string)$cliente['ruc'],$periodo,$codigo);$rutas=$cache['archivos_paths']??[];
+            if ($cache !== null && count($rutas) !== count($cache['archivos'] ?? [])) {
+                throw new DomainException('Faltan partes del archivo original. Usa el Excel de detalle para consultar los registros guardados.');
+            }
             if(!$rutas){$ruta=$inspector->obtenerArchivoDatosMasReciente((string)$cliente['ruc'],$periodo,$codigo);if($ruta)$rutas=[$ruta];}
             if(!$rutas)throw new DomainException('El TXT/CSV original de este mes no está guardado. Vuelve a descargar la propuesta SIRE; el Excel de detalle resumido sigue disponible.');
             $filas=[];$cabeceras=null;

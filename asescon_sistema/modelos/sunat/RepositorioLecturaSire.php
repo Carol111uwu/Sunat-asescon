@@ -82,16 +82,25 @@ final class RepositorioLecturaSire
     }
 
                                                                                     
-    public function listarPeriodosGuardados(string $libro, string $filtroClientes): array
+    public function listarPeriodosGuardados(string $libro, string $filtroClientes, int $idCliente = 0, string $anio = ''): array
     {
         [$tabla] = $this->configuracionLibro($libro);
-        $maximo=PeriodosSire::ahoraPeru()->format('Ym');
-        $sql = "SELECT c.id_cliente,c.ruc,c.razon_social,v.periodo,v.estado,
-                       v.cantidad_registros,v.fecha_actualizacion
+        $maximo = PeriodosSire::ahoraPeru()->format('Ym');
+        $desde = '202101';
+        if ($anio !== '') {
+            if (!preg_match('/^20\d{2}$/D', $anio)) {
+                throw new InvalidArgumentException('Año SIRE inválido.');
+            }
+            $desde = max($desde, $anio . '01');
+            $maximo = min($maximo, $anio . '12');
+        }
+        $empresa = $idCliente > 0 ? ' AND c.id_cliente=' . $idCliente : '';
+        $restriccionDia = $this->restriccionDia('v');
+        $sql = "SELECT c.id_cliente,c.ruc,c.razon_social,v.periodo,v.estado,v.cantidad_registros,v.fecha_actualizacion
                 FROM {$tabla} v INNER JOIN clientes c ON c.id_cliente=v.id_cliente
-                WHERE c.estado='ACTIVO' AND ({$filtroClientes})
-                  AND v.estado='PROCESADO' AND v.periodo BETWEEN '202101' AND '{$maximo}'
-                ORDER BY c.razon_social ASC,c.ruc ASC,v.periodo DESC LIMIT 12000";
+                WHERE c.estado='ACTIVO' AND ({$filtroClientes}){$empresa}
+                  AND v.estado='PROCESADO' AND v.periodo BETWEEN '{$desde}' AND '{$maximo}'{$restriccionDia}
+                ORDER BY c.razon_social ASC,c.ruc ASC,v.periodo DESC";
         return $this->filas($this->conexion->query($sql));
     }
 
@@ -215,7 +224,7 @@ final class RepositorioLecturaSire
         $periodoSql = substr($periodo, 4) === '00'
             ? "h.periodo LIKE '".$this->conexion->real_escape_string(substr($periodo,0,4))."%'"
             : "h.periodo='".$this->conexion->real_escape_string($periodo)."'";
-        $where = "c.estado='ACTIVO' AND ({$filtroClientes}) AND {$periodoSql}";
+        $where = "c.estado='ACTIVO' AND ({$filtroClientes}) AND {$periodoSql} AND h.estado='PROCESADO'" . $this->restriccionDia('h');
         if ($excluirAnteriores) {
             [$inicio, $fin] = PresentacionDatosSire::limitesEmision($periodo);
             $where .= " AND d.fecha_emision >= '".$inicio."' AND d.fecha_emision < '".$fin."'";
@@ -263,7 +272,8 @@ final class RepositorioLecturaSire
     public function obtenerDetalles(string $libro, int $idCliente, string $periodo): array
     {
         [$tabla,$pk,$detalle,$pkDetalle,$documento,$razon] = $this->configuracionLibro($libro);
-        $stmt = $this->conexion->prepare("SELECT {$pk} id FROM {$tabla} WHERE id_cliente=? AND periodo=? LIMIT 1");
+        $restriccionDia = $this->restriccionDia();
+        $stmt = $this->conexion->prepare("SELECT {$pk} id FROM {$tabla} WHERE id_cliente=? AND periodo=? AND estado='PROCESADO' {$restriccionDia} LIMIT 1");
         if (!$stmt) {
             throw new RuntimeException('No se pudo consultar la cabecera SIRE.');
         }
@@ -291,7 +301,8 @@ final class RepositorioLecturaSire
         [$tabla,$pk,$detalle,$pkDetalle,$documento,$razon] = $this->configuracionLibro($libro);
         $docSelect = $normalizados ? "d.{$documento} documento" : "d.{$documento}";
         $razonSelect = $normalizados ? "d.{$razon} razon_social" : "d.{$razon}";
-        $sql = "SELECT d.{$pkDetalle} AS id_detalle,d.fecha_emision,d.tipo_comprobante,d.serie,d.numero,{$docSelect},{$razonSelect},d.base_imponible,d.igv,d.importe_total,d.estado_registro,h.periodo FROM {$detalle} d INNER JOIN {$tabla} h ON h.{$pk}=d.{$pk} WHERE h.id_cliente=? AND h.periodo LIKE CONCAT(?,'%') ORDER BY d.fecha_emision DESC,d.{$pkDetalle} DESC";
+        $restriccionDia = $this->restriccionDia('h');
+        $sql = "SELECT d.{$pkDetalle} AS id_detalle,d.fecha_emision,d.tipo_comprobante,d.serie,d.numero,{$docSelect},{$razonSelect},d.base_imponible,d.igv,d.importe_total,d.estado_registro,h.periodo FROM {$detalle} d INNER JOIN {$tabla} h ON h.{$pk}=d.{$pk} WHERE h.id_cliente=? AND h.periodo LIKE CONCAT(?,'%') AND h.estado='PROCESADO' {$restriccionDia} ORDER BY d.fecha_emision DESC,d.{$pkDetalle} DESC";
         $stmt = $this->conexion->prepare($sql);
         if (!$stmt) {
             throw new RuntimeException('No se pudo consultar el detalle anual SIRE.');
@@ -338,7 +349,8 @@ final class RepositorioLecturaSire
     public function obtenerDetallesNormalizados(string $libro, int $idCliente, string $periodo): array
     {
         [$tabla,$pk,$detalle,$pkDetalle,$documento,$razon] = $this->configuracionLibro($libro);
-        $stmt = $this->conexion->prepare("SELECT {$pk} id FROM {$tabla} WHERE id_cliente=? AND periodo=? LIMIT 1");
+        $restriccionDia = $this->restriccionDia();
+        $stmt = $this->conexion->prepare("SELECT {$pk} id FROM {$tabla} WHERE id_cliente=? AND periodo=? AND estado='PROCESADO' {$restriccionDia} LIMIT 1");
         if (!$stmt) {
             throw new RuntimeException('No se pudo consultar el período SIRE.');
         }
