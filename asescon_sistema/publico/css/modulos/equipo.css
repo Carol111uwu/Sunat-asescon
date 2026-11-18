@@ -85,3 +85,9 @@
 }
 #nuevoUsuarioConsultarRuc { margin-top: 8px; }
 #nuevoUsuarioFichaRuc { margin: 8px 0 0; }
+
+/* Ayudas de permisos y campos opcionales sin modificar las reglas del rol. */
+.new-user-help,.reference-subtle {line-height:1.5}
+.nuevo-usuario-check:focus-within,.menu-all-row:focus-within {outline:2px solid var(--borde-tema, #8eacd0);outline-offset:3px}
+.nuevo-usuario-panel label {line-height:1.4}
+.menu-perm-meta {font-variant-numeric:tabular-nums}

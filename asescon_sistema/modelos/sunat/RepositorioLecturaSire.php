@@ -15,7 +15,8 @@ final class RepositorioLecturaSire
                                                                                  
     public function usarSoloCacheDeHoy(): void
     {
-        $this->cacheDesde = PeriodosSire::ahoraPeru()->format('Y-m-d').' 00:00:00';
+        // Conserva resultados de cualquier fecha; la vigencia del mes actual se evalúa por período.
+        $this->cacheDesde = null;
     }
 
     private function restriccionDia(string $alias = ''): string
@@ -447,9 +448,7 @@ final class RepositorioLecturaSire
         $maximo = PeriodosSire::ahoraPeru()->format('Ym');
                                                                           
                                                                              
-        $inicioHoy = PeriodosSire::ahoraPeru()->format('Y-m-d').' 00:00:00';
-        $where = "c.estado='ACTIVO' AND ({$filtroClientes}) AND s.periodo BETWEEN '202101' AND '{$maximo}'"
-            . " AND s.fecha_actualizacion >= '".$inicioHoy."'";
+        $where = "c.estado='ACTIVO' AND ({$filtroClientes}) AND s.periodo BETWEEN '202101' AND '{$maximo}'";
         if ($idCliente !== null && $idCliente > 0) $where .= ' AND s.id_cliente='.(int)$idCliente;
         if ($soloSeleccion) {
             $seleccion = $this->conexion->real_escape_string($periodo);

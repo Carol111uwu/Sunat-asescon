@@ -66,7 +66,7 @@ if (($_GET['fragmento'] ?? '') === 'resultados') {
 
       <section class="reference-panel rce-query" aria-label="Consulta de compras">
         <div class="rce-query-header">
-          <div><h2 class="reference-section-title">Compras SUNAT</h2><p class="reference-subtle">Consulta los datos guardados hoy y completa los períodos que falten.</p></div>
+          <div><h2 class="reference-section-title">Compras SUNAT</h2><p class="reference-subtle">Consulta períodos anteriores guardados y completa los datos que falten en SUNAT.</p></div>
           <div class="rce-top-actions">
             <button class="reference-btn" type="button" id="rceVerGuardados" aria-controls="rceInventario" aria-expanded="false" hidden>Ver datos guardados</button>
             <button class="reference-btn" type="button" id="rceVerEstado" aria-controls="rceProceso" aria-expanded="false">Ver estado de consultas</button>
@@ -115,7 +115,7 @@ if (($_GET['fragmento'] ?? '') === 'resultados') {
       </section>
 
       <section id="rceInventario" class="reference-panel" aria-labelledby="rceInventarioTitulo" hidden>
-        <h2 class="reference-section-title" id="rceInventarioTitulo">Datos guardados de hoy</h2>
+        <h2 class="reference-section-title" id="rceInventarioTitulo">Datos guardados por empresa y período</h2>
         <p class="reference-subtle" role="status"></p>
         <div class="table-container" hidden><table>
           <thead><tr><th>RUC</th><th>Empresa</th><th>Año</th><th>Meses disponibles</th></tr></thead><tbody></tbody>

@@ -34,7 +34,7 @@ try {
         if($archivo)respuestaSeguimiento(200,true,'El PDF ya está disponible.',['disponible'=>true,'url'=>asesconUrl('api/buzones/archivo_documento.php').'?'.http_build_query(['buzon'=>'SOL','id_documento'=>$id,'descargar'=>1])]);
         if(!asesconTienePermiso($conexion,'BUZON_SOL','editar'))respuestaSeguimiento(403,false,'Puedes descargar documentos existentes, pero no solicitar nuevas consultas.');
         $estado=(new ServicioColaBuzonSol())->solicitar($cliente,$idActor,$id);
-        respuestaSeguimiento(200,true,'Se solicitó el PDF oficial a SUNAT. La descarga aparecerá al terminar.',['estado'=>$estado['estado']??'PENDIENTE','id_trabajo'=>$estado['id_trabajo']??'']);
+        respuestaSeguimiento(200,true,($estado['estado']??'')==='EN_COLA' ? 'PDF añadido a la cola de esta empresa. Se procesará al terminar su consulta actual.' : 'Se solicitó el PDF oficial a SUNAT. La descarga aparecerá al terminar.',['estado'=>$estado['estado']??'PENDIENTE','id_trabajo'=>$estado['id_trabajo']??'']);
     }
     if($accion==='correo'){
         if(!asesconTienePermiso($conexion,'BUZON_SOL','editar'))respuestaSeguimiento(403,false,'No tienes permiso para enviar correos.');

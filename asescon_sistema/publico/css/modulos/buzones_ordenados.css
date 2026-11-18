@@ -155,3 +155,92 @@
     .buzon-barra-acciones .buzon-icono, .buzon-enviar > summary { min-width: 44px; min-height: 44px; }
     .buzon-renovado #tablaSunafil tbody td { min-width: 0; }
 }
+
+
+/* Barra de acciones del buzón: una sola línea, siempre a la derecha. */
+.buzon-renovado .buzon-barra-acciones {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    white-space: nowrap;
+    width: max-content;
+    min-width: max-content;
+    margin-inline-start: auto;
+}
+.buzon-renovado .buzon-barra-acciones > * {
+    flex: 0 0 auto;
+}
+.buzon-renovado .buzon-barra-acciones form {
+    display: inline-flex;
+    flex: 0 0 auto;
+    margin: 0;
+}
+.buzon-renovado #tablaBuzonSol th:last-child,
+.buzon-renovado #tablaBuzonSol td:last-child,
+.buzon-renovado #tablaSunafil th:last-child,
+.buzon-renovado #tablaSunafil td:last-child {
+    min-width: 390px;
+    white-space: nowrap;
+    text-align: right;
+}
+.buzon-renovado .buzon-enviar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+.buzon-renovado .buzon-enviar[open] > summary {
+    position: static;
+    width: auto;
+    height: auto;
+    min-width: 57px;
+    min-height: 36px;
+    clip-path: none;
+    overflow: visible;
+}
+.buzon-renovado .buzon-enviar[open] .buzon-canales {
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(100% + 5px);
+    z-index: 30;
+    display: grid;
+    gap: 4px;
+    width: max-content;
+    min-width: 60px;
+    padding: 6px;
+    border-radius: 9px;
+    border: 1px solid var(--borde-tema, #ccd9e8);
+    background: var(--superficie-tema, #fff);
+    box-shadow: 0 8px 24px rgba(11, 35, 65, .22);
+}
+.buzon-renovado .buzon-canales .buzon-icono {
+    min-width: 40px;
+}
+@media (max-width: 1000px) {
+    .buzon-renovado #tablaBuzonSol td:last-child,
+    .buzon-renovado #tablaSunafil td:last-child {
+        min-width: 0;
+        white-space: normal;
+    }
+    .buzon-renovado #tablaBuzonSol .buzon-barra-acciones,
+    .buzon-renovado #tablaSunafil .buzon-barra-acciones {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+    }
+}
+@media (pointer: coarse) {
+    .buzon-renovado .buzon-barra-acciones .buzon-icono,
+    .buzon-renovado .buzon-enviar > summary {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+@media (max-width: 1000px) {
+    .buzon-renovado .buzon-barra-acciones:has(.buzon-enviar[open]) {
+        overflow: visible !important;
+    }
+}

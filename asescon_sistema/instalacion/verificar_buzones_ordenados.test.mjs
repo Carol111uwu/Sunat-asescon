@@ -8,7 +8,7 @@ test('SOL: una consulta explícita, selección de cliente y acciones secundarias
   const vista=ver('vistas/buzones/buzon_sol_sunat.php');
   assert.match(vista,/data-buzon-consulta="SOL"/);
   assert.match(vista,/data-buzon-cliente/);
-  assert.match(vista,/Consultar todos en SOL/);
+  assert.match(vista,/Consultar \/ reintentar todas/);
   assert.doesNotMatch(vista,/action="\.\.\/\.\.\/controladores\/buzones\/ControladorSincronizacionBuzones\.php"/);
   assert.match(vista,/data-buzon-detalle="SOL"/);
   assert.match(vista,/data-buzon-pdf/);

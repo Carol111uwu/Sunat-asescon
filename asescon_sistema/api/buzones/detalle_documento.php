@@ -18,7 +18,7 @@ try{
     $detalleOficial=null;
     if($buzon==='SOL'&&(int)($d['id_cliente']??0)>0){
         require_once __DIR__.'/../../servicios/sunat/ServicioColaBuzonSol.php';
-        $estadoPdf=(new ServicioColaBuzonSol())->obtenerEstadoCliente((int)$d['id_cliente']);
+        $estadoPdf=(new ServicioColaBuzonSol())->obtenerEstadoDocumento((int)$d['id_cliente'],$id);
         if((int)($estadoPdf['id_documento']??0)===$id){
             $estadoActual=['estado'=>$estadoPdf['estado']??'','mensaje'=>$estadoPdf['mensaje']??''];
             if(($estadoPdf['modo_documento']??'PDF')==='DETALLE')$solicitudDetalle=$estadoActual;

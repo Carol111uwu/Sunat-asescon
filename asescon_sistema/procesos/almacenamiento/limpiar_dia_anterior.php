@@ -59,9 +59,10 @@ if ($candado === false || !flock($candado, LOCK_EX | LOCK_NB)) {
 $protegidos = [
     'sincronizacion', 'textos', 'casos', 'auditoria',
     'configuracion', 'credenciales', 'respaldos', 'backups', 'sesiones',
+    'sunat', 'sunafil',
 ];
 $resumen = ['fecha'=>$hoy, 'modo'=>$ejecutar ? 'ejecucion' : 'simulacion',
-    'archivos'=>0, 'bytes'=>0, 'tablas'=>[]];
+    'archivos'=>0, 'bytes'=>0, 'tablas'=>[], 'limpieza_sql_activada'=>getenv('ASESCON_LIMPIEZA_SQL_DIARIA') === '1'];
 
 function limpiarArchivoTemporal(string $ruta, int $limiteEpoch, bool $ejecutar, array &$resumen): void
 {
@@ -82,23 +83,23 @@ function limpiarArchivoTemporal(string $ruta, int $limiteEpoch, bool $ejecutar, 
 }
 
                                                                                   
-$operaciones = [
+// En producción la eliminación de registros requiere activación explícita después
+// de comprobar el --dry-run y un respaldo. Nunca se incluyen notificaciones SOL o SUNAFIL.
+// Los períodos contables (2024, 2025, 2026...) se filtran por FECHA DE CONSULTA,
+// no por mes tributario: todos los meses consultados hoy siguen disponibles hoy.
+$limpiarCacheSql = getenv('ASESCON_LIMPIEZA_SQL_DIARIA') === '1';
+$operaciones = $limpiarCacheSql ? [
     'principal' => [
         ['rvie', 'fecha_actualizacion IS NULL OR fecha_actualizacion < ?'],
         ['rce', 'fecha_actualizacion IS NULL OR fecha_actualizacion < ?'],
         ['sire', 'fecha_actualizacion IS NULL OR fecha_actualizacion < ?'],
-        ['sire_descargas', 'COALESCE(fecha_procesamiento,fecha_descarga,fecha_solicitud) IS NULL OR COALESCE(fecha_procesamiento,fecha_descarga,fecha_solicitud) < ?'],
+        ['sire_descargas', 'COALESCE(fecha_procesamiento,fecha_descarga,fecha_solicitud) < ?'],
         ['consultas_declaraciones_sunat', 'consultado_en < ?'],
-        ['declaraciones_oficiales_sunat','consultado_en < ?'],
-        ['declaraciones_sunat','fecha_ultima_consulta < ?'],
-                                                                         
-                                                                                
-        ['detracciones_archivos_sunat','importado_en < ?'],
-        ['archivos_comprobantes','actualizado_en < ?'],
-        ['cpe','fecha_consulta < ?'],
-        ['tipos_cambio','fecha < ?'],
-        ['comprobantes_sunat','1=1'],
-        ['detracciones','1=1'],
+        ['declaraciones_oficiales_sunat', 'consultado_en < ?'],
+        ['declaraciones_sunat', 'fecha_ultima_consulta < ?'],
+        ['detracciones_archivos_sunat', 'importado_en < ?'],
+        ['archivos_comprobantes', 'actualizado_en < ?'],
+        ['cpe', 'fecha_consulta < ?'],
     ],
     'historico_sunat' => [
         ['sunat_consultas_respuestas', 'id_consulta IN (SELECT id_consulta FROM sunat_historial_consultas WHERE fecha_inicio < ?)'],
@@ -109,7 +110,7 @@ $operaciones = [
         ['sunat_detracciones', 'ultima_consulta < ?'],
         ['sunat_declaraciones', 'ultima_consulta < ?'],
     ],
-];
+] : [];
 
                                                                  
 $bases = [

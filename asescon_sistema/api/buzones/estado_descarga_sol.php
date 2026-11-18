@@ -21,8 +21,7 @@ try {
         throw new DomainException('La notificación no está disponible para tu cuenta.');
     }
     $archivo = (new ServicioArchivosPrivados())->resolver((string)($documento['archivo']??''),'SOL');
-    $estado = (new ServicioColaBuzonSol())->obtenerEstadoCliente((int)$documento['id_cliente']);
-    if ((int)($estado['id_documento']??0) !== $id) $estado = [];
+    $estado = (new ServicioColaBuzonSol())->obtenerEstadoDocumento((int)$documento['id_cliente'], $id);
     if ($archivo !== null) {
         $respuesta = [
             'ok'=>true, 'disponible'=>true, 'estado'=>'DISPONIBLE',

@@ -293,3 +293,18 @@
 
 .buzon-sol-paginacion{display:flex;gap:12px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin:16px 0 0}
 .buzon-sol-paginacion span{font-size:13px;color:var(--tinta-secundaria-tema, #567)}
+
+/* Las acciones no deben repartirse en dos filas en la tarjeta móvil. */
+@media (max-width: 980px) {
+    #tablaBuzonSol.buzon-sol-responsive-table td:last-child {
+        grid-column: 1 / -1;
+        min-width: 0 !important;
+        text-align: right !important;
+    }
+    #tablaBuzonSol.buzon-sol-responsive-table td:last-child .buzon-barra-acciones {
+        margin-inline-start: auto;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
+}
