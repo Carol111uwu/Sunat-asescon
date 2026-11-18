@@ -122,9 +122,10 @@ function asesconExigirPermiso(mysqli $conexion, string $codigoModulo, string $ac
     http_response_code(403);
     $mod = htmlspecialchars($codigoModulo, ENT_QUOTES, 'UTF-8');
     $dashboard = htmlspecialchars(asesconUrl('vistas/panel_principal.php'), ENT_QUOTES, 'UTF-8');
-    echo '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Acceso restringido</title>'
-       . '<style>body{font-family:Segoe UI,Arial,sans-serif;background:#f7f9fc;color:#182b45;padding:50px}.box{max-width:680px;margin:auto;background:#fff;padding:28px;border-radius:14px;box-shadow:0 4px 18px #0b234112}.btn{display:inline-block;margin-top:18px;padding:10px 14px;background:#0b2341;color:#fff;text-decoration:none;border-radius:8px}</style>'
-       . '</head><body><div class="box"><h1>Acceso restringido</h1><p>Tu cuenta no tiene permiso para este módulo (' . $mod . ').</p><a class="btn" href="' . $dashboard . '">Volver al Dashboard</a></div></body></html>';
+    echo '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acceso restringido</title>'
+       . '<style>body{font-family:Segoe UI,Arial,sans-serif;background:#f7f9fc;color:#182b45;padding:50px}.box{max-width:680px;margin:auto;background:var(--superficie-tema,#fff);padding:28px;border-radius:14px;box-shadow:0 4px 18px #0b234112}.btn{display:inline-block;margin-top:18px;padding:10px 14px;background:#0b2341;color:#fff;text-decoration:none;border-radius:8px}</style>';
+    require __DIR__.'/../vistas/componentes/recursos_tema.php';
+    echo '</head><body><div class="box"><h1>Acceso restringido</h1><p>Tu cuenta no tiene permiso para este módulo (' . $mod . ').</p><a class="btn" href="' . $dashboard . '">Volver al Dashboard</a></div></body></html>';
     exit();
 }
 

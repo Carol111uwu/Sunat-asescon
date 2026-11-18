@@ -26,17 +26,7 @@ unset($_SESSION['mensaje_login']);
 <body class="pagina-inicio-sesion">
 
 <main class="acceso-asescon">
-    <header class="identidad-asescon">
-        <img
-            class="logo-asescon-oficial"
-            src="<?= htmlspecialchars(asesconRecurso('publico/img/autenticacion/logo-asescon-oficial.png'), ENT_QUOTES, 'UTF-8') ?>"
-            alt="ASESCON - Contadores y Abogados"
-        >
-        <div class="identidad-asescon-oscura">
-            <img src="<?= htmlspecialchars(asesconRecurso('publico/img/logos/isotipo-asescon-blanco-dorado.png'), ENT_QUOTES, 'UTF-8') ?>" alt="">
-            <div><strong>ASESCON</strong><span>CONTADORES Y ABOGADOS</span></div>
-        </div>
-    </header>
+    <?php require __DIR__.'/componentes/identidad_acceso.php'; ?>
 
     <section class="tarjeta-inicio-sesion" aria-labelledby="titulo-inicio-sesion">
         <?php require __DIR__ . '/componentes/selector_tema.php'; ?>

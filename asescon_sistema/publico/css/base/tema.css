@@ -53,12 +53,25 @@
 .pagina-inicio-sesion .selector-tema [aria-pressed="true"] { color: #876020; }
 .identidad-asescon-oscura { display: none; }
 
-[data-tema="oscuro"] :is(.pagina-dashboard, .pagina-inicio-sesion) {
+@media screen {
+html[data-tema="oscuro"] {
     color-scheme: dark;
     --fondo-tema: #0a1829;
     --superficie-tema: #11243a;
     --superficie-elevada-tema: #172e49;
     --campo-tema: #0c1d31;
+    --tinta-principal-tema: var(--texto);
+    --tinta-secundaria-tema: var(--texto-secundario);
+    --texto-acento-tema: #b3d6fc;
+    --texto-exito-tema: #94e5bb;
+    --texto-alerta-tema: #f4ce88;
+    --texto-error-tema: #ffb4ba;
+    --texto-violeta-tema: #d6c5fb;
+    --fondo-exito-tema: #16382f;
+    --fondo-alerta-tema: #3d3021;
+    --fondo-error-tema: #402530;
+    --fondo-violeta-tema: #302b47;
+    --borde-tema: #38516b;
     --enlace-tema: #a3cafa;
     --texto: #e9f0fa;
     --texto-secundario: #aebfd3;
@@ -126,8 +139,8 @@
     color: var(--texto);
 }
 
-[data-tema="oscuro"] .pagina-dashboard .reference-btn.primary { background: #235583; border-color: #386b9b; }
-[data-tema="oscuro"] .pagina-dashboard .reference-btn.primary:hover { background: #2f6598; }
+[data-tema="oscuro"] .reference-btn.primary { background: #235583; border-color: #386b9b; }
+[data-tema="oscuro"] .reference-btn.primary:hover { background: #2f6598; }
 
 [data-tema="oscuro"] .pagina-dashboard .sync-dashboard-mini {
     background: var(--superficie-tema);
@@ -155,7 +168,7 @@
     --sombra-tarjeta: var(--sombra);
 }
 
-[data-tema="oscuro"] .logo-asescon-oficial { display: none; }
+[data-tema="oscuro"] .identidad-asescon:has(.identidad-asescon-oscura) .logo-asescon-oficial { display: none; }
 
 [data-tema="oscuro"] .identidad-asescon-oscura {
     display: flex;
@@ -188,3 +201,24 @@
 
 [data-tema="oscuro"] .enlace-recuperar-contrasena { color: var(--enlace-tema); }
 [data-tema="oscuro"] .enlace-recuperar-contrasena:hover { color: #e8be63; }
+
+html[data-tema="oscuro"] .mensaje-informativo-acceso { color: var(--texto-acento-tema); background: var(--superficie-elevada-tema); }
+html[data-tema="oscuro"] body {
+    background-color: var(--fondo-tema);
+    color: var(--texto);
+}
+html[data-tema="oscuro"] :is(input, select, textarea, option) {
+    color-scheme: dark;
+}
+html[data-tema="oscuro"] body:not(.pagina-inicio-sesion) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="submit"], [type="button"], [type="color"]), select, textarea, option) {
+    color: var(--texto);
+    background-color: var(--campo-tema);
+    border-color: var(--borde-tema);
+}
+html[data-tema="oscuro"] dialog { background-color: var(--superficie-tema); color: var(--texto); }
+html[data-tema="oscuro"] .pagina-inicio-sesion .boton-iniciar-sesion {
+    background: #235583;
+    color: #fff;
+}
+
+}

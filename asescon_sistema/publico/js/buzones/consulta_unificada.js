@@ -1,5 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
+  const cerrarOtrosCanales = actual => {
+    document.querySelectorAll('.buzon-enviar[open]').forEach(menu => {
+      if (menu !== actual) menu.open = false;
+    });
+  };
+  document.addEventListener('click', evento => cerrarOtrosCanales(evento.target.closest('.buzon-enviar')));
+  document.addEventListener('keydown', evento => {
+    const menu = evento.target.closest('.buzon-enviar[open]');
+    if (menu && evento.key === 'Escape') {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+    }
+  });
   const formulario=document.querySelector('[data-buzon-consulta]');
   if(!formulario)return;
   const buzon=formulario.dataset.buzonConsulta;
@@ -53,12 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.assign(urlActual.href);
   });
   document.querySelectorAll('[data-refresh]').forEach(b=>b.addEventListener('click',()=>window.location.reload()));
-  document.addEventListener('click',event=>{
-    const actual=event.target.closest('.buzon-mas-acciones');
-    document.querySelectorAll('.buzon-mas-acciones[open]').forEach(menu=>{
-      if(menu!==actual)menu.open=false;
-    });
-  });
+
 
   async function solicitudConLimite(url,opciones={},segundos=12){
     const control=new AbortController();

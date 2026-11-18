@@ -12,8 +12,8 @@
     justify-content: center;
     border: 1px solid var(--borde);
     border-radius: 9px;
-    background: var(--blanco);
-    color: var(--azul);
+    background: var(--superficie-tema, var(--blanco));
+    color: var(--texto-acento-tema, var(--azul));
     font-size: 22px;
     line-height: 1;
     cursor: pointer;

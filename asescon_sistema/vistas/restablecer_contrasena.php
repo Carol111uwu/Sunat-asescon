@@ -18,12 +18,11 @@ $tokenValido = preg_match('/^[a-f0-9]{64}$/', $token) === 1;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nueva contraseña - ASESCON</title>
     <link rel="stylesheet" href="../publico/css/autenticacion/login.css?v=<?php echo (int)@filemtime(__DIR__ . '/../publico/css/autenticacion/login.css'); ?>">
+<?php require __DIR__ . '/componentes/recursos_tema.php'; ?>
 </head>
 <body class="pagina-inicio-sesion">
 <main class="acceso-asescon">
-    <header class="identidad-asescon">
-        <img class="logo-asescon-oficial" src="../publico/img/autenticacion/logo-asescon-oficial.png?v=<?php echo (int)@filemtime(__DIR__ . '/../publico/img/autenticacion/logo-asescon-oficial.png'); ?>" alt="ASESCON - Contadores y Abogados">
-    </header>
+    <?php require __DIR__.'/componentes/identidad_acceso.php'; ?>
     <section class="tarjeta-inicio-sesion" aria-labelledby="titulo-restablecer">
         <header class="encabezado-inicio-sesion">
             <h1 id="titulo-restablecer">Nueva contraseña</h1>
