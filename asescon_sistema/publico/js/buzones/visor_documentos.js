@@ -57,12 +57,23 @@
    resumen=`Notificación ${modal.dataset.buzon}\nCliente: ${d.cliente}\nRUC: ${d.ruc}\nAsunto: ${d.asunto}\nFecha: ${d.fecha}`;
    get('visorDocumentoGmail').href='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(d.correo||'')+'&su='+encodeURIComponent('Notificación '+modal.dataset.buzon)+'&body='+encodeURIComponent(resumen);
    let telefono=String(d.celular||'').replace(/\D/g,'');if(/^9\d{8}$/.test(telefono))telefono='51'+telefono;
-   get('visorDocumentoWhatsapp').href='https://wa.me/'+telefono+'?text='+encodeURIComponent(resumen);
+   const chat = get('visorDocumentoWhatsapp');
+   const tieneNumero = /^[1-9]\d{9,14}$/.test(telefono);
+   chat.hidden = !tieneNumero;
+   get('visorDocumentoSinTelefono').hidden = tieneNumero;
+   if (tieneNumero) chat.href = 'https://wa.me/'+telefono+'?text='+encodeURIComponent(resumen);
+   else chat.removeAttribute('href');
    get('visorDocumentoEstado').hidden=true;get('visorDocumentoContenido').hidden=false;carga('visorDocumentoSkeleton',false);
    modal.dispatchEvent(new CustomEvent('asescon:detalle-cargado',{detail:{notificacion:d,accionInicial}}));
    if(['correo','whatsapp','gmail'].includes(accionInicial)){
-    const panel=accionInicial==='correo' && d.puede_editar?get('visorDocumentoSeccionCorreo'):get('visorDocumentoSeccionCompartir');
-    if(panel){panel.open=true;(accionInicial==='correo'?get('visorDocumentoDestinatario'):(accionInicial==='gmail'?get('visorDocumentoGmail'):get('visorDocumentoWhatsapp')))?.focus();}
+    const enviarCorreo = accionInicial === 'correo' && d.puede_editar;
+    const panel = get(enviarCorreo ? 'visorDocumentoSeccionCorreo' : 'visorDocumentoSeccionCompartir');
+    panel.open = true;
+    const control = enviarCorreo ? get('visorDocumentoDestinatario')
+      : accionInicial !== 'whatsapp' ? get('visorDocumentoGmail')
+      : tieneNumero ? chat : panel.querySelector('summary');
+    control.focus();
+
    }
   }catch(e){if(actual===version){carga('visorDocumentoSkeleton',false);texto('visorDocumentoEstado',e.message||'No se pudo cargar la notificación.');}}
  }

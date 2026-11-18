@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/../../configuracion/inicializacion.php';
 require_once __DIR__.'/../../controladores/buzones/ControladorBuzonSunafil.php';
+require_once __DIR__.'/componentes/iconos_acciones_sol.php';
 asesconExigirPermiso($conexion,'BUZON_SUNAFIL','ver');
 $moduloActivo='BUZON_SUNAFIL';
 $estado=trim((string)($_GET['estado']??''));
@@ -32,7 +33,7 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <title>Buzón SUNAFIL - ASESCON</title>
 <link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui2">
 <link rel="stylesheet" href="../../publico/css/modulos/sunat.css">
-<link rel="stylesheet" href="../../publico/css/modulos/buzones_ordenados.css?v=20261102_1">
+<link rel="stylesheet" href="<?=htmlspecialchars(asesconRecurso('publico/css/modulos/buzones_ordenados.css'))?>">
 </head><body><div class="app"><?php require __DIR__.'/../componentes/menu_lateral.php';?>
 <main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?>
 <section class="content buzon-renovado">
@@ -101,17 +102,23 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
   <td data-label="Registro"><?=$escBuzon($d['identificador_externo']?:$d['tipo_documento']?:'—')?></td>
   <td data-label="Plazo / prioridad"><?=$escBuzon($d['prioridad']?:'NORMAL')?></td>
   <td data-label="F. límite">—</td>
-  <td data-label="PDF / acción"><div class="buzon-acciones-sunafil"><button type="button" class="reference-btn buzon-accion-principal" data-buzon-detalle="SUNAFIL" data-id-documento="<?=$idDocumento?>">Ver documento</button>
-    <details class="buzon-mas-acciones">
-      <summary class="reference-btn">Más acciones</summary>
-      <div class="buzon-mas-menu">
-      <a class="reference-btn" href="caso_sunafil.php?id_documento=<?=$idDocumento?>#pdf-sunafil">PDF</a>
-      <?php if($puedeConsultar):?><a class="reference-btn" href="caso_sunafil.php?id_documento=<?=$idDocumento?>#correo-sunafil">Correo</a><?php endif;?>
-      <a class="reference-btn" href="caso_sunafil.php?id_documento=<?=$idDocumento?>#seguimiento-sunafil"><?=$puedeTodos?'Asignar y seguir':'Seguimiento'?></a>
-      </div>
-    </details>
-    <?php if(!empty($d['archivo'])):?><span class="reference-badge">Archivo</span><?php endif;?>
-    <?php if($d['estado']==='NO_REVISADO'&&$puedeConsultar):?><form method="post" action="../../controladores/buzones/ControladorBuzonSunafil.php"><input type="hidden" name="csrf_token" value="<?=$escBuzon($csrf)?>"><input type="hidden" name="accion" value="revisado"><input type="hidden" name="id_cliente" value="<?=$idCliente?>"><input type="hidden" name="id_documento" value="<?=$idDocumento?>"><button class="reference-btn" type="submit">Marcar revisado</button></form><?php endif;?></div></td>
+  <td data-label="PDF / acción">
+    <div class="buzon-barra-acciones" role="group" aria-label="Acciones del requerimiento">
+      <button type="button" class="buzon-icono" data-buzon-detalle="SUNAFIL" data-id-documento="<?= $idDocumento ?>" <?= etiquetaAccionBuzon('Ver documento') ?>><?= iconoAccionBuzonSol('ver') ?></button>
+      <a class="buzon-icono" href="caso_sunafil.php?id_documento=<?= $idDocumento ?>#pdf-sunafil" <?= etiquetaAccionBuzon(!empty($d['archivo']) ? 'Ver PDF vinculado' : 'Consultar disponibilidad del PDF') ?>><?= iconoAccionBuzonSol('descargar') ?></a>
+      <a class="buzon-icono" href="caso_sunafil.php?id_documento=<?= $idDocumento ?>#seguimiento-sunafil" <?= etiquetaAccionBuzon($puedeTodos ? 'Asignar y seguir' : 'Ver seguimiento') ?>><?= iconoAccionBuzonSol($puedeTodos ? 'asignar' : 'seguimiento') ?></a>
+      <?php if ($d['estado'] === 'NO_REVISADO' && $puedeConsultar): ?>
+        <form method="post" action="../../controladores/buzones/ControladorBuzonSunafil.php">
+          <input type="hidden" name="csrf_token" value="<?= $escBuzon($csrf) ?>">
+          <input type="hidden" name="accion" value="revisado">
+          <input type="hidden" name="id_cliente" value="<?= $idCliente ?>">
+          <input type="hidden" name="id_documento" value="<?= $idDocumento ?>">
+          <button class="buzon-icono" type="submit" <?= etiquetaAccionBuzon('Marcar revisado en ASESCON') ?>><?= iconoAccionBuzonSol('revisar') ?></button>
+        </form>
+      <?php endif; ?>
+      <?php $buzonCodigo = 'SUNAFIL'; require __DIR__.'/componentes/enviar_notificacion.php'; ?>
+    </div>
+  </td>
 </tr>
 <?php endforeach;endif;?></tbody></table></div>
 <?php if($total_paginas>1):?><nav class="buzon-sol-paginacion" aria-label="Páginas de requerimientos">
@@ -125,7 +132,7 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <script src="../../publico/js/navegacion/busqueda_clientes.js?v=20261014_1"></script>
 <script src="../../publico/js/navegacion/menu_movil.js"></script>
 <script src="../../publico/js/interfaz/componentes_interfaz.js?v=20260915_3"></script>
-<script defer src="../../publico/js/buzones/consulta_unificada.js?v=20261102_1"></script>
+<script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/consulta_unificada.js'))?>"></script>
 <script defer src="../../publico/js/buzones/exportar_notificaciones_sunafil.js?v=20261102_1"></script>
 <script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?=(int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js')?>"></script>
 </body></html>

@@ -12,11 +12,14 @@ test('SOL: una consulta explícita, selección de cliente y acciones secundarias
   assert.doesNotMatch(vista,/action="\.\.\/\.\.\/controladores\/buzones\/ControladorSincronizacionBuzones\.php"/);
   assert.match(vista,/data-buzon-detalle="SOL"/);
   assert.match(vista,/data-buzon-pdf/);
-  assert.match(vista,/class="buzon-mas-acciones"/);
+  assert.doesNotMatch(vista,/Más acciones/);
+  assert.match(vista,/componentes\/enviar_notificacion\.php/);
+  const enviar = ver('vistas/buzones/componentes/enviar_notificacion.php');
+  assert.match(enviar,/>Enviar<\/summary>/);
   assert.match(vista,/data-accion-buzon="notas"/);
   assert.match(vista,/data-accion-buzon="asignacion"/);
-  assert.match(vista,/data-accion-inicial="correo"/);
-  assert.match(vista,/data-accion-inicial="whatsapp"/);
+  assert.match(enviar,/data-accion-inicial="correo"/);
+  assert.match(enviar,/data-accion-inicial="whatsapp"/);
   assert.match(vista,/data-accion-inicial="caso"/);
   assert.match(vista,/Marcar revisada/);
   assert.doesNotMatch(vista,/href="https:\/\/e-menu\.sunat\.gob\.pe/);

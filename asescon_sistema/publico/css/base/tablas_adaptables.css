@@ -86,7 +86,7 @@
         padding: 11px 13px !important;
         border: 1px solid var(--borde, #e5eaf0) !important;
         border-radius: 11px !important;
-        background: #fff !important;
+        background: var(--superficie-tema, #fff) !important;
         box-shadow: 0 2px 10px rgba(11, 35, 65, .035);
     }
 
@@ -196,7 +196,7 @@
     }
 
     .tabla-adaptable-global tbody td + td {
-        border-top: 1px solid #edf1f5 !important;
+        border-top: 1px solid var(--borde-tema, #edf1f5) !important;
     }
 
     .tabla-adaptable-global tbody td[colspan] {

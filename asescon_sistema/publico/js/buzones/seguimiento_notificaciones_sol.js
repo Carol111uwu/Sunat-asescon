@@ -13,7 +13,7 @@
   const mensaje = (texto, error=false) => {
     const caja = elemento('buzonSolMensajeSeguimiento');
     caja.textContent = texto || '';
-    caja.style.backgroundColor = error ? '#fff1f1' : '';
+    caja.style.backgroundColor = error ? 'var(--fondo-error-tema, #fff1f1)' : '';
     caja.dataset.tipo = error ? 'error' : 'exito';
     if(texto && notificacionId) avisos()?.mostrar(notificacionId,texto,error?'error':'exito',error);
   };
@@ -80,8 +80,11 @@
     elemento('buzonSolFormularioNota').hidden = !seg.puede_reportar;
     const fila = document.querySelector(`[data-id-notificacion="${notificacionId}"]`);
     const etiqueta=fila?.querySelector('[data-estado-caso]');
-    const botonCaso=fila?.querySelector('.buzon-sol-cerrar-caso');
-    if (botonCaso && principal){const span=botonCaso.querySelector('span');if(span)span.textContent=cerrado?'Reabrir caso':'Cerrar caso';}
+    const botonCaso = fila?.querySelector('[data-accion-inicial="caso"]');
+    if (botonCaso && principal) {
+      botonCaso.title = cerrado ? 'Reabrir caso' : 'Cerrar caso';
+      botonCaso.setAttribute('aria-label', botonCaso.title);
+    }
     if (etiqueta && seg.caso) etiqueta.textContent = cerrado ? 'Caso cerrado' : (caso.id_responsable ? 'En seguimiento' : 'Por revisar');
   }
   async function actualizar() {

@@ -66,7 +66,7 @@ def _identidad_fila_generica(item, derivada: bool = False) -> str:
         texto = clean(datos.get('texto'))
     except Exception:
         return ''
-    if len(texto) < 20 or not re.search(r'notific|resoluci[oó]n|orden|esquela|carta|comunicaci[oó]n|coactiv|multa', texto, re.I):
+    if len(texto) < 20 or not re.search(r'asunto\s*:|notific|resoluci[oó]n|orden|esquela|carta|comunicaci[oó]n|coactiv|multa', texto, re.I):
         return ''
     contenido = re.sub(r'\b(?:no\s+le[ií]do|le[ií]do|revisado|no\s+revisado)\b', '', texto, flags=re.I)
     clave, _ = construir_identificador(contenido, 'Notificación SOL', parse_date(texto),datos.get('links'),datos.get('atributos'))
@@ -112,7 +112,7 @@ def buscar_por_clave_fuerte(page, claves: list[str]):
                                                                                           
     if not claves:
         return []
-    selectores = ('table tbody tr', '[role="row"]', '.mat-row', '.p-datatable-tbody > tr',
+    selectores = ('#listaMensajes > li', 'table tbody tr', '[role="row"]', '.mat-row', '.p-datatable-tbody > tr',
                   '.list-group-item', '[role="listitem"]', '.mat-list-item',
                   '.notification-item', '.inbox-item', '.mensaje-item')
     for clave in claves:
@@ -158,6 +158,7 @@ def buscar_por_identificador(page, identificador_externo: str):
     if not identificador_externo:
         return []
     selectores = (
+        ('#listaMensajes > li', _identidad_fila_generica),
         ('table tbody tr', _identidad_fila_tabla),
         ('[role="row"]', _identidad_fila_mixta),
         ('.mat-row', _identidad_fila_mixta),
@@ -198,7 +199,7 @@ def buscar_notificacion(page, asunto: str, fecha: str):
     if re.fullmatch(r'\d{4}-\d{2}-\d{2}', fecha):
         fechas.append(fecha[8:10] + '/' + fecha[5:7] + '/' + fecha[:4])
     encontrados = {}
-    selectores = ('table tbody tr', '[role="row"]', '.mat-row', '.p-datatable-tbody > tr',
+    selectores = ('#listaMensajes > li', 'table tbody tr', '[role="row"]', '.mat-row', '.p-datatable-tbody > tr',
                   '.list-group-item', '[role="listitem"]', '.mat-list-item',
                   '.notification-item', '.inbox-item', '.mensaje-item')
     for marco in frames(page):
@@ -274,6 +275,87 @@ def obtener(page,solicitud:dict,directorio:str,id_trabajo:str,informar=None,tiem
             mensaje='No se pudo identificar una única notificación con ese asunto y fecha. No se descargó ningún documento ajeno.'
         raise ErrorAccesoSol('SOL_DOCUMENTO_NO_IDENTIFICADO',mensaje)
     if informar:informar('documento',forzar=True)
+    fila = coincidencias[0]
+    enlace = fila.locator('a.linkMensaje')
+
+    if enlace.count() == 1:
+        marco = fila.element_handle().owner_frame()
+        id_fila = fila.get_attribute('id')
+        asunto_fila = clean(enlace.inner_text())
+        fecha_fila = clean(
+            fila.locator('small.fecPublica').inner_text()
+        )
+
+        adjuntos = marco.locator(
+            '#listArchivosAdjuntos a[href*="bajarArchivo"]'
+        )
+
+        anteriores = set(adjuntos.evaluate_all(
+            "els => els.map(e => e.getAttribute('href'))"
+        ))
+
+        seleccion = marco.locator('#listaMensajes > li.selected')
+        era_actual = (
+            seleccion.count() == 1
+            and seleccion.get_attribute('id') == id_fila
+        )
+
+        if not era_actual:
+            enlace.click(timeout=6000)
+
+        limite = time.monotonic() + 20
+
+        while time.monotonic() < limite:
+            page.wait_for_timeout(400)
+
+            fecha = marco.locator('#idFechaDetalle')
+
+            if seleccion.count() != 1:
+                continue
+            if seleccion.get_attribute('id') != id_fila:
+                continue
+            if fecha.count() != 1:
+                continue
+            if clean(fecha.inner_text()) != fecha_fila:
+                continue
+
+            if adjuntos.count() == 1 and adjuntos.first.is_visible():
+                href = adjuntos.first.get_attribute('href')
+                panel = adjuntos.first.locator(
+                    'xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " panel-body ")][1]'
+                )
+
+                if panel.count() != 1:
+                    continue
+                if asunto_fila.casefold() not in clean(panel.inner_text()).casefold():
+                    continue
+                if not href or (not era_actual and href in anteriores):
+                    continue
+
+                url = urljoin(marco.url, href)
+
+                if not origen_oficial(url):
+                    break
+
+                destino = Path(directorio)
+                destino.mkdir(parents=True, exist_ok=True)
+
+                salida = destino / (
+                    'sol_' + re.sub(r'[^a-zA-Z0-9-]', '', id_trabajo) + '.pdf'
+                )
+
+                if descargar_pdf(page, url, salida, informar):
+                    return {
+                        'id_documento': int(solicitud['id_documento']),
+                        'archivo': str(salida)
+                    }
+
+                break
+
+        raise ErrorAccesoSol(
+            'SOL_ARCHIVO_NO_PDF',
+            'No se pudo verificar o descargar el adjunto de SUNAT.'
+        )
     fila=coincidencias[0];descargas=[];pdfs=[];urls_pdf=[];contexto=page.context
     paginas_antes=len(contexto.pages)
     def al_descargar(download):descargas.append(download)
@@ -301,7 +383,7 @@ def obtener(page,solicitud:dict,directorio:str,id_trabajo:str,informar=None,tiem
         return {'id_documento':int(solicitud['id_documento']),'archivo':str(salida)}
     try:
         control=None
-        for selector in ('a[href*=".pdf" i]','a[download]','[title*="descargar" i]','[aria-label*="pdf" i]','[title*="documento" i]'):
+        for selector in ('a.linkMensaje','a[href*=".pdf" i]','a[download]','[title*="descargar" i]','[aria-label*="pdf" i]','[title*="documento" i]'):
             for x in fila.locator(selector).all():
                 etiqueta=clean(x.get_attribute('title') or x.get_attribute('aria-label') or x.inner_text())
                 if x.is_visible() and not re.search(r'aceptar|confirmar|acuse|cerrar caso',etiqueta,re.I):control=x;break

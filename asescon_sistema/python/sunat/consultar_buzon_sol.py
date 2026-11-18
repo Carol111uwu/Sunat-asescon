@@ -178,10 +178,10 @@ def table_records(page)->list[dict[str,Any]]:
                 rec.append({"identificador_externo":ident,"clave_oficial":oficial,"asunto":asunto[:255],"tipo_documento":(tipo or "Notificación SOL")[:100],"categoria":category(joined),"fecha_recepcion":fecha_iso,"prioridad":"NORMAL","archivo":"","observaciones":joined})
     return rec
 
-def generic_records(page)->list[dict[str,Any]]:
+def generic_records(page, selectores=None)->list[dict[str,Any]]:
                                                                     
     found=[]
-    selectors="[role=row], .mat-row, .p-datatable-tbody > tr, .list-group-item, [role=listitem], .notification-item, .inbox-item, .mensaje-item"
+    selectors=selectores or "[role=row], .mat-row, .p-datatable-tbody > tr, .list-group-item, [role=listitem], .notification-item, .inbox-item, .mensaje-item"
     for f in frames(page):
         try:
             textos=f.locator(selectors).evaluate_all("""items => items.filter(x=>x.getClientRects().length&&!x.closest('nav,aside')).map(x=>({texto:(x.innerText||'').trim(),atributos:Object.fromEntries(Array.from(x.attributes).filter(a=>a.name.startsWith('data-')).map(a=>[a.name,a.value])),links:Array.from(x.querySelectorAll('a[href]')).map(a=>({href:a.href||'',atributos:Object.fromEntries(Array.from(a.attributes).filter(y=>y.name.startsWith('data-')).map(y=>[y.name,y.value]))}))}))""")
@@ -189,13 +189,17 @@ def generic_records(page)->list[dict[str,Any]]:
         for item in textos:
             txt=clean(item.get('texto'))
             if len(txt)<20: continue
-            if not re.search(r"notific|resoluci[oó]n|orden|esquela|carta|comunicaci[oó]n|coactiv|multa",txt,re.I):continue
+            if not re.search(r"asunto\s*:|notific|resoluci[oó]n|orden|esquela|carta|comunicaci[oó]n|coactiv|multa",txt,re.I):continue
             contenido=re.sub(r'\b(?:no\s+le[ií]do|le[ií]do|revisado|no\s+revisado)\b','',txt,flags=re.I)
             ident,oficial=identificador(contenido,'Notificación SOL',parse_date(txt),item.get('links'),item.get('atributos'))
             found.append({"identificador_externo":ident,"clave_oficial":oficial,"asunto":contenido[:255],"tipo_documento":"Notificación SOL","categoria":category(txt),"fecha_recepcion":parse_date(txt),"prioridad":"NORMAL","archivo":"","observaciones":txt})
     return found
 
 def _registros_pagina(page)->list[dict[str,Any]]:
+    for marco in frames(page):
+        if marco.locator('#listaMensajes').count():
+            return generic_records(page, '#listaMensajes > li')
+
     registros=table_records(page)
     return registros if registros else generic_records(page)
 
@@ -223,6 +227,14 @@ def read_inbox(page)->list[dict[str,Any]]:
         registros.extend(filas)
         if len(registros)>10000:
             raise ErrorAccesoSol('SOL_LIMITE_COBERTURA','La bandeja supera el límite de seguridad de esta ejecución. Se conservaron los registros anteriores.')
+        if total_esperado is not None:
+            if len(registros)==total_esperado:
+                return desambiguar_notificaciones(registros)
+            if len(registros)>total_esperado:
+                raise ErrorAccesoSol(
+                    'SOL_PAGINACION_INCONSISTENTE',
+                    'Se identificaron más filas que las anunciadas por SUNAT.'
+                )
         siguiente=_siguiente_pagina(page)
         if siguiente is None:
             if total_esperado is not None and len(registros)<total_esperado:
@@ -231,10 +243,10 @@ def read_inbox(page)->list[dict[str,Any]]:
         siguiente.click(timeout=6000)
                                                                                
         avanzo=False
-        for _ in range(12):
+        for _ in range(40):
             page.wait_for_timeout(300)
             nueva=tuple((r.get('identificador_externo',''),huella_notificacion(r)) for r in _registros_pagina(page))
-            if nueva!=firma:
+            if nueva and nueva!=firma:
                 avanzo=True
                 break
         if not avanzo:

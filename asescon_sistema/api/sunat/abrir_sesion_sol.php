@@ -36,7 +36,7 @@ try {
 }
 $esc = static fn($valor): string => htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Abriendo SUNAT</title></head><body>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Abriendo SUNAT</title><?php require __DIR__.'/../../vistas/componentes/recursos_tema.php'; ?></head><body>
 <p>Abriendo SUNAT para <?=$esc($cliente['cliente'])?> · RUC <?=$esc($cliente['ruc'])?>…</p>
 <form id="enviarAccesoSunat" method="post" action="<?=$esc($parametros['accion'])?>" hidden>
 <?php foreach ($campos as $nombre=>$valor): ?><input type="hidden" name="<?=$esc($nombre)?>" value="<?=$esc($valor)?>"><?php endforeach; ?>

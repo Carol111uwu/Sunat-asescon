@@ -23,12 +23,11 @@ unset($_SESSION['mensaje_recuperacion'], $_SESSION['tipo_mensaje_recuperacion'])
     <title>Recuperar contraseña - ASESCON</title>
     <link rel="stylesheet" href="../publico/css/autenticacion/login.css?v=<?php echo (int)@filemtime(__DIR__ . '/../publico/css/autenticacion/login.css'); ?>">
     <link rel="stylesheet" href="../publico/css/autenticacion/recuperacion_contrasena.css?v=<?php echo (int)@filemtime(__DIR__ . '/../publico/css/autenticacion/recuperacion_contrasena.css'); ?>">
+<?php require __DIR__ . '/componentes/recursos_tema.php'; ?>
 </head>
 <body class="pagina-inicio-sesion">
 <main class="acceso-asescon">
-    <header class="identidad-asescon">
-        <img class="logo-asescon-oficial" src="../publico/img/autenticacion/logo-asescon-oficial.png?v=<?php echo (int)@filemtime(__DIR__ . '/../publico/img/autenticacion/logo-asescon-oficial.png'); ?>" alt="ASESCON - Contadores y Abogados">
-    </header>
+    <?php require __DIR__.'/componentes/identidad_acceso.php'; ?>
     <section class="tarjeta-inicio-sesion tarjeta-recuperacion" aria-labelledby="titulo-recuperacion" data-canal-inicial="<?php echo htmlspecialchars($canalInicial, ENT_QUOTES, 'UTF-8'); ?>">
         <header class="encabezado-inicio-sesion">
             <h1 id="titulo-recuperacion">Recuperar contraseña</h1>
