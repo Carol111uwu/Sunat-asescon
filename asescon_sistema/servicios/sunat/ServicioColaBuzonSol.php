@@ -44,8 +44,14 @@ final class ServicioColaBuzonSol
 
             $estadoActual = $this->leerEstadoCliente($idCliente);
             if ($this->estadoSigueActivo($estadoActual)) {
-                if((int)($estadoActual['id_documento']??0)!==(int)($idDocumento??0) || (string)($estadoActual['modo_documento']??'PDF')!==$modoDocumento)throw new DomainException('Este cliente tiene otra consulta en proceso. Espera a que termine antes de solicitar el documento.');
-                return $estadoActual + ['reutilizada' => true];
+                if ((int)($estadoActual['id_documento'] ?? 0) === (int)($idDocumento ?? 0)
+                    && (string)($estadoActual['modo_documento'] ?? 'PDF') === $modoDocumento) {
+                    return $estadoActual + ['reutilizada' => true];
+                }
+                if ($idDocumento !== null && $idDocumento > 0) {
+                    return $this->encolarDocumentoDiferido($idCliente, $idUsuario, $idDocumento, $modoDocumento);
+                }
+                throw new DomainException('La empresa ya tiene una consulta activa. Los documentos podrán ponerse en cola sin interrumpirla.');
             }
 
             $this->descartarPendientesAntiguas($idCliente);
@@ -87,6 +93,119 @@ final class ServicioColaBuzonSol
         }
     }
 
+    /**
+     * Estado del documento concreto; no confunde el PDF solicitado con la consulta
+     * activa de otra notificación del mismo cliente.
+     */
+    public function obtenerEstadoDocumento(int $idCliente, int $idDocumento): array
+    {
+        if ($idCliente < 1 || $idDocumento < 1) {
+            return [];
+        }
+        $estado = $this->obtenerEstadoCliente($idCliente);
+        if ((int)($estado['id_documento'] ?? 0) === $idDocumento) {
+            return $estado;
+        }
+        foreach (glob($this->directorioSolicitudes.'/diferida_*.json') ?: [] as $ruta) {
+            $datos = $this->leerJson($ruta);
+            if ((int)($datos['id_cliente'] ?? 0) === $idCliente
+                && (int)($datos['id_documento'] ?? 0) === $idDocumento) {
+                return [
+                    'estado' => 'EN_COLA',
+                    'id_documento' => $idDocumento,
+                    'id_trabajo' => (string)($datos['id_trabajo'] ?? ''),
+                    'mensaje' => 'PDF en espera. Se consultará al terminar la operación activa de esta empresa.',
+                ];
+            }
+        }
+        return [];
+    }
+
+    private function encolarDocumentoDiferido(int $idCliente, int $idUsuario, int $idDocumento, string $modoDocumento): array
+    {
+        foreach (glob($this->directorioSolicitudes.'/diferida_*.json') ?: [] as $ruta) {
+            $anterior = $this->leerJson($ruta);
+            if ((int)($anterior['id_cliente'] ?? 0) === $idCliente
+                && (int)($anterior['id_documento'] ?? 0) === $idDocumento
+                && ($anterior['modo_documento'] ?? 'PDF') === $modoDocumento) {
+                return [
+                    'estado' => 'EN_COLA',
+                    'id_trabajo' => (string)$anterior['id_trabajo'],
+                    'id_documento' => $idDocumento,
+                    'mensaje' => 'La descarga ya está en espera para esta empresa.',
+                    'reutilizada' => true,
+                ];
+            }
+        }
+        $idTrabajo = date('YmdHis').'-'.bin2hex(random_bytes(6));
+        $solicitud = [
+            'id_trabajo' => $idTrabajo,
+            'id_cliente' => $idCliente,
+            'id_usuario' => max(0, $idUsuario),
+            'id_documento' => $idDocumento,
+            'solo_adjuntos' => false,
+            'modo_documento' => $modoDocumento,
+            'precargar_adjuntos' => false,
+            'solicitado_en' => date(DATE_ATOM),
+        ];
+        $this->escribirJsonAtomico($this->directorioSolicitudes.'/diferida_'.$idTrabajo.'.json', $solicitud);
+        return [
+            'estado' => 'EN_COLA',
+            'id_trabajo' => $idTrabajo,
+            'id_documento' => $idDocumento,
+            'mensaje' => 'Descarga en cola. La consulta actual no se interrumpirá.',
+            'reutilizada' => false,
+        ];
+    }
+
+    private function promoverDocumentosDiferidos(): void
+    {
+        $bloqueo = fopen($this->archivoBloqueo, 'c+');
+        if (!$bloqueo) {
+            return;
+        }
+        try {
+            if (!flock($bloqueo, LOCK_EX)) {
+                return;
+            }
+            $archivos = glob($this->directorioSolicitudes.'/diferida_*.json') ?: [];
+            sort($archivos, SORT_STRING);
+            $promovidos = [];
+            foreach ($archivos as $ruta) {
+                $datos = $this->leerJson($ruta);
+                $idCliente = (int)($datos['id_cliente'] ?? 0);
+                $idTrabajo = (string)($datos['id_trabajo'] ?? '');
+                if ($idCliente < 1 || !preg_match('/^[A-Za-z0-9_-]+$/D', $idTrabajo)) {
+                    @unlink($ruta);
+                    continue;
+                }
+                if (isset($promovidos[$idCliente]) || $this->estadoSigueActivo($this->leerEstadoCliente($idCliente))) {
+                    continue;
+                }
+                $destino = $this->rutaSolicitudPendiente($idTrabajo);
+                if (!rename($ruta, $destino)) {
+                    continue;
+                }
+                $this->escribirEstadoCliente($idCliente, [
+                    'id_trabajo' => $idTrabajo,
+                    'id_cliente' => $idCliente,
+                    'id_documento' => (int)$datos['id_documento'],
+                    'modo_documento' => (string)($datos['modo_documento'] ?? 'PDF'),
+                    'estado' => 'PENDIENTE',
+                    'solicitado_en' => (string)($datos['solicitado_en'] ?? date(DATE_ATOM)),
+                    'actualizado_en' => date(DATE_ATOM),
+                    'mensaje' => 'Descarga pendiente: esperando el procesador de SUNAT.',
+                    'total' => 0,
+                    'nuevos' => 0,
+                ]);
+                $promovidos[$idCliente] = true;
+            }
+        } finally {
+            flock($bloqueo, LOCK_UN);
+            fclose($bloqueo);
+        }
+    }
+
     public function obtenerEstadoCliente(int $idCliente): array
     {
         if ($idCliente <= 0) {
@@ -108,6 +227,9 @@ final class ServicioColaBuzonSol
 
     public function tomarSiguienteSolicitud(): ?array
     {
+        // Al concluir la consulta activa, un documento diferido pasa a la cola normal.
+        // Nunca se interrumpe una sesión SOL ni se reemplaza su estado a mitad de trabajo.
+        $this->promoverDocumentosDiferidos();
         $archivos = glob($this->directorioSolicitudes . DIRECTORY_SEPARATOR . 'pendiente_*.json') ?: [];
         $prioridades = [];
         foreach ($archivos as $archivo) {

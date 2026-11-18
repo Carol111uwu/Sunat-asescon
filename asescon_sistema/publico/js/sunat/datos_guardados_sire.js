@@ -46,8 +46,8 @@
           }
         }
         tabla.hidden = !grupos.size;
-        estado.textContent = grupos.size ? 'Períodos disponibles hasta la limpieza diaria.'
-          : 'Todavía no hay períodos guardados para tus empresas hoy.';
+        estado.textContent = grupos.size ? 'Períodos guardados disponibles en ASESCON.'
+          : 'Todavía no hay períodos guardados para las empresas autorizadas.';
       } catch (error) {
         if (actual === solicitud) estado.textContent = error.message;
       }

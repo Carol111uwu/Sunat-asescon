@@ -222,3 +222,8 @@ html[data-tema="oscuro"] .pagina-inicio-sesion .boton-iniciar-sesion {
 }
 
 }
+
+/* Un solo logotipo y dimensiones entre tema claro y oscuro. */
+html[data-tema="oscuro"] .identidad-asescon:has(.identidad-asescon-oscura) .logo-asescon-oficial { display: block; }
+html[data-tema="oscuro"] .identidad-asescon-oscura { display: none; }
+html[data-tema="oscuro"] .identidad-asescon .logo-asescon-oficial { width: 100%; height: auto; object-fit: contain; }

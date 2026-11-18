@@ -1,0 +1,100 @@
+/* Buzón SOL: ajustes de contraste, navegación y adaptación. Sin alterar los estilos de RVIE/RCE. */
+.buzon-renovado, .buzon-renovado * { box-sizing: border-box; }
+.buzon-renovado { min-width: 0; }
+.buzon-renovado .reference-panel,
+.buzon-renovado .table-container,
+.buzon-renovado .reference-metric { min-width: 0; max-width: 100%; }
+.buzon-renovado .reference-table-title.buzon-sol-titulo-listado {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+}
+.buzon-sol-titulo-listado p { line-height: 1.5; overflow-wrap: anywhere; }
+.buzon-sol-navegacion-empresa { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.buzon-sol-navegacion-empresa .reference-btn { display:inline-flex; align-items:center; justify-content:center; width:43px; min-width:43px; min-height:43px; font-size:20px; text-decoration:none; }
+.buzon-sol-navegacion-empresa .reference-btn.inactivo { opacity:.3; cursor:default; pointer-events:none; }
+.buzon-sol-orden-empresa { white-space:nowrap; font-weight:700; font-size:13px; }
+.buzon-renovado .buzon-barra-acciones,
+.buzon-renovado #tablaBuzonSol .buzon-barra-acciones { justify-content: flex-start; flex-wrap: wrap; }
+.buzon-renovado #tablaBuzonSol th:last-child { text-align:left; }
+.buzon-renovado #tablaBuzonSol .buzon-barra-acciones { min-width: 0; }
+.buzon-renovado .buzon-filtros .reference-actions { justify-content: flex-start; }
+.buzon-renovado .buzon-sol-metricas .reference-metric small { overflow-wrap:anywhere; }
+.buzon-enviar > summary[data-tooltip] { position: relative; }
+.buzon-enviar > summary[data-tooltip]:hover::after,
+.buzon-enviar > summary[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip); position:absolute; right:0; bottom:calc(100% + 7px);
+  z-index:20; background:#14263d; color:#fff; border-radius:7px; white-space:nowrap;
+  font-size:12px; font-weight:500; padding:7px 10px; pointer-events:none; box-shadow:0 5px 16px #0003;
+}
+/* Tema oscuro: los elementos se dibujan sobre superficies y textos del mismo tema. */
+html[data-tema="oscuro"] .buzon-renovado .reference-panel,
+html[data-tema="oscuro"] .buzon-renovado .reference-metric,
+html[data-tema="oscuro"] .buzon-renovado .buzon-filtros,
+html[data-tema="oscuro"] .buzon-renovado .buzon-sol-notificaciones-panel {
+  background: var(--superficie-tema, #11243a) !important;
+  color: var(--texto, #e9f0fa) !important;
+  border-color: var(--borde-tema, #38516b) !important;
+}
+html[data-tema="oscuro"] .buzon-renovado .buzon-comando {
+  background: linear-gradient(120deg, #11243a 55%, #182f4a 100%) !important;
+}
+html[data-tema="oscuro"] .buzon-renovado :is(.reference-panel, .reference-metric, .reference-table-title, .reference-field, .reference-empty, .buzon-sol-titulo-listado) :is(h1,h2,h3,strong,span,small,p,label,th,td) {
+  color: var(--texto, #e9f0fa);
+}
+html[data-tema="oscuro"] .buzon-renovado :is(.reference-section-title, .reference-table-title h2, .reference-metric strong, .buzon-asunto) {
+  color: var(--texto, #e9f0fa) !important;
+}
+html[data-tema="oscuro"] .buzon-renovado :is(.reference-metric span,.reference-metric small,.reference-subtle,.reference-empty,.reference-table-title p,.reference-table-title small) {
+  color: var(--texto-secundario, #aebfd3) !important;
+}
+html[data-tema="oscuro"] .buzon-renovado :is(.reference-panel, .reference-metric) a:not(.reference-btn) { color: var(--enlace-tema, #a3cafa); }
+html[data-tema="oscuro"] .buzon-renovado :is(.reference-btn:not(.primary), .buzon-icono, .buzon-enviar > summary) {
+  color: var(--texto, #e9f0fa); background-color:var(--superficie-elevada-tema, #172e49);
+  border-color:var(--borde-tema, #38516b);
+}
+html[data-tema="oscuro"] .buzon-renovado :is(.reference-btn.primary,.buzon-boton-consultar) { color: #fff !important; }
+html[data-tema="oscuro"] .buzon-renovado .reference-metric { box-shadow:none; }
+html[data-tema="oscuro"] .buzon-renovado .table-container table :is(td,th) { border-color:var(--borde-tema, #38516b); }
+html[data-tema="oscuro"] .buzon-renovado .reference-filter-grid input,
+html[data-tema="oscuro"] .buzon-renovado .reference-filter-grid select { color:var(--texto, #e9f0fa); background:var(--campo-tema,#0c1d31); }
+/* Cabeceras y contenido de las ventanas: las etiquetas no deben desaparecer. */
+html[data-tema="oscuro"] .ventana-sol,
+html[data-tema="oscuro"] .buzon-renovado dialog,
+html[data-tema="oscuro"] .buzon-renovado .visor-documento {
+  color:var(--texto, #e9f0fa)!important; background:var(--superficie-tema,#11243a)!important;
+  border-color:var(--borde-tema,#38516b)!important;
+}
+html[data-tema="oscuro"] .ventana-sol :is(h1,h2,h3,p,strong,small,label,dt,dd),
+html[data-tema="oscuro"] .visor-documento :is(h1,h2,h3,p,strong,small,label,dt,dd) { color:var(--texto,#e9f0fa)!important; }
+html[data-tema="oscuro"] .ventana-sol :is(header,section,article,form) { border-color:var(--borde-tema,#38516b); }
+html[data-tema="oscuro"] .ventana-sol textarea,
+html[data-tema="oscuro"] .ventana-sol select,
+html[data-tema="oscuro"] .ventana-sol input { color:var(--texto, #e9f0fa);background:var(--campo-tema,#0c1d31); }
+html[data-tema="oscuro"] .ventana-sol [data-cerrar] { color:var(--texto,#e9f0fa); background:var(--superficie-elevada-tema,#172e49); }
+html[data-tema="oscuro"] .ventana-sol :is(.ventana-sol-notas article, [data-historial] article,[data-aviso]) {
+  color:var(--texto,#e9f0fa); background:var(--superficie-elevada-tema,#172e49);
+}
+@media (max-width: 1024px) {
+  .buzon-renovado .buzon-sol-metricas { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .buzon-renovado .reference-head-actions { max-width:100%; }
+  .buzon-renovado .buzon-estados-empresas .table-container { overflow-x:auto; }
+}
+@media (max-width: 720px) {
+  .buzon-renovado .page-header { display:flex; flex-direction:column; align-items:stretch; }
+  .buzon-renovado .reference-head-actions { display:flex;flex-wrap:wrap; }
+  .buzon-renovado .reference-head-actions .reference-btn { flex:1; text-align:center;min-height:44px; }
+  .buzon-renovado .buzon-sol-metricas { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .buzon-sol-navegacion-empresa { width:100%;justify-content:space-between; }
+  .buzon-renovado #tablaBuzonSol { min-width:0!important;width:100%; }
+  .buzon-renovado #tablaBuzonSol tbody td { overflow-wrap:anywhere; }
+  .buzon-renovado .buzon-sol-notificaciones-panel { padding:15px!important; }
+  .buzon-renovado .buzon-filtros .reference-filter-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 430px) {
+  .buzon-renovado .buzon-sol-metricas { grid-template-columns:1fr; }
+  .buzon-renovado .reference-head-actions .reference-btn { flex:1 1 100%; }
+  .buzon-renovado .buzon-comando { padding:16px 12px; }
+  .buzon-renovado .buzon-sol-table-container { max-width:100%; }
+  .buzon-renovado #tablaBuzonSol .buzon-barra-acciones { gap:5px;justify-content:flex-end;flex-wrap:nowrap;white-space:nowrap; }
+  .buzon-renovado .reference-panel { padding:13px; }
+}
+@media (prefers-reduced-motion:reduce) { .buzon-renovado * { scroll-behavior:auto!important;transition-duration:0s!important;animation-duration:0s!important; } }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = p => readFileSync(new URL('../'+p,import.meta.url), 'utf8');
 
-test('limpieza diaria restringida a CLI, caché antigua y ventana de Perú',()=>{
+test('limpieza diaria restringida a CLI, preserva historial y ventana de Perú',()=>{
   const php = read('procesos/almacenamiento/limpiar_dia_anterior.php');
   assert.match(php,/PHP_SAPI !== 'cli'/);
   assert.match(php,/America\/Lima/);
@@ -16,9 +16,12 @@ test('limpieza diaria restringida a CLI, caché antigua y ventana de Perú',()=>
   assert.match(php,/LOCK_EX \| LOCK_NB/);
   assert.match(php,/is_link\(\$ruta\)/);
   assert.match(php,/filemtime\(\$ruta\)/);
-  for(const tabla of ['rvie','rce','sire','sire_descargas','sunat_historial_consultas','sunat_declaraciones']) {
-    assert.match(php,new RegExp(`\\['${tabla}'`));
+  assert.match(php,/ASESCON_LIMPIEZA_SQL_DIARIA/);
+  for(const protegido of ['sunat','sunafil']) {
+    assert.match(php,new RegExp(`'${protegido}'`));
   }
+  assert.match(php,/\['rvie', 'fecha_actualizacion/);
+  assert.match(php,/\['rce', 'fecha_actualizacion/);
   for(const protegido of ['sincronizacion','casos','credenciales','respaldos']){
     assert.match(php,new RegExp(`'${protegido}'`));
   }

@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function detener(){
     vigilando=false;
     boton.disabled=false;
-    boton.textContent=Number(cliente?.value||0)>0?'Consultar empresa':('Consultar todos en '+buzon);
+    boton.textContent=Number(cliente?.value||0)>0?'Consultar empresa':('Consultar / reintentar todas');
   }
   async function vigilar(id){
     if(vigilando||id<1)return;
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   panel?.querySelector('[data-actualizar-consulta]')?.addEventListener('click',async event=>{
     const b=event.currentTarget;
-    const id=Number(cliente?.value||0);
+    const id=Number(formulario.dataset.clienteVisible||cliente?.value||0);
     if(id<1)return;
     b.disabled=true;b.textContent='Comprobando…';
     try{

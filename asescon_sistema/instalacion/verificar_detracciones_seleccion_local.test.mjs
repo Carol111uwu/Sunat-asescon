@@ -22,7 +22,7 @@ test('Detracciones, Buzón SOL y SUNAFIL no tienen botones de salida a portales 
     const vista=leer(ruta);
     assert.doesNotMatch(vista,/href="https:\/\/(?:e-menu\.sunat\.gob\.pe|casillaelectronica\.sunafil\.gob\.pe)/,ruta);
   }
-  assert.match(leer('vistas/buzones/buzon_sol_sunat.php'),/Consultar todos en SOL/);
+  assert.match(leer('vistas/buzones/buzon_sol_sunat.php'),/Consultar \/ reintentar todas/);
   assert.match(leer('vistas/buzones/buzon_sunafil.php'),/Consultar todos en SUNAFIL/);
   assert.match(leer('vistas/sunat/detracciones.php'),/aún no está conectada/);
 });

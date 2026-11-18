@@ -67,7 +67,7 @@ if (($_GET['fragmento'] ?? '') === 'resultados') {
 
       <section class="reference-panel rvie-query" aria-label="Consulta de ventas">
         <div class="rvie-query-header">
-          <div><h2 class="reference-section-title">Ventas SUNAT</h2><p class="reference-subtle">Consulta los datos guardados hoy y completa los períodos que falten.</p></div>
+          <div><h2 class="reference-section-title">Ventas SUNAT</h2><p class="reference-subtle">Consulta períodos anteriores guardados y completa los datos que falten en SUNAT.</p></div>
           <div class="rvie-top-actions">
             <button class="reference-btn" type="button" id="rvieVerGuardados" aria-controls="rvieInventario" aria-expanded="false" hidden>Ver datos guardados</button>
             <button class="reference-btn" type="button" id="rvieVerEstado" aria-controls="rvieProceso" aria-expanded="false">Ver estado de consultas</button>
@@ -116,7 +116,7 @@ if (($_GET['fragmento'] ?? '') === 'resultados') {
       </section>
 
       <section id="rvieInventario" class="reference-panel" aria-labelledby="rvieInventarioTitulo" hidden>
-        <h2 class="reference-section-title" id="rvieInventarioTitulo">Datos guardados de hoy</h2>
+        <h2 class="reference-section-title" id="rvieInventarioTitulo">Datos guardados por empresa y período</h2>
         <p class="reference-subtle" role="status"></p>
         <div class="table-container" hidden><table>
           <thead><tr><th>RUC</th><th>Empresa</th><th>Año</th><th>Meses disponibles</th></tr></thead><tbody></tbody>

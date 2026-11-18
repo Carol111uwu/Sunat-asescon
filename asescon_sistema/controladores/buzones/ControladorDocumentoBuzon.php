@@ -23,8 +23,8 @@ final class ControladorDocumentoBuzon
             if(in_array($accion,['obtener_pdf','consultar_detalle','adjuntar_pdf'],true)&&(int)($d['id_cliente']??0)<1)throw new DomainException('Asocia la notificación a un cliente antes de consultar su documento.');
             if($accion==='obtener_pdf'&&$buzon==='SOL'){
                 require_once __DIR__.'/../../servicios/sunat/ServicioColaBuzonSol.php';
-                (new ServicioColaBuzonSol())->solicitar((int)$d['id_cliente'],(int)$_SESSION['id_usuario'],$id);
-                $mensaje='Descarga solicitada. El documento aparecerá cuando SUNAT lo entregue.';
+                $solicitud=(new ServicioColaBuzonSol())->solicitar((int)$d['id_cliente'],(int)$_SESSION['id_usuario'],$id);
+                $mensaje=($solicitud['estado']??'')==='EN_COLA'?'PDF en espera: se consultará cuando termine el trabajo activo de esta empresa.':'Descarga solicitada. El documento aparecerá cuando SUNAT lo entregue.';
             }elseif($accion==='consultar_detalle'&&$buzon==='SOL'){
                 require_once __DIR__.'/../../servicios/sunat/ServicioColaBuzonSol.php';
                 require_once __DIR__.'/../../servicios/sunat/RepositorioDetalleOficialSol.php';

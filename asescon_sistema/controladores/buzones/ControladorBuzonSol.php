@@ -43,11 +43,22 @@ final class ControladorBuzonSol
 
         $totalFiltrado=$m->contarFiltrados($f,$estado,$categoria,$idCliente,$desde,$hasta);
         $porPagina=50;
-        $clientesPaginados=$idCliente===0?$m->clientesConNotificaciones($f,$estado,$categoria,$desde,$hasta):[];
+        // En «Ver todas» se muestra cada empresa autorizada, también si aún no tiene notificaciones.
+        $clientesPaginados=$idCliente===0?$clientes:[];
         $totalPaginas=$idCliente===0?max(1,count($clientesPaginados)):max(1,(int)ceil($totalFiltrado/$porPagina));
         $pagina=max(1,min($pagina,$totalPaginas));
         $clientePagina=$idCliente===0?($clientesPaginados[$pagina-1]??null):null;
         $clienteListado=$idCliente>0?$idCliente:(int)($clientePagina['id_cliente']??0);
+        if ($idCliente===0 && $clienteListado>0) {
+            try {
+                $cola = new ServicioColaBuzonSol();
+                $sincronizacion=$cola->obtenerEstadoCliente($clienteListado);
+                $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$sincronizacion);
+            } catch (Throwable $e) {
+                error_log('Buzón SOL empresa visible: '.get_class($e));
+            }
+        }
+        $totalEmpresa=$clienteListado>0?$m->contarFiltrados($f,$estado,$categoria,$clienteListado,$desde,$hasta):0;
         return [
             'filas' => $clienteListado>0
                 ? $m->listar($f,$estado,$categoria,$clienteListado,$desde,$hasta,$porPagina,
@@ -57,6 +68,9 @@ final class ControladorBuzonSol
             'pagina_actual'=>$pagina,
             'total_paginas'=>$totalPaginas,
             'cliente_pagina'=>$clientePagina,
+            'cliente_en_vista_id'=>$clienteListado,
+            'cliente_en_vista'=>$clienteListado>0?($idCliente===0?$clientePagina:((array_values(array_filter($clientes,static fn(array $c):bool=>(int)$c['id_cliente']===$clienteListado))[0]??null))):null,
+            'total_empresa'=>$totalEmpresa,
             'resumen' => $m->resumen($f),
             'clientes_disponibles' => $clientes,
             'sincronizacion' => $sincronizacion,
