@@ -16,7 +16,7 @@ final class BuzonSunafil
         $where = $this->condicionListado($filtro,$estado,$idCliente,$tipo,$desde,$hasta);
         $r = $this->conexion->query("SELECT b.*,c.ruc,c.razon_social FROM buzon_sunafil b
             INNER JOIN clientes c ON c.id_cliente=b.id_cliente WHERE ({$where})
-            ORDER BY COALESCE(b.fecha_recepcion,b.fecha_documento) DESC,b.id_documento DESC LIMIT ".max(1,min(100,$limite))." OFFSET ".max(0,$offset));
+            ORDER BY COALESCE(b.fecha_recepcion,b.fecha_documento) DESC,b.id_documento DESC".($limite===0?'':" LIMIT ".max(1,min(100,$limite))." OFFSET ".max(0,$offset)));
         $a = [];
         if ($r) {
             while ($x = $r->fetch_assoc()) {
@@ -118,6 +118,8 @@ return $a;
             $prioridad = trim((string)($d['prioridad'] ?? 'NORMAL')) ?: 'NORMAL';
             $archivo = trim((string)($d['archivo'] ?? ''));
             $obs = trim((string)($d['observaciones'] ?? ''));
+            $campos = isset($d['campos_oficiales']) && is_array($d['campos_oficiales'])
+                ? json_encode($d['campos_oficiales'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) : '';
 
             $s = $this->conexion->prepare('SELECT id_documento,archivo FROM buzon_sunafil WHERE id_cliente=? AND identificador_externo=? LIMIT 1 FOR UPDATE');
             if (!$s) {
@@ -133,19 +135,19 @@ return $a;
                 if ($archivo !== '' && $archivos->resolver((string)($ex['archivo'] ?? ''), 'SUNAFIL')) {
                     $archivo = '';
                 }
-                $q = $this->conexion->prepare("UPDATE buzon_sunafil SET asunto=?,tipo_documento=?,categoria=?,fecha_recepcion=COALESCE(NULLIF(?,''),fecha_recepcion),prioridad=?,archivo=COALESCE(NULLIF(?,''),archivo),observaciones=COALESCE(NULLIF(?,''),observaciones),fecha_sincronizacion=NOW() WHERE id_documento=?");
+                $q = $this->conexion->prepare("UPDATE buzon_sunafil SET asunto=?,tipo_documento=?,categoria=?,fecha_recepcion=COALESCE(NULLIF(?,''),fecha_recepcion),prioridad=?,archivo=COALESCE(NULLIF(?,''),archivo),observaciones=COALESCE(NULLIF(?,''),observaciones),campos_oficiales=COALESCE(NULLIF(?,''),campos_oficiales),fecha_sincronizacion=NOW() WHERE id_documento=?");
                 if (!$q) {
                     throw new RuntimeException('No se pudo actualizar una notificación SUNAFIL.');
                 }
-                $q->bind_param('sssssssi', $asunto, $tipo, $categoria, $fecha, $prioridad, $archivo, $obs, $id);
+                $q->bind_param('ssssssssi', $asunto, $tipo, $categoria, $fecha, $prioridad, $archivo, $obs, $campos, $id);
                 if (!$q->execute()) { throw new RuntimeException('No se pudo guardar la notificación SUNAFIL.'); }
                 $q->close();
             } else {
-                $q = $this->conexion->prepare("INSERT INTO buzon_sunafil(id_cliente,identificador_externo,asunto,tipo_documento,categoria,fecha_recepcion,estado,prioridad,archivo,observaciones,fecha_sincronizacion) VALUES(?,?,?,?,?,NULLIF(?,''),'NO_REVISADO',?,NULLIF(?,''),NULLIF(?,''),NOW())");
+                $q = $this->conexion->prepare("INSERT INTO buzon_sunafil(id_cliente,identificador_externo,asunto,tipo_documento,categoria,fecha_recepcion,estado,prioridad,archivo,observaciones,campos_oficiales,fecha_sincronizacion) VALUES(?,?,?,?,?,NULLIF(?,''),'NO_REVISADO',?,NULLIF(?,''),NULLIF(?,''),NULLIF(?,''),NOW())");
                 if (!$q) {
                     throw new RuntimeException('No se pudo guardar una notificación SUNAFIL.');
                 }
-                $q->bind_param('issssssss', $idCliente, $ident, $asunto, $tipo, $categoria, $fecha, $prioridad, $archivo, $obs);
+                $q->bind_param('isssssssss', $idCliente, $ident, $asunto, $tipo, $categoria, $fecha, $prioridad, $archivo, $obs, $campos);
                 if (!$q->execute()) { throw new RuntimeException('No se pudo guardar la notificación SUNAFIL.'); }
                 $q->close();
                 $guardados++;

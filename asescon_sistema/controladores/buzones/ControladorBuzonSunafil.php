@@ -29,7 +29,7 @@ final class ControladorBuzonSunafil
         }
     }
 
-    public function datos(string $estado = '', int $idCliente = 0,string $tipo='',string $desde='',string $hasta='',int $pagina=1): array
+    public function datos(string $estado = '', int $idCliente = 0,string $tipo='',string $desde='',string $hasta='',int $pagina=1,string $categoria=''): array
     {
         asesconExigirPermiso($this->conexion, 'BUZON_SUNAFIL', 'ver');
 
@@ -57,9 +57,13 @@ final class ControladorBuzonSunafil
             error_log('Buzón SUNAFIL estado de servidor: '.get_class($e));
         }
 
+        $resumen=$m->resumen($f);
+        if(in_array($categoria,['FISCALIZACION','COBRANZA','ACCIONES_PREVIAS','FORMALIZACION','SEGURIDAD_SALUD','ORIENTACION'],true)) {
+            $f.=" AND b.categoria='".$this->conexion->real_escape_string($categoria)."'";
+        }
         $total=$m->contarFiltrados($f,$estado,$idCliente,$tipo,$desde,$hasta);
         $clientesPaginados=$idCliente===0?$clientes:[];
-        $paginas=$idCliente===0?max(1,count($clientesPaginados)):max(1,(int)ceil($total/100));
+        $paginas=$idCliente===0?max(1,count($clientesPaginados)):($categoria==='FISCALIZACION'?1:max(1,(int)ceil($total/100)));
         $pagina=max(1,min($pagina,$paginas));
         $clientePagina=$idCliente===0?($clientesPaginados[$pagina-1]??null):null;
         $clienteListado=$idCliente>0?$idCliente:(int)($clientePagina['id_cliente']??0);
@@ -72,11 +76,11 @@ final class ControladorBuzonSunafil
             }catch(Throwable $e){error_log('Última consulta buzón: '.get_class($e));}
         }
         return [
-            'filas' => $clienteListado>0?$m->listar($f,$estado,$clienteListado,$tipo,$desde,$hasta,100,$idCliente>0?($pagina-1)*100:0):[],
+            'filas' => $clienteListado>0?$m->listar($f,$estado,$clienteListado,$tipo,$desde,$hasta,$categoria==='FISCALIZACION'?0:100,$idCliente>0?($pagina-1)*100:0):[],
             'total_filtrado'=>$total,'pagina_actual'=>$pagina,'total_paginas'=>$paginas,
             'cliente_pagina'=>$clientePagina,
             'tipos_disponibles'=>$m->tiposDisponibles($f),
-            'resumen' => $m->resumen($f),
+            'resumen' => $resumen,
             'clientes_disponibles' => $clientes,
             'sincronizacion' => $sincronizacion,
             'estado_cron' => $cron,
@@ -101,7 +105,7 @@ final class ControladorBuzonSunafil
                 );
                 $idFiltro=(int)($p['id_cliente']??0);
                 if($idFiltro>0&&!asesconPuedeVerCliente($this->conexion,$idFiltro))$idFiltro=0;
-                asesconRedirigir('vistas/buzones/buzon_sunafil.php', ['guardado' => 1,'id_cliente'=>$idFiltro]);
+                    asesconRedirigir('vistas/buzones/buzon_sunafil.php', ['guardado' => 1,'id_cliente'=>$idFiltro,'categoria'=>(string)($p['categoria']??'')]);
             } catch (DomainException $e) {
                 asesconRedirigir('vistas/buzones/buzon_sunafil.php', ['error' => 'documento']);
             }

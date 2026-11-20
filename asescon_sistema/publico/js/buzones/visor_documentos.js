@@ -67,7 +67,7 @@
    const tieneNumero = /^[1-9]\d{9,14}$/.test(telefono);
    chat.hidden = !tieneNumero;
    get('visorDocumentoSinTelefono').hidden = tieneNumero;
-   if (tieneNumero) chat.href = 'https://wa.me/'+telefono+'?text='+encodeURIComponent(resumen);
+   if (tieneNumero) chat.href = 'https://web.whatsapp.com/send?'+new URLSearchParams({phone:telefono,text:resumen});
    else chat.removeAttribute('href');
    get('visorDocumentoEstado').hidden=true;get('visorDocumentoContenido').hidden=false;carga('visorDocumentoSkeleton',false);
    modal.dispatchEvent(new CustomEvent('asescon:detalle-cargado',{detail:{notificacion:d,accionInicial}}));

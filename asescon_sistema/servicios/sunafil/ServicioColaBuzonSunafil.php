@@ -160,13 +160,13 @@ final class ServicioColaBuzonSunafil
         return null;
     }
 
-    public function completar(int $idCliente, string $idTrabajo, int $total, int $nuevos): void
+    public function completar(int $idCliente, string $idTrabajo, int $total, int $nuevos, array $avisos=[]): void
     {
         $this->actualizarEstado(
             $idCliente,
             $idTrabajo,
             'COMPLETADO',
-            'Buzón SUNAFIL sincronizado correctamente.',
+            $avisos ? 'Consulta parcial; categorías no verificadas: '.implode(', ', $avisos).'. Se conserva el historial.' : 'Buzón SUNAFIL sincronizado correctamente.',
             ['total' => max(0, $total), 'nuevos' => max(0, $nuevos), 'finalizado_en' => date(DATE_ATOM)]
         );
     }

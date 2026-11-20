@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const url=new URL(window.location.href);
       url.searchParams.set('id_cliente','0');
       url.searchParams.set('pagina',String(parecidas[0].pagina));
+      url.searchParams.delete('orden_detalle');
       // Al navegar conserva el filtro; no consulta los portales oficiales.
       window.location.assign(url.href);
     };
