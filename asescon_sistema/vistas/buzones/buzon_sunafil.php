@@ -38,7 +38,7 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?>
 <section class="content buzon-renovado">
 <div class="page-header"><div><h1>✉ Buzón SUNAFIL</h1><p>Consulta la casilla de empleadores y controla los requerimientos guardados.</p></div>
-<div class="reference-head-actions"><button type="button" class="reference-btn" data-refresh>Actualizar lista</button><button type="button" class="reference-btn" id="exportarBuzonSunafilCsv">Exportar esta página (CSV)</button></div></div>
+<div class="reference-head-actions"><button type="button" class="reference-btn" data-refresh>Actualizar lista</button><button type="button" class="reference-btn" id="exportarBuzonSunafilCsv">Exportar esta página (CSV)</button><?php if ((int)($idCliente ?: ($cliente_pagina['id_cliente'] ?? 0)) > 0): ?><a class="reference-btn" href="../../api/buzones/exportar_excel.php?<?=htmlspecialchars(http_build_query(['buzon'=>'SUNAFIL','id_cliente'=>(int)($idCliente ?: ($cliente_pagina['id_cliente'] ?? 0)),'tipo'=>$tipo,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta]), ENT_QUOTES)?>">Excel de esta empresa</a><?php endif; ?></div></div>
 
 <section class="reference-panel buzon-comando" aria-labelledby="tituloConsultarSunafil">
   <div class="buzon-comando-intro"><span class="buzon-kicker">CONSULTA OFICIAL · SUNAFIL</span><h2 id="tituloConsultarSunafil">Consultar casilla SUNAFIL</h2>
@@ -105,7 +105,11 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
   <td data-label="PDF / acción">
     <div class="buzon-barra-acciones" role="group" aria-label="Acciones del requerimiento">
       <button type="button" class="buzon-icono" data-buzon-detalle="SUNAFIL" data-id-documento="<?= $idDocumento ?>" <?= etiquetaAccionBuzon('Ver documento') ?>><?= iconoAccionBuzonSol('ver') ?></button>
-      <a class="buzon-icono" href="caso_sunafil.php?id_documento=<?= $idDocumento ?>#pdf-sunafil" <?= etiquetaAccionBuzon(!empty($d['archivo']) ? 'Ver PDF vinculado' : 'Consultar disponibilidad del PDF') ?>><?= iconoAccionBuzonSol('descargar') ?></a>
+      <?php if ($puedeConsultar || !empty($d['archivo'])): ?>
+      <button class="buzon-icono" type="button" data-pdf-sunafil="<?= $idDocumento ?>" data-csrf="<?= $escBuzon($csrf) ?>" <?= etiquetaAccionBuzon('Descargar PDF') ?>><?= iconoAccionBuzonSol('descargar') ?></button>
+      <small data-estado-pdf-sunafil="<?= $idDocumento ?>" role="status"></small>
+      <?php endif; ?>
+
       <a class="buzon-icono" href="caso_sunafil.php?id_documento=<?= $idDocumento ?>#seguimiento-sunafil" <?= etiquetaAccionBuzon($puedeTodos ? 'Asignar y seguir' : 'Ver seguimiento') ?>><?= iconoAccionBuzonSol($puedeTodos ? 'asignar' : 'seguimiento') ?></a>
       <?php if ($d['estado'] === 'NO_REVISADO' && $puedeConsultar): ?>
         <form method="post" action="../../controladores/buzones/ControladorBuzonSunafil.php">
@@ -135,4 +139,5 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/consulta_unificada.js'))?>"></script>
 <script defer src="../../publico/js/buzones/exportar_notificaciones_sunafil.js?v=20261102_1"></script>
 <script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?=(int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js')?>"></script>
+<script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/pdf_sunafil.js'))?>"></script>
 </body></html>

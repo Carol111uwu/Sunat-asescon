@@ -25,6 +25,11 @@ if [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 1048576 ]; then
     tail -c 262144 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
 fi
 source "$PROYECTO/procesos/entorno_comun.sh" >>"$LOG" 2>&1 || exit 1
+if [ ! -x "$PYTHON_BIN" ] && [ -x /opt/asescon-venv/bin/python ]; then
+    PYTHON_BIN="/opt/asescon-venv/bin/python"
+    export ASESCON_PYTHON_CLI="$PYTHON_BIN"
+    export PLAYWRIGHT_BROWSERS_PATH="${ASESCON_PLAYWRIGHT_BROWSERS_PATH:-/ms-playwright}"
+fi
 if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/mantenimiento.flag" ]; then exit 0; fi
 if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/pausa.flag" ]; then exit 0; fi
 if [ ! -x "$PYTHON_BIN" ]; then echo 'Falta instalar el entorno Python privado.' >>"$LOG";exit 1;fi
