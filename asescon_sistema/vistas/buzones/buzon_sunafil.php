@@ -11,8 +11,12 @@ $tipo=trim((string)($_GET['tipo']??''));
 $desde=trim((string)($_GET['desde']??''));
 $hasta=trim((string)($_GET['hasta']??''));
 $pagina=max(1,(int)($_GET['pagina']??1));
+$categorias=[''=>'Todos','FISCALIZACION'=>'Fiscalización','COBRANZA'=>'Cobranza','ACCIONES_PREVIAS'=>'Acciones previas','FORMALIZACION'=>'Formalización','SEGURIDAD_SALUD'=>'Seguridad y salud','ORIENTACION'=>'SUNAFIL te orienta'];
+$categoria=(string)($_GET['categoria']??'');
+if(!array_key_exists($categoria,$categorias))$categoria='';
+if($categoria==='FISCALIZACION'){$estado=$tipo=$desde=$hasta='';}
 $controladorSunafil = new ControladorBuzonSunafil($conexion);
-$datos=$controladorSunafil->datos($estado,$idCliente,$tipo,$desde,$hasta,$pagina);
+$datos=$controladorSunafil->datos($estado,$idCliente,$tipo,$desde,$hasta,$pagina,$categoria);
 $casosAsignados = $controladorSunafil->casosVisibles();
 extract($datos);
 $csrf=asesconCsrf('csrf_buzon_sunafil');
@@ -27,6 +31,18 @@ $puedeTodos=$puedeConsultar&&asesconEsPrincipal($conexion);
 $mensajeGlobal=$_SESSION['mensaje_buzones_global']??null;
 unset($_SESSION['mensaje_buzones_global']);
 $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+$columnasOficiales=[];
+if($categoria==='ACCIONES_PREVIAS')$columnasOficiales=['Tipo de Requerimiento','Registro','Fecha de Notificación','Plazo','Fecha Límite de Presentación','Fecha de Depósito','Fecha Acuse de Recibo'];
+if($categoria!==''&&$categoria!=='ORIENTACION'){
+    foreach($filas as $fila){
+        $campos=json_decode((string)($fila['campos_oficiales']??''),true);
+        foreach(is_array($campos)?array_keys($campos):[] as $col){
+            if(!in_array($col,['Envío Req.','Envío Req','Envio Req.','Envio Req'],true)&&!in_array($col,$columnasOficiales,true))$columnasOficiales[]=$col;
+        }
+    }
+}
+$esGeneral=$categoria===''||$categoria==='ORIENTACION';
+$numColumnas=3+($categoria===''?1:0)+($esGeneral?5:count($columnasOficiales));
 ?>
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -34,6 +50,12 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui2">
 <link rel="stylesheet" href="../../publico/css/modulos/sunat.css">
 <link rel="stylesheet" href="<?=htmlspecialchars(asesconRecurso('publico/css/modulos/buzones_ordenados.css'))?>">
+<style>
+.sunafil-pestanas{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 1rem;padding:.75rem}
+.sunafil-pestanas a{flex:1 0 auto;text-align:center;white-space:nowrap}
+.sunafil-pestanas a[aria-current="page"]{background:#0c2948;color:#fff;border-color:#0c2948}
+.sunafil-campo{white-space:normal;min-width:105px}
+</style>
 </head><body><div class="app"><?php require __DIR__.'/../componentes/menu_lateral.php';?>
 <main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?>
 <section class="content buzon-renovado">
@@ -59,13 +81,20 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <?php if(($_GET['guardado']??'')==='1'):?><div class="notice ok">Revisión guardada en ASESCON. No modifica la lectura ni el acuse oficial SUNAFIL.</div><?php endif;?>
 
 <div class="reference-metrics"><div class="reference-metric"><span>Requerimientos guardados</span><strong><?=(int)$resumen['total']?></strong><small>Historial en ASESCON</small></div><div class="reference-metric"><span>Pendientes de revisión</span><strong><?=(int)$resumen['sin_leer']?></strong><small>Seguimiento interno</small></div><div class="reference-metric"><span>Clientes registrados</span><strong><?=(int)$resumen['clientes']?></strong></div></div>
+<nav class="reference-panel sunafil-pestanas" aria-label="Categorías SUNAFIL">
+<?php foreach($categorias as $clave=>$nombre):?>
+<a class="reference-btn" <?=$clave===$categoria?'aria-current="page"':''?> href="?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente,'categoria'=>$clave,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta]))?>"><?=$escBuzon($nombre)?></a>
+<?php endforeach;?>
+</nav>
+<?php if($categoria!=='FISCALIZACION'):?>
 <section class="reference-panel buzon-filtros"><h2 class="reference-section-title">Filtrar requerimientos guardados</h2>
-<form method="get" class="reference-filter-grid"><input type="hidden" name="id_cliente" value="<?=$idCliente?>">
+<form method="get" class="reference-filter-grid"><input type="hidden" name="id_cliente" value="<?=$idCliente?>"><input type="hidden" name="categoria" value="<?=$escBuzon($categoria)?>">
 <label class="reference-field">Tipo<select name="tipo"><option value="">Todos</option><?php foreach(($tipos_disponibles??[]) as $t):?><option value="<?=$escBuzon($t)?>" <?=$tipo===$t?'selected':''?>><?=$escBuzon($t)?></option><?php endforeach;?></select></label>
 <label class="reference-field">Fecha desde<input type="date" name="desde" value="<?=$escBuzon($desde)?>"></label>
 <label class="reference-field">Fecha hasta<input type="date" name="hasta" value="<?=$escBuzon($hasta)?>"></label>
 <label class="reference-field">Estado<select name="estado"><option value="">Todos</option><option value="NO_REVISADO" <?=$estado==='NO_REVISADO'?'selected':''?>>Pendientes</option><option value="REVISADO" <?=$estado==='REVISADO'?'selected':''?>>Revisados</option></select></label>
-<div class="reference-actions"><button class="reference-btn primary" type="submit">Aplicar filtros</button><a class="reference-btn" href="buzon_sunafil.php?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente]))?>">Limpiar filtros</a></div></form></section>
+<div class="reference-actions"><button class="reference-btn primary" type="submit">Aplicar filtros</button><a class="reference-btn" href="buzon_sunafil.php?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente,'categoria'=>$categoria]))?>">Limpiar filtros</a></div></form></section>
+<?php endif;?>
 
 <?php if($casosAsignados !== []):?>
 <section class="reference-panel">
@@ -89,25 +118,36 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 </section>
 <?php endif;?>
 
-<section class="reference-panel buzon-tabla-panel"><div class="reference-table-title"><div><h2>Requerimientos</h2><p><?=(int)$total_filtrado?> resultado(s) en total · <?php if($idCliente===0 && $cliente_pagina!==null):?>Empresa <?=(int)$pagina_actual?> de <?=(int)$total_paginas?>: <?=$escBuzon($cliente_pagina['razon_social'])?> · <?=count($filas)?> requerimientos completos de esta empresa<?php else:?>Cliente seleccionado · <?=(int)$pagina_actual?> de <?=(int)$total_paginas?><?php endif;?></p></div></div>
+<section class="reference-panel">
 <?php $buzonCodigo="SUNAFIL";require __DIR__."/componentes/navegador_empresas.php";?>
 <?php if(($idCliente>0 || !empty($cliente_pagina))):?>
 <p class="buzon-fecha-exito">Última consulta exitosa de esta empresa:
 <strong><?=!empty($ultima_consulta_exitosa)?$escBuzon(date('d/m/Y H:i',strtotime($ultima_consulta_exitosa))):'Primera consulta pendiente'?></strong></p>
 <?php endif;?>
-<div class="table-container"><table id="tablaSunafil" class="buzon-tabla-simple"><thead><tr><th>Estado</th><th>Origen</th><th>F. notificación</th><th>Cliente</th><th>Asunto</th><th>Registro</th><th>Plazo / prioridad</th><th>F. límite</th><th>PDF / acción</th></tr></thead><tbody>
-<?php if($filas===[]):?><tr><td colspan="9"><div class="reference-empty">No hay requerimientos guardados para estos filtros. Si es una empresa nueva, consulta su casilla desde el panel superior.</div></td></tr>
+</section>
+<?php if($categoria==='FISCALIZACION'):require __DIR__.'/componentes/fiscalizacion.php';else:?>
+<section class="reference-panel buzon-tabla-panel"><div class="reference-table-title"><div><h2>Requerimientos</h2><p><?=(int)$total_filtrado?> resultado(s) en total · <?php if($idCliente===0 && $cliente_pagina!==null):?>Empresa <?=(int)$pagina_actual?> de <?=(int)$total_paginas?>: <?=$escBuzon($cliente_pagina['razon_social'])?> · <?=count($filas)?> requerimientos completos de esta empresa<?php else:?>Cliente seleccionado · <?=(int)$pagina_actual?> de <?=(int)$total_paginas?><?php endif;?></p></div></div>
+<h3 class="reference-section-title"><?=$escBuzon($categorias[$categoria])?></h3>
+<div class="table-container"><table id="tablaSunafil" class="buzon-tabla-simple"><thead><tr><th>Estado</th><?php if($categoria===''):?><th>Origen</th><?php endif;?><th>Cliente</th><?php if($esGeneral):?><th>F. notificación</th><th>Asunto</th><th>Registro</th><th>Plazo / prioridad</th><th>F. límite</th><?php else:foreach($columnasOficiales as $col):?><th><?=$escBuzon($col)?></th><?php endforeach;endif;?><th>PDF / acción</th></tr></thead><tbody>
+<?php if($filas===[]):?><tr><td colspan="<?=$numColumnas?>"><div class="reference-empty">No hay documentos guardados para esta categoría y filtros. Consulta la casilla desde el panel superior; una consulta parcial no confirma que la categoría esté vacía.</div></td></tr>
 <?php else:foreach($filas as $d):$f=$d['fecha_recepcion']?:$d['fecha_documento'];$idDocumento=(int)$d['id_documento'];?>
 <tr>
   <td data-label="Estado"><span class="reference-badge <?=$d['estado']==='NO_REVISADO'?'warning':'success'?>"><?=$d['estado']==='NO_REVISADO'?'Pendiente':'Revisado'?></span></td>
-  <td data-label="Origen"><?=$escBuzon($d['categoria']?:'SUNAFIL')?></td>
-  <td data-label="F. notificación"><?=$f?$escBuzon(date('d/m/Y H:i',strtotime($f))):'—'?></td>
+  <?php if($categoria===''):?><td data-label="Origen"><?=$escBuzon($categorias[$d['categoria']]??$d['categoria']??'SUNAFIL')?></td><?php endif;?>
   <td data-label="Cliente"><strong><?=$escBuzon($d['razon_social']?:'Sin cliente')?></strong><small class="buzon-metadato">RUC <?=$escBuzon($d['ruc']?:'—')?></small></td>
+  <?php if($esGeneral):?>
+  <td data-label="F. notificación"><?=$f?$escBuzon(date('d/m/Y H:i',strtotime($f))):'—'?></td>
   <td data-label="Asunto"><strong class="buzon-asunto"><?=$escBuzon($d['asunto']??'')?></strong></td>
-  <td data-label="Registro"><?=$escBuzon($d['identificador_externo']?:$d['tipo_documento']?:'—')?></td>
-  <td data-label="Plazo / prioridad"><?=$escBuzon($d['prioridad']?:'NORMAL')?></td>
-  <td data-label="F. límite">—</td>
-  <td data-label="PDF / acción">
+  <?php $metaGeneral=json_decode((string)($d['campos_oficiales']??''),true)?:[];?>
+  <td data-label="Registro"><?=$escBuzon($metaGeneral['Registro']??$metaGeneral['Número de documento']??$d['identificador_externo']??'—')?></td>
+  <td data-label="Plazo / prioridad"><?=$escBuzon($metaGeneral['Plazo']??$d['prioridad']??'NORMAL')?></td>
+  <td data-label="F. límite"><?=$escBuzon($metaGeneral['Fecha Límite de Presentación']??$metaGeneral['Fecha límite de respuesta']??'—')?></td>
+  <?php else:$campos=json_decode((string)($d['campos_oficiales']??''),true)?:[];foreach($columnasOficiales as $col):?>
+  <td class="sunafil-campo" data-label="<?=$escBuzon($col)?>"><?=$escBuzon($campos[$col]??'—')?></td>
+  <?php endforeach;endif;?>
+  <td data-label="PDF / acción"><?php $metadataFila=json_decode((string)($d['campos_oficiales']??''),true)?:[];if(($d['categoria']??'')==='FISCALIZACION'&&isset($metadataFila['Orden de Inspección'])&&!isset($metadataFila['Número de documento'])):?>
+  <a class="reference-btn" href="?<?=$escBuzon(http_build_query(['categoria'=>'FISCALIZACION','id_cliente'=>(int)$d['id_cliente'],'orden_detalle'=>(int)$d['id_cliente'].'|'.$metadataFila['Orden de Inspección']]))?>">Ver documentos</a>
+  <?php else:?>
     <div class="buzon-barra-acciones" role="group" aria-label="Acciones del requerimiento">
       <button type="button" class="buzon-icono" data-buzon-detalle="SUNAFIL" data-id-documento="<?= $idDocumento ?>" <?= etiquetaAccionBuzon('Ver documento') ?>><?= iconoAccionBuzonSol('ver') ?></button>
       <?php if ($puedeConsultar || !empty($d['archivo'])): ?>
@@ -120,21 +160,22 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
         <form method="post" action="../../controladores/buzones/ControladorBuzonSunafil.php">
           <input type="hidden" name="csrf_token" value="<?= $escBuzon($csrf) ?>">
           <input type="hidden" name="accion" value="revisado">
-          <input type="hidden" name="id_cliente" value="<?= $idCliente ?>">
+          <input type="hidden" name="categoria" value="<?=$escBuzon($categoria)?>"><input type="hidden" name="id_cliente" value="<?= $idCliente ?>">
           <input type="hidden" name="id_documento" value="<?= $idDocumento ?>">
           <button class="buzon-icono" type="submit" <?= etiquetaAccionBuzon('Marcar revisado en ASESCON') ?>><?= iconoAccionBuzonSol('revisar') ?></button>
         </form>
       <?php endif; ?>
       <?php $buzonCodigo = 'SUNAFIL'; require __DIR__.'/componentes/enviar_notificacion.php'; ?>
     </div>
-  </td>
+  <?php endif;?></td>
 </tr>
 <?php endforeach;endif;?></tbody></table></div>
+<?php endif;?>
 <?php if($total_paginas>1):?><nav class="buzon-sol-paginacion" aria-label="Páginas de requerimientos">
-<?php if($pagina_actual>1):?><a class="reference-btn" href="?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente,'tipo'=>$tipo,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta,'pagina'=>$pagina_actual-1]))?>">Anterior empresa</a><?php endif;?>
-<span>Empresa <?=(int)$pagina_actual?> de <?=(int)$total_paginas?></span>
-<?php if($pagina_actual<$total_paginas):?><a class="reference-btn" href="?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente,'tipo'=>$tipo,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta,'pagina'=>$pagina_actual+1]))?>">Siguiente empresa</a><?php endif;?>
-</nav><?php endif;?></section>
+<?php if($pagina_actual>1):?><a class="reference-btn" href="?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente,'categoria'=>$categoria,'tipo'=>$tipo,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta,'pagina'=>$pagina_actual-1]))?>"><?=$idCliente===0?'Anterior empresa':'Anterior página'?></a><?php endif;?>
+<span><?=$idCliente===0?'Empresa':'Página'?> <?=(int)$pagina_actual?> de <?=(int)$total_paginas?></span>
+<?php if($pagina_actual<$total_paginas):?><a class="reference-btn" href="?<?=$escBuzon(http_build_query(['id_cliente'=>$idCliente,'categoria'=>$categoria,'tipo'=>$tipo,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta,'pagina'=>$pagina_actual+1]))?>"><?=$idCliente===0?'Siguiente empresa':'Siguiente página'?></a><?php endif;?>
+</nav><?php endif;?><?php if($categoria!=='FISCALIZACION'):?></section><?php endif;?>
 <?php $buzonCodigo='SUNAFIL';require __DIR__.'/componentes/detalle_documento.php';?>
 <footer>© <?= (int)(new DateTimeImmutable('now', new DateTimeZone('America/Lima')))->format('Y') ?> ASESCON - Todos los derechos reservados.</footer></section></main></div>
 <script src="../../publico/js/navegacion/menu_lateral.js"></script>

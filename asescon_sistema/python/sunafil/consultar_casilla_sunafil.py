@@ -17,6 +17,8 @@ import sys
 from datetime import datetime
 from typing import Any
 from urllib.parse import urljoin, urlparse
+from categorias import MENU, interpretar_tabla
+from fiscalizacion import documentos_fiscalizacion
 
 try:
     sys.stdin.reconfigure(encoding="utf-8")
@@ -359,10 +361,13 @@ def generic_records(page, section: str) -> list[dict[str, Any]]:
             })
     return records
 
-def read_inbox(page, requested: str = "", download=None) -> list[dict[str, Any]]:
-    pages = safe_internal_links(page)
-    if not any(section == "ORIENTACION" for section, _ in pages):
-        pages.append(("ORIENTACION", urljoin(SUNAFIL_PORTADA, "Orientacion/ListadoOrientacionEmpleador")))
+def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
+    pages = [
+    (
+        "ORIENTACION",
+        "https://casillaelectronica.sunafil.gob.pe/si.inbox/Orientacion/ListadoOrientacionEmpleador"
+    )
+]
     records = []
     recognized = False
     for section, url in pages:
@@ -416,6 +421,145 @@ def read_inbox(page, requested: str = "", download=None) -> list[dict[str, Any]]
         if identificador not in unicas or registro.get("enlace_pdf"):
             unicas[identificador] = registro
     return list(unicas.values())
+
+def read_other_sections(page, avisos):
+    """Solo navega a enlaces de listado identificados por el menú oficial."""
+    links = {}
+    for frame in frames(page):
+        for item in frame.locator("a[href]").evaluate_all(
+            "els => els.map(a => ({text: a.textContent, href: a.href}))"
+        ):
+            label = re.sub(r"\s*\d+$", "", folded(item["text"]))
+            u = urlparse(item["href"])
+            if u.scheme != "https" or u.netloc != HOST or not u.path.lower().startswith("/si.inbox/"):
+                continue
+            if re.search(r"detalle|acuse|confirm|archivo|descarga|\.pdf", folded(u.path)):
+                continue
+            for section, title in MENU.items():
+                if label == title:
+                    links[section] = item["href"]
+    links["ACCIONES_PREVIAS"] = SUNAFIL_PORTADA + "ActosAdministrativos/ListadoRequerimientos"
+    links["FISCALIZACION"] = SUNAFIL_PORTADA + "Notificacion/Empleador"
+    result = []
+    for section in MENU:
+        try:
+            if section not in links:
+                raise RuntimeError("Menú no reconocido")
+            goto_retry(page, links[section], attempts=1)
+            if not is_sunafil_session(page):
+                raise RuntimeError("Sesión no reconocida")
+            seen = set()
+            section_rows = []
+            for _ in range(120):
+                page.wait_for_timeout(700)
+                tables = page.locator("table:visible").evaluate_all(r"""ts => ts.map(t => ({
+                    headers: Array.from(t.querySelectorAll(':scope > thead > tr:last-child > th')).map(x => x.innerText.trim()),
+                    rows: Array.from(t.querySelectorAll(':scope > tbody > tr')).map(tr => ({
+                        cells: Array.from(tr.querySelectorAll(':scope > td')).map(td => { const copy=td.cloneNode(true); copy.querySelectorAll('script,style,button,input').forEach(n=>n.remove()); return copy.textContent.trim(); }),
+                        pdf: (() => { const a = Array.from(tr.querySelectorAll('a[href]')).filter(a => /\.pdf$/i.test(new URL(a.href).pathname)); return a.length === 1 ? a[0].href : ''; })()
+                    }))
+                }))""")
+                batches = [interpretar_tabla(t["headers"], t["rows"], section, parse_date) for t in tables]
+                valid = [b for b in batches if b is not None]
+                if not valid:
+                    raise RuntimeError("Encabezados no reconocidos")
+                batch = [r for b in valid for r in b]
+                if not batch and not re.search(r"sin registros|no hay|ningun registro|no data available|no se encontraron|ningun dato", folded(body_text(page))):
+                    raise RuntimeError("Listado sin filas verificables")
+                sig = tuple(r["identificador_externo"] for r in batch)
+                if sig in seen or len(set(sig)) != len(sig):
+                    raise RuntimeError("Identidad o paginación ambigua")
+                seen.add(sig)
+                section_rows.extend(batch)
+                nxt = page.locator("li.paginate_button.next:not(.disabled) a, .dataTables_paginate .next:not(.disabled), .ui-paginator-next:not(.ui-state-disabled)")
+                if not nxt.count() or not nxt.first.is_visible():
+                    break
+                nxt.first.click()
+            else:
+                raise RuntimeError("Límite de páginas")
+            if len({r["identificador_externo"] for r in section_rows}) != len(section_rows):
+                raise RuntimeError("Identidad repetida")
+            result.extend(section_rows)
+            if section == "FISCALIZACION":
+                for orden in section_rows:
+                    try:
+                        result.extend(read_fiscal_documents(page, links[section], orden))
+                    except Exception:
+                        if section not in avisos:
+                            avisos.append(section)
+                        sys.stderr.write("SUNAFIL: detalle de fiscalización no verificado.\n")
+        except Exception:
+            avisos.append(section)
+            sys.stderr.write("SUNAFIL: listado no verificado: " + section + "\n")
+    return result
+
+def read_fiscal_documents(page, url, orden):
+    """Abre solo el listado de documentos de una orden, nunca el botón de lectura."""
+    campos = orden["campos_oficiales"]
+    numero = campos.get("Orden de Inspección") or next(
+        (v for k,v in campos.items() if folded(k) == "orden de inspeccion"), "")
+    if not numero:
+        raise RuntimeError("Orden no identificada")
+    goto_retry(page, url, attempts=1)
+    for _ in range(120):
+        page.wait_for_timeout(700)
+        candidatos = []
+        for fila in page.locator("table:visible tbody tr").all():
+            if numero not in [clean(v) for v in fila.locator(":scope > td").all_inner_texts()]:
+                continue
+            for boton in fila.locator("a,button").all():
+                etiquetas = [folded(v) for v in (boton.inner_text(), boton.get_attribute("title") or "",
+                                             boton.get_attribute("data-original-title") or "",
+                                             boton.get_attribute("aria-label") or "")]
+                if any(e in ("ver", "ver documentos", "ver documento") for e in etiquetas):
+                    candidatos.append(boton)
+        if len(candidatos) == 1:
+            candidatos[0].click()
+            break
+        if candidatos:
+            raise RuntimeError("Acción de orden ambigua")
+        nxt = page.locator("li.paginate_button.next:not(.disabled) a, .dataTables_paginate .next:not(.disabled), .ui-paginator-next:not(.ui-state-disabled)")
+        if not nxt.count() or not nxt.first.is_visible():
+            raise RuntimeError("No se encontró la orden")
+        nxt.first.click()
+    else:
+        raise RuntimeError("Límite de páginas")
+    result = []
+    seen = set()
+    for _ in range(120):
+        page.wait_for_timeout(900)
+        if not is_sunafil_session(page):
+            raise RuntimeError("Sesión no reconocida")
+        tables = page.locator("table:visible").evaluate_all(r"""ts => ts.map(t => ({
+            headers: Array.from(t.querySelectorAll(':scope > thead > tr:last-child > th')).map(x => x.innerText.trim()),
+            rows: Array.from(t.querySelectorAll(':scope > tbody > tr')).map(tr => ({
+                cells: Array.from(tr.querySelectorAll(':scope > td')).map(td => { const c=td.cloneNode(true); c.querySelectorAll('script,style,button,input').forEach(n=>n.remove()); return c.textContent.trim(); }),
+                pdf: (() => { const a=Array.from(tr.querySelectorAll('a[href]')).filter(a=>/\.pdf$/i.test(new URL(a.href).pathname)); return a.length===1?a[0].href:''; })()
+            }))
+        }))""")
+        valid = [b for t in tables if (b := documentos_fiscalizacion(t["headers"], t["rows"], numero,
+                    campos.get("Intendencia", ""), campos.get("Estado", ""), parse_date)) is not None]
+        if len(valid) != 1:
+            raise RuntimeError("Tabla de documentos no reconocida")
+        batch = valid[0]
+        if not batch and not re.search(r"sin registros|ningun dato|ningun registro|no data available|no se encontraron", folded(body_text(page))):
+            raise RuntimeError("Listado no verificado")
+        for doc in batch:
+            if doc["identificador_externo"] in seen:
+                raise RuntimeError("Documento duplicado")
+            seen.add(doc["identificador_externo"])
+            result.append(doc)
+        nxt = page.locator("li.paginate_button.next:not(.disabled) a, .dataTables_paginate .next:not(.disabled), .ui-paginator-next:not(.ui-state-disabled)")
+        if not nxt.count() or not nxt.first.is_visible():
+            return result
+        nxt.first.click()
+    raise RuntimeError("Límite de documentos")
+
+def read_inbox(page, avisos=None):
+    records = read_orientation(page)
+    if avisos is not None:
+        records.extend(read_other_sections(page, avisos))
+    return records
 
 def is_official_pdf_link(url: str) -> bool:
     parts = urlparse(url)
@@ -475,7 +619,408 @@ def guardar_adjuntos(page, records: list[dict[str, Any]], carpeta: str, cliente:
                 temporal.unlink(missing_ok=True)
     return descargados
 
+def descargar_accion_previa(page, registro, raiz, cliente, identificador):
+    goto_retry(page, SUNAFIL_PORTADA + "ActosAdministrativos/ListadoRequerimientos")
+    if not is_sunafil_session(page):
+        raise RuntimeError("Sesión SUNAFIL no reconocida.")
+    selector = 'button.btn-danger[type="submit"][id*=":dtAlertas:"]:has(i.fa-file-pdf-o)'
+    buscado = clean(registro)
+    for _ in range(120):
+        page.wait_for_timeout(700)
+        filas = page.locator('tr').filter(has=page.locator(selector))
+        coincidencias = []
+        for fila in filas.all():
+            celdas = fila.locator(':scope > td').all_inner_texts()
+            if any(clean(c) == buscado for c in celdas):
+                coincidencias.append(fila)
+        if len(coincidencias) > 1:
+            raise RuntimeError("Registro SUNAFIL duplicado.")
+        if coincidencias:
+            boton = coincidencias[0].locator(selector)
+            if boton.count() != 1 or not boton.is_enabled():
+                raise RuntimeError("Botón PDF original no identificado.")
+            boton.click()
+            confirmar = page.locator('form[id="formDescargaDoc"] button[name="formDescargaDoc:btnverDocumento"]')
+            try:
+                confirmar.wait_for(state="visible", timeout=20000)
+            except Exception:
+                raise RuntimeError("No apareció la ventana Descargar Documento de SUNAFIL.") from None
+            if confirmar.count() != 1 or not confirmar.is_enabled():
+                raise RuntimeError("No se identificó el botón Descargar de SUNAFIL.")
+            try:
+                with page.expect_download(timeout=40000) as descarga:
+                    confirmar.click()
+            except Exception:
+                raise RuntimeError("SUNAFIL no inició la descarga tras pulsar Descargar.") from None
+            archivo = descarga.value
+            origen = archivo.path()
+            if archivo.failure() or not origen or origen.stat().st_size > 16 * 1024 * 1024:
+                raise RuntimeError("Descarga SUNAFIL inválida.")
+            contenido = origen.read_bytes()
+            if not contenido.startswith(b"%PDF-"):
+                raise RuntimeError("SUNAFIL no devolvió un PDF válido.")
+            relativo = Path("almacenamiento/sunafil/buzon_sunafil/adjuntos") / str(cliente) / "oficial" / (identificador + ".pdf")
+            destino = Path(raiz) / relativo
+            destino.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with NamedTemporaryFile(dir=destino.parent, prefix=".sunafil-", delete=False) as f:
+                temporal = Path(f.name)
+                f.write(contenido)
+            try:
+                temporal.replace(destino)
+            finally:
+                temporal.unlink(missing_ok=True)
+            return relativo.as_posix()
+        nxt = page.locator("li.paginate_button.next:not(.disabled) a, .dataTables_paginate .next:not(.disabled), .ui-paginator-next:not(.ui-state-disabled)")
+        if not nxt.count() or not nxt.first.is_visible():
+            break
+        nxt.first.click()
+    raise RuntimeError("No se encontró el registro en Acciones previas.")
+
 def descargar_pdf_solicitado(page, req: dict[str, Any]) -> dict[str, Any]:
+    identificador = clean(req.get("identificador_externo", ""))
+    id_documento = int(req.get("id_documento", 0))
+    cliente = int(req.get("id_cliente", 0))
+    raiz = str(req.get("raiz_archivos", ""))
+
+    if (
+        id_documento < 1
+        or cliente < 1
+        or not raiz
+        or not re.fullmatch(r"SUNAFIL-[a-f0-9]{40}", identificador)
+    ):
+        raise RuntimeError("Documento SUNAFIL no válido.")
+
+    coincidencias = [
+        r for r in read_inbox(page)
+        if r["identificador_externo"] == identificador
+    ]
+    if not coincidencias:
+        coincidencias = [r for r in read_other_sections(page, [])
+                         if r["identificador_externo"] == identificador]
+
+    if not coincidencias:
+        return descargar_pdf_legacy(page, req)
+    if len(coincidencias) != 1:
+        raise RuntimeError("No se identificó la notificación.")
+
+    guardar_adjuntos(page, coincidencias, raiz, cliente)
+
+    archivo = coincidencias[0].get("archivo", "")
+
+    if archivo:
+        return {
+            "id_documento": id_documento,
+            "identificador_externo": identificador,
+            "archivo": archivo
+        }
+
+    if coincidencias[0].get("categoria") == "ACCIONES_PREVIAS":
+        registro = coincidencias[0]["campos_oficiales"].get("Registro", "")
+        if not registro:
+            raise RuntimeError("Registro oficial no identificado.")
+        archivo = descargar_accion_previa(page, registro, raiz, cliente, identificador)
+        return {"id_documento": id_documento, "identificador_externo": identificador, "archivo": archivo}
+    if coincidencias[0].get("categoria") != "ORIENTACION":
+        raise RuntimeError("No se encontró un PDF oficial.")
+
+    url = (
+        "https://casillaelectronica.sunafil.gob.pe"
+        "/si.inbox/Orientacion/ListadoOrientacionEmpleador"
+    )
+
+    goto_retry(page, url)
+    page.locator(
+    'button[type="submit"][id*=":dtAlertas:"]'
+).first.wait_for(state="visible", timeout=20000)
+    primera = page.locator(
+        '.dataTables_paginate a'
+    ).filter(has_text=re.compile(r'^1$'))
+
+    if primera.count() == 1:
+        primera.click()
+        page.wait_for_timeout(1500)
+
+    encontrado = False
+
+    for _ in range(120):
+        filas = page.locator(
+    'tr:has(button[type="submit"][id*=":dtAlertas:"])'
+).all()
+        candidatas = []
+
+        for fila in filas:
+            celdas = fila.locator(":scope > td").all_inner_texts()
+
+            if len(celdas) < 5:
+                continue
+
+            asunto = clean(celdas[2])
+            fecha = parse_date(celdas[1])
+
+            if not fecha:
+                continue
+
+            semilla = "|".join((asunto, "", fecha))
+            clave = "SUNAFIL-" + hashlib.sha256(
+                semilla.encode("utf-8", "ignore")
+            ).hexdigest()[:40]
+
+            if (
+                clave == identificador
+                or (
+                    asunto == coincidencias[0]["asunto"]
+                    and fecha == coincidencias[0]["fecha_recepcion"]
+                )
+            ):
+                candidatas.append(fila)
+
+        if len(candidatas) > 1:
+            raise RuntimeError("Documento duplicado en la bandeja.")
+
+        if len(candidatas) == 1:
+            boton = candidatas[0].locator(
+                'button[type="submit"][id*=":dtAlertas:"]'
+            )
+
+            if boton.count() != 1:
+                raise RuntimeError("No se reconoció el botón del documento.")
+
+            boton.click()
+
+            page.wait_for_url(
+                "**/Orientacion/DetallePlantillaOrientacionEmpleador",
+                timeout=20000
+            )
+
+            encontrado = True
+            break
+
+        siguiente = page.locator(
+            "li.paginate_button.next:not(.disabled) a"
+        )
+
+        if siguiente.count() != 1:
+            break
+
+        siguiente.click()
+        page.wait_for_timeout(1000)
+
+    if not encontrado:
+        raise RuntimeError("No se encontró el documento solicitado.")
+
+    if not is_sunafil_session(page):
+        raise RuntimeError("La sesión SUNAFIL se perdió.")
+
+    ruc = re.sub(r"\D", "", str(req.get("ruc", "")))
+
+    if not ruc or ruc not in body_text(page):
+        raise RuntimeError("No se pudo verificar el RUC del documento.")
+
+    page.wait_for_load_state("domcontentloaded")
+
+    page.wait_for_function(
+        """() => Array.from(document.images).every(
+            img => img.complete
+        )""",
+        timeout=15000
+    )
+
+    page.evaluate("""
+        () => {
+            const contenedor = Array.from(
+                document.querySelectorAll('.table-responsive')
+            ).find(el =>
+                el.innerText.includes('Estimado empleador')
+            );
+
+            if (!contenedor) {
+                throw new Error('No se encontró el contenido SUNAFIL');
+            }
+
+            const contenido = contenedor.cloneNode(true);
+
+            document.body.replaceChildren(contenido);
+            document.body.className = '';
+
+            contenido.id = 'documento-sunafil';
+        }
+    """)
+
+    page.add_style_tag(content="""
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 760px !important;
+            height: auto !important;
+            background: white !important;
+            overflow: visible !important;
+        }
+
+        #documento-sunafil {
+            width: 760px !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+
+        #documento-sunafil > table {
+            width: 760px !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+        }
+
+        table {
+            max-width: 100% !important;
+        }
+
+        td, tr {
+            height: auto !important;
+            max-width: 100% !important;
+        }
+
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
+        button, input, .btn {
+            display: none !important;
+        }
+    """)
+
+    relativo = (
+        Path("almacenamiento/sunafil/buzon_sunafil/adjuntos")
+        / str(cliente)
+        / "oficial"
+        / (identificador + ".pdf")
+    )
+
+    destino = Path(raiz) / relativo
+    destino.parent.mkdir(parents=True, exist_ok=True)
+
+
+    page.emulate_media(media="screen")
+
+    page.wait_for_function("""
+        () => Array.from(document.images).every(
+            img => img.complete && img.naturalWidth > 0
+        )
+    """, timeout=15000)
+
+    medidas = page.locator("#documento-sunafil").evaluate("""
+        el => ({
+            ancho: Math.ceil(Math.max(
+                el.scrollWidth, el.offsetWidth
+            )),
+            alto: Math.ceil(Math.max(
+                el.scrollHeight, el.offsetHeight
+            ))
+        })
+    """)
+
+    pdf = page.pdf(
+        width=f"{medidas['ancho'] + 40}px",
+        height=f"{medidas['alto'] + 100}px",
+        scale=1,
+        print_background=True,
+        prefer_css_page_size=False,
+        display_header_footer=True,
+        header_template="<span></span>",
+        footer_template="""
+            <div style="font-size:9px;width:100%;text-align:center;">
+                Copia del contenido SUNAFIL generada por ASESCON
+            </div>
+        """,
+        margin={
+            "top": "5mm",
+            "bottom": "10mm",
+            "left": "5mm",
+            "right": "5mm"
+        }
+    )
+
+
+
+
+
+    if not pdf.startswith(b"%PDF-") or len(pdf) > 15 * 1024 * 1024:
+        raise RuntimeError("No se generó un PDF válido.")
+
+    with NamedTemporaryFile(
+        dir=destino.parent,
+        delete=False
+    ) as temporal:
+        temporal.write(pdf)
+        ruta_temporal = Path(temporal.name)
+
+    ruta_temporal.replace(destino)
+
+    return {
+        "id_documento": id_documento,
+        "identificador_externo": identificador,
+        "archivo": relativo.as_posix()
+    }
+
+def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str, Any]]:
+    pages = safe_internal_links(page)
+    if not any(section == "ORIENTACION" for section, _ in pages):
+        pages.append(("ORIENTACION", urljoin(SUNAFIL_PORTADA, "Orientacion/ListadoOrientacionEmpleador")))
+    records = []
+    recognized = False
+    for section, url in pages:
+        if page.url != url:
+            goto_retry(page, url, attempts=1)
+            page.wait_for_timeout(700)
+        if not is_sunafil_session(page):
+            raise RuntimeError("La sesión SUNAFIL se perdió al consultar la bandeja.")
+        signatures = set()
+        for _ in range(120):
+            deadline = time.monotonic() + 10
+            while True:
+                text = folded(body_text(page))
+                batch = table_records(page, section, requested, download)
+                if not batch:
+                    batch = generic_records(page, section)
+                empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
+                if batch or empty or time.monotonic() >= deadline:
+                    break
+                page.wait_for_timeout(500)
+            if not batch and not empty:
+                raise RuntimeError("No se reconoció una página de la bandeja SUNAFIL. No se guardaron resultados parciales.")
+            if batch or empty:
+                recognized = True
+            signature = tuple(r["identificador_externo"] for r in batch)
+            if signature in signatures and batch:
+                raise RuntimeError("La paginación SUNAFIL no avanzó. No se guardaron resultados parciales.")
+            signatures.add(signature)
+            records.extend(batch)
+
+            next_button = None
+            for f in frames(page):
+                for selector in ('li.paginate_button.next:not(.disabled) a', '.dataTables_paginate .next:not(.disabled)', 'button[aria-label="Siguiente página"]', 'button[aria-label="Next page"]'):
+                    loc = f.locator(selector)
+                    if loc.count() and loc.first.is_visible() and loc.first.is_enabled() and loc.first.get_attribute("aria-disabled") != "true":
+                        next_button = loc.first
+                        break
+                if next_button is not None:
+                    break
+            if next_button is None:
+                break
+            next_button.click()
+            page.wait_for_timeout(900)
+        else:
+            raise RuntimeError("La bandeja supera el límite de 120 páginas. No se guardaron resultados parciales.")
+    if not recognized:
+        raise RuntimeError("La sesión abrió, pero no se reconoció la bandeja ni un aviso de bandeja vacía. No se guardaron resultados.")
+    unicas = {}
+    for registro in records:
+        identificador = registro["identificador_externo"]
+        if identificador not in unicas or registro.get("enlace_pdf"):
+            unicas[identificador] = registro
+    return list(unicas.values())
+
+def descargar_pdf_legacy(page, req: dict[str, Any]) -> dict[str, Any]:
     identificador = clean(req.get("identificador_externo", ""))
     id_documento = int(req.get("id_documento", 0))
     cliente = int(req.get("id_cliente", 0))
@@ -516,7 +1061,7 @@ def descargar_pdf_solicitado(page, req: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 pending.unlink(missing_ok=True)
 
-        coincidencias = [r for r in read_inbox(page, identificador, download_row)
+        coincidencias = [r for r in read_legacy_inbox(page, identificador, download_row)
                          if r["identificador_externo"] == identificador]
         if len(coincidencias) == 1 and pending.is_file() and pending.stat().st_size <= 16 * 1024 * 1024:
             pdf = pending.read_bytes()
@@ -823,14 +1368,16 @@ def main() -> None:
                     "notificaciones": [],
                 }
                 if modo == "bandeja":
-                    data["notificaciones"] = read_inbox(page)
+                    data["categorias_no_verificadas"] = []
+                    data["notificaciones"] = read_inbox(page, data["categorias_no_verificadas"])
                     data["cantidad"] = len(data["notificaciones"])
-                    try:
-                        data["pdf_descargados"] = guardar_adjuntos(
-                            page, data["notificaciones"], str(req.get("raiz_archivos", "")), int(req.get("id_cliente", 0))
-                        )
-                    except OSError:
-                        sys.stderr.write("SUNAFIL: no se pudo guardar uno o más PDF en el volumen privado.\n")
+                    if os.environ.get("ASESCON_PRECARGAR_PDF", "0") == "1":
+                        try:
+                            data["pdf_descargados"] = guardar_adjuntos(
+                                page, data["notificaciones"], str(req.get("raiz_archivos", "")), int(req.get("id_cliente", 0))
+                            )
+                        except OSError:
+                            sys.stderr.write("SUNAFIL: no se pudo guardar uno o más PDF en el volumen privado.\n")
                     for notificacion in data["notificaciones"]:
                         notificacion.pop("enlace_pdf", None)
                 elif modo == "pdf":

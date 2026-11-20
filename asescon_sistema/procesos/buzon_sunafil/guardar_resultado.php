@@ -103,9 +103,11 @@ try {
                     $conexion->rollback();
                     throw $e;
                 }
-                try { $avisadorBuzones->registrarExito('SUNAFIL',$idCliente,$marcadorAnterior); }
-                catch(Throwable $errorAvisos) { error_log('Avisos nuevos SUNAFIL: '.get_class($errorAvisos)); }
-                $cola->completar($idCliente, $idTrabajo, count($documentos), $nuevos);
+                if (empty($datos['categorias_no_verificadas'])) {
+                    try { $avisadorBuzones->registrarExito('SUNAFIL',$idCliente,$marcadorAnterior); }
+                    catch(Throwable $errorAvisos) { error_log('Avisos nuevos SUNAFIL: '.get_class($errorAvisos)); }
+                }
+                $cola->completar($idCliente, $idTrabajo, count($documentos), $nuevos, (array)($datos['categorias_no_verificadas'] ?? []));
                 try {
                     require_once dirname(__DIR__, 2) . '/modelos/comunicaciones/ColaAvisosBuzones.php';
                     (new ColaAvisosBuzones($conexion))->registrar('SUNAFIL', $idCliente);

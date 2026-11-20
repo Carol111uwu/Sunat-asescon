@@ -68,7 +68,9 @@ test('Estado real de la cola, sondeo y exportaciones de columnas correctas', () 
   assert.match(ver('api/buzones/estado_consulta_sol.php'),/cron_reciente/);
   assert.match(ver('api/buzones/estado_consulta_sunafil.php'),/cron_reciente/);
   assert.match(ver('publico/js/buzones/exportar_notificaciones_sol.js'),/F\. notificación','Cliente','Estado','F\. consultado','Categoría','Asunto','Prioridad/);
-  assert.match(ver('publico/js/buzones/exportar_notificaciones_sunafil.js'),/Estado','Origen','F\. notificación','Cliente','Asunto','Registro','Plazo \/ prioridad','F\. límite/);
+  const exportSunafil=ver('publico/js/buzones/exportar_notificaciones_sunafil.js');
+  assert.match(exportSunafil,/thead th/);
+  assert.match(exportSunafil,/dataset.label===c/);
   assert.match(ver('vistas/buzones/componentes/estado_consulta.php'),/buzon-expandir-mas/);
   assert.match(script,/AbortController/);
   assert.match(script,/Comprobar estado ahora/);

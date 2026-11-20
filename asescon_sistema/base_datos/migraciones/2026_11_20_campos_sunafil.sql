@@ -1,0 +1,1 @@
+ALTER TABLE buzon_sunafil ADD COLUMN IF NOT EXISTS campos_oficiales LONGTEXT NULL;
