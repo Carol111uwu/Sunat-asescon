@@ -90,6 +90,11 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <?php endif;?>
 
 <section class="reference-panel buzon-tabla-panel"><div class="reference-table-title"><div><h2>Requerimientos</h2><p><?=(int)$total_filtrado?> resultado(s) en total · <?php if($idCliente===0 && $cliente_pagina!==null):?>Empresa <?=(int)$pagina_actual?> de <?=(int)$total_paginas?>: <?=$escBuzon($cliente_pagina['razon_social'])?> · <?=count($filas)?> requerimientos completos de esta empresa<?php else:?>Cliente seleccionado · <?=(int)$pagina_actual?> de <?=(int)$total_paginas?><?php endif;?></p></div></div>
+<?php $buzonCodigo="SUNAFIL";require __DIR__."/componentes/navegador_empresas.php";?>
+<?php if(($idCliente>0 || !empty($cliente_pagina))):?>
+<p class="buzon-fecha-exito">Última consulta exitosa de esta empresa:
+<strong><?=!empty($ultima_consulta_exitosa)?$escBuzon(date('d/m/Y H:i',strtotime($ultima_consulta_exitosa))):'Primera consulta pendiente'?></strong></p>
+<?php endif;?>
 <div class="table-container"><table id="tablaSunafil" class="buzon-tabla-simple"><thead><tr><th>Estado</th><th>Origen</th><th>F. notificación</th><th>Cliente</th><th>Asunto</th><th>Registro</th><th>Plazo / prioridad</th><th>F. límite</th><th>PDF / acción</th></tr></thead><tbody>
 <?php if($filas===[]):?><tr><td colspan="9"><div class="reference-empty">No hay requerimientos guardados para estos filtros. Si es una empresa nueva, consulta su casilla desde el panel superior.</div></td></tr>
 <?php else:foreach($filas as $d):$f=$d['fecha_recepcion']?:$d['fecha_documento'];$idDocumento=(int)$d['id_documento'];?>
@@ -136,6 +141,8 @@ $escBuzon=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBST
 <script src="../../publico/js/navegacion/busqueda_clientes.js?v=20261014_1"></script>
 <script src="../../publico/js/navegacion/menu_movil.js"></script>
 <script src="../../publico/js/interfaz/componentes_interfaz.js?v=20260915_3"></script>
+<link rel="stylesheet" href="<?=htmlspecialchars(asesconUrl('publico/css/modulos/buzon_navegador.css'))?>?v=<?=(int)@filemtime(__DIR__.'/../../publico/css/modulos/buzon_navegador.css')?>">
+<script defer src="<?=htmlspecialchars(asesconUrl('publico/js/buzones/navegador_empresas.js'))?>?v=<?=(int)@filemtime(__DIR__.'/../../publico/js/buzones/navegador_empresas.js')?>"></script>
 <script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/consulta_unificada.js'))?>"></script>
 <script defer src="../../publico/js/buzones/exportar_notificaciones_sunafil.js?v=20261102_1"></script>
 <script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?=(int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js')?>"></script>

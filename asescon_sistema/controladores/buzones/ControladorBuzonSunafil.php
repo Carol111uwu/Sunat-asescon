@@ -58,13 +58,21 @@ final class ControladorBuzonSunafil
         }
 
         $total=$m->contarFiltrados($f,$estado,$idCliente,$tipo,$desde,$hasta);
-        $clientesPaginados=$idCliente===0?$m->clientesConNotificaciones($f,$estado,$tipo,$desde,$hasta):[];
-        $paginas=$idCliente===0?max(1,count($clientesPaginados)):1;
+        $clientesPaginados=$idCliente===0?$clientes:[];
+        $paginas=$idCliente===0?max(1,count($clientesPaginados)):max(1,(int)ceil($total/100));
         $pagina=max(1,min($pagina,$paginas));
         $clientePagina=$idCliente===0?($clientesPaginados[$pagina-1]??null):null;
         $clienteListado=$idCliente>0?$idCliente:(int)($clientePagina['id_cliente']??0);
+        $ultimaConsultaExitosa=null;
+        if($clienteListado>0){
+            try{
+                require_once __DIR__.'/../../servicios/buzones/RegistroNovedadesBuzones.php';
+                $ultimaConsultaExitosa=(new RegistroNovedadesBuzones($this->conexion))
+                    ->ultimaConsultaExitosa('SUNAFIL',$clienteListado);
+            }catch(Throwable $e){error_log('Última consulta buzón: '.get_class($e));}
+        }
         return [
-            'filas' => $clienteListado>0?$m->listar($f,$estado,$clienteListado,$tipo,$desde,$hasta):[],
+            'filas' => $clienteListado>0?$m->listar($f,$estado,$clienteListado,$tipo,$desde,$hasta,100,$idCliente>0?($pagina-1)*100:0):[],
             'total_filtrado'=>$total,'pagina_actual'=>$pagina,'total_paginas'=>$paginas,
             'cliente_pagina'=>$clientePagina,
             'tipos_disponibles'=>$m->tiposDisponibles($f),
@@ -72,6 +80,7 @@ final class ControladorBuzonSunafil
             'clientes_disponibles' => $clientes,
             'sincronizacion' => $sincronizacion,
             'estado_cron' => $cron,
+            'ultima_consulta_exitosa'=>$ultimaConsultaExitosa,
             'detalle_cola' => $detalleCola,
         ];
     }

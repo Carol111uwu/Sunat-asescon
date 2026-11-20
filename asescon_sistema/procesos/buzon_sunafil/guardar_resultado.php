@@ -46,7 +46,9 @@ try {
         $codigoSalida = 4;
     } elseif (!($respuesta['ok'] ?? false)) {
         $mensaje = trim((string)($respuesta['mensaje'] ?? 'No se pudo acceder al Buzón SUNAFIL.'));
-        $cola->fallar($idCliente, $idTrabajo, $mensaje);
+        $codigoPublico=strtoupper((string)($respuesta['codigo']??'SUNAFIL_CONSULTA_FALLIDA'));
+        if(!preg_match('/^[A-Z0-9_]{3,60}$/D',$codigoPublico))$codigoPublico='SUNAFIL_CONSULTA_FALLIDA';
+        $cola->fallar($idCliente, $idTrabajo, '['.$codigoPublico.'] '.$mensaje);
         $codigoSalida = 5;
     } else {
         $datos = $respuesta['data'] ?? null;
@@ -90,6 +92,9 @@ try {
                         && $referencia === $esperada && $archivos->resolver($referencia, 'SUNAFIL') ? $referencia : '';
                 }
                 unset($documento);
+                require_once dirname(__DIR__, 2) . '/servicios/buzones/RegistroNovedadesBuzones.php';
+                $avisadorBuzones = new RegistroNovedadesBuzones($conexion);
+                $marcadorAnterior = $avisadorBuzones->marcadorAnterior('SUNAFIL',$idCliente);
                 $conexion->begin_transaction();
                 try {
                     $nuevos = (new BuzonSunafil($conexion))->guardarSincronizados($idCliente, $documentos);
@@ -98,6 +103,8 @@ try {
                     $conexion->rollback();
                     throw $e;
                 }
+                try { $avisadorBuzones->registrarExito('SUNAFIL',$idCliente,$marcadorAnterior); }
+                catch(Throwable $errorAvisos) { error_log('Avisos nuevos SUNAFIL: '.get_class($errorAvisos)); }
                 $cola->completar($idCliente, $idTrabajo, count($documentos), $nuevos);
                 try {
                     require_once dirname(__DIR__, 2) . '/modelos/comunicaciones/ColaAvisosBuzones.php';

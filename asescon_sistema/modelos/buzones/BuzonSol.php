@@ -12,7 +12,7 @@ final class BuzonSol
     {
         $where = $this->condicionListado($filtro,$estado,$categoria,$idCliente,$desde,$hasta);
         $limite=max(1,min(100,$limite));$offset=max(0,$offset);
-        $limiteSql=$clienteCompleto&&$idCliente>0?'':" LIMIT {$limite} OFFSET {$offset}";
+        $limiteSql=" LIMIT {$limite} OFFSET {$offset}"; // Evitar cargar miles de filas en una empresa.
         $existeCaso = false;
         try {$tablaCaso=$this->conexion->query("SHOW TABLES LIKE 'buzon_sol_casos'");$existeCaso=$tablaCaso && $tablaCaso->num_rows>0;}catch(Throwable){}
         $extraCaso=$existeCaso?',cs.estado AS estado_caso,cs.id_responsable AS id_responsable_caso':'';

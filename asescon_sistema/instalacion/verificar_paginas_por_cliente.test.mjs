@@ -28,7 +28,7 @@ test('RVIE y RCE paginan clientes y conservan el Excel global por lotes', () => 
   }
 });
 
-test('Dashboard y Buzón SOL cargan el cliente completo en modo global', () => {
+test('Dashboard y Buzón permiten navegar todas las empresas sin cargar miles de filas a la vez', () => {
   const repo = leer('modelos/sunat/RepositorioLecturaSire.php');
   const dashboard = leer('controladores/sunat/ControladorDashboardSire.php');
   const buzon = leer('modelos/buzones/BuzonSol.php');
@@ -37,7 +37,7 @@ test('Dashboard y Buzón SOL cargan el cliente completo en modo global', () => {
   assert.match(dashboard, /clientesConHistorialDashboard\(/);
   assert.match(dashboard, /historialDashboardDeCliente\(/);
   assert.match(buzon, /function clientesConNotificaciones\(/);
-  assert.match(buzon, /\$clienteCompleto&&\$idCliente>0\?'':/);
+  assert.match(buzon, /\$limiteSql=" LIMIT \{\$limite\} OFFSET \{\$offset\}"/);
   assert.match(controladorBuzon, /\$idCliente===0\?max\(1,count\(\$clientesPaginados\)\)/);
   assert.match(controladorBuzon, /\$idCliente===0\?0:\(\$pagina-1\)\*\$porPagina,\$idCliente===0/);
   const sunafil = leer('modelos/buzones/BuzonSunafil.php');

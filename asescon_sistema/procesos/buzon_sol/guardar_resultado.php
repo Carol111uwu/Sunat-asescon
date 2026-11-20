@@ -45,7 +45,9 @@ try {
         $codigoSalida = 4;
     } elseif (!($respuesta['ok'] ?? false)) {
         $mensaje = trim((string)($respuesta['mensaje'] ?? 'No se pudo acceder al Buzón SOL.'));
-        $cola->fallar($idCliente, $idTrabajo, $mensaje);
+        $codigoPublico = strtoupper((string)($respuesta['codigo'] ?? 'SOL_CONSULTA_FALLIDA'));
+        if (!preg_match('/^[A-Z0-9_]{3,60}$/D', $codigoPublico)) $codigoPublico='SOL_CONSULTA_FALLIDA';
+        $cola->fallar($idCliente, $idTrabajo, '['.$codigoPublico.'] '.$mensaje);
         $codigoSalida = 5;
     } elseif ($codigoProceso !== 0) {
         $cola->fallar($idCliente, $idTrabajo, 'La consulta SOL se interrumpió. Puedes volver a solicitarla.');
@@ -82,9 +84,15 @@ try {
                 $cola->limpiarTrabajo($idTrabajo);exit(0);
             }
             if(!is_array($datos['notificaciones']??null))throw new RuntimeException('La respuesta no contiene una lista de notificaciones.');
-            $documentos=$datos['notificaciones'];$conexion->begin_transaction();
+            $documentos=$datos['notificaciones'];
+            require_once dirname(__DIR__,2).'/servicios/buzones/RegistroNovedadesBuzones.php';
+            $avisadorBuzones=new RegistroNovedadesBuzones($conexion);
+            $marcadorAnterior=$avisadorBuzones->marcadorAnterior('SOL',$idCliente);
+            $conexion->begin_transaction();
             try{$nuevos=(new BuzonSol($conexion))->guardarSincronizados($idCliente,$documentos);$conexion->commit();}
             catch(Throwable $errorGuardado){$conexion->rollback();throw $errorGuardado;}
+            try { $avisadorBuzones->registrarExito('SOL',$idCliente,$marcadorAnterior); }
+            catch(Throwable $errorAvisos) { error_log('Avisos nuevos SOL: '.get_class($errorAvisos)); }
             $totalDocumentos=count($documentos);
             if(!empty($solicitud['solo_adjuntos'])){$s=$conexion->prepare('SELECT COUNT(*) n FROM buzon_sol_sunat WHERE id_cliente=?');$s->bind_param('i',$idCliente);$s->execute();$totalDocumentos=(int)$s->get_result()->fetch_assoc()['n'];$s->close();}
             $pdfGuardados=0;

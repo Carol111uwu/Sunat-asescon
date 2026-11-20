@@ -218,7 +218,8 @@ def read_inbox(page)->list[dict[str,Any]]:
     registros:list[dict[str,Any]]=[]
     vistos=set()
     total_esperado=_total_visible(page)
-    for _ in range(80):
+    limite_paginas=max(80,min(400,int(__import__("os").environ.get("ASESCON_SOL_MAX_PAGINAS","300"))))
+    for _ in range(limite_paginas):
         filas=_registros_pagina(page)
         firma=tuple((r.get('identificador_externo',''),huella_notificacion(r)) for r in filas)
         if firma in vistos:
@@ -251,7 +252,7 @@ def read_inbox(page)->list[dict[str,Any]]:
                 break
         if not avanzo:
             raise ErrorAccesoSol('SOL_PAGINACION_ESTANCADA','El navegador no pudo avanzar a la siguiente página del Buzón. No se guardaron datos parciales.')
-    raise ErrorAccesoSol('SOL_PAGINACION_EXTENSA','La bandeja requiere más de 80 páginas. Se necesita sincronizarla por lotes sin descartar la información anterior.')
+    raise ErrorAccesoSol("SOL_PAGINACION_EXTENSA",f"La bandeja requiere más de {limite_paginas} páginas. Se conservaron los datos anteriores; faltan páginas por recuperar.")
 
 def mensaje_seguro(error,req):
     mensaje=clean(error)

@@ -1,0 +1,39 @@
+ASESCON - integración de buzones - 20/11/2026
+
+Base exacta: Sunat-asescon-main (3)(1).zip (adjunto del usuario)
+Archivos modificados: 21; nuevos: 10 (incluidas la guía, prueba y SQL).
+
+MODIFICADOS
+asescon_sistema/api/buzones/archivo_documento.php
+asescon_sistema/controladores/buzones/ControladorBuzonSol.php
+asescon_sistema/controladores/buzones/ControladorBuzonSunafil.php
+asescon_sistema/instalacion/verificar_paginas_por_cliente.test.mjs
+asescon_sistema/instalacion/verificar_sincronizacion_total.test.mjs
+asescon_sistema/modelos/buzones/BuzonSol.php
+asescon_sistema/modelos/buzones/BuzonSunafil.php
+asescon_sistema/procesos/buzon_sol/guardar_resultado.php
+asescon_sistema/procesos/buzon_sol/preparar_solicitud.php
+asescon_sistema/procesos/buzon_sol/procesar_cola.sh
+asescon_sistema/procesos/buzon_sunafil/guardar_resultado.php
+asescon_sistema/procesos/sincronizacion/cron_nocturno.sh
+asescon_sistema/python/sunafil/consultar_casilla_sunafil.py
+asescon_sistema/python/sunat/consultar_buzon_sol.py
+asescon_sistema/servicios/archivos/ServicioArchivosPrivados.php
+asescon_sistema/vistas/buzones/buzon_sol_sunat.php
+asescon_sistema/vistas/buzones/buzon_sunafil.php
+asescon_sistema/vistas/componentes/avisos_casos_sol.php
+compose.yaml
+docker/tareas-entrypoint.sh
+docker/tareas.cron
+
+NUEVOS
+GUIA_BUZONES_VPS_20261120.md
+asescon_sistema/api/buzones/avisos_nuevos.php
+asescon_sistema/base_datos/migraciones/2026_11_20_novedades_buzones.sql
+asescon_sistema/instalacion/verificar_buzones_novedades_20261120.test.mjs
+asescon_sistema/procesos/buzones/planificar_rondas.php
+asescon_sistema/publico/css/modulos/buzon_navegador.css
+asescon_sistema/publico/js/buzones/avisos_nuevos.js
+asescon_sistema/publico/js/buzones/navegador_empresas.js
+asescon_sistema/servicios/buzones/RegistroNovedadesBuzones.php
+asescon_sistema/vistas/buzones/componentes/navegador_empresas.php
