@@ -10,13 +10,13 @@ final class BuzonSunafil
     {
     }
     public function listar(string $filtro, string $estado = '', int $idCliente = 0,
-                           string $tipo = '', string $desde = '', string $hasta = ''): array
+                           string $tipo = '', string $desde = '', string $hasta = '', int $limite=100,int $offset=0): array
     {
         if ($idCliente <= 0) return [];
         $where = $this->condicionListado($filtro,$estado,$idCliente,$tipo,$desde,$hasta);
         $r = $this->conexion->query("SELECT b.*,c.ruc,c.razon_social FROM buzon_sunafil b
             INNER JOIN clientes c ON c.id_cliente=b.id_cliente WHERE ({$where})
-            ORDER BY COALESCE(b.fecha_recepcion,b.fecha_documento) DESC,b.id_documento DESC");
+            ORDER BY COALESCE(b.fecha_recepcion,b.fecha_documento) DESC,b.id_documento DESC LIMIT ".max(1,min(100,$limite))." OFFSET ".max(0,$offset));
         $a = [];
         if ($r) {
             while ($x = $r->fetch_assoc()) {

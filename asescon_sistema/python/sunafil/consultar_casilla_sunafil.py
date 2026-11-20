@@ -372,7 +372,7 @@ def read_inbox(page, requested: str = "", download=None) -> list[dict[str, Any]]
         if not is_sunafil_session(page):
             raise RuntimeError("La sesión SUNAFIL se perdió al consultar la bandeja.")
         signatures = set()
-        for _ in range(30):
+        for _ in range(120):
             deadline = time.monotonic() + 10
             while True:
                 text = folded(body_text(page))
@@ -407,7 +407,7 @@ def read_inbox(page, requested: str = "", download=None) -> list[dict[str, Any]]
             next_button.click()
             page.wait_for_timeout(900)
         else:
-            raise RuntimeError("La bandeja supera el límite de 30 páginas. No se guardaron resultados parciales.")
+            raise RuntimeError("La bandeja supera el límite de 120 páginas. No se guardaron resultados parciales.")
     if not recognized:
         raise RuntimeError("La sesión abrió, pero no se reconoció la bandeja ni un aviso de bandeja vacía. No se guardaron resultados.")
     unicas = {}
@@ -565,7 +565,7 @@ def descargar_pdf_solicitado(page, req: dict[str, Any]) -> dict[str, Any]:
 
     encontrado = False
 
-    for _ in range(30):
+    for _ in range(120):
         filas = page.locator(
     'tr:has(button[type="submit"][id*=":dtAlertas:"])'
 ).all()

@@ -46,7 +46,8 @@ test('El cron general conserva lock, no duplica SOL y planifica a las 02',()=>{
  const cola=read('servicios/sincronizacion/ColaNocturna.php');
  assert.match(cron,/flock -n 8/);
  assert.doesNotMatch(cron,/\$PROYECTO\/procesos\/buzon_sol\/procesar_cola\.sh/);
- assert.match(cron,/\$PROYECTO\/procesos\/buzon_sunafil\/procesar_cola\.sh/);
+ assert.doesNotMatch(cron,/^\s*\/bin\/bash.*buzon_sunafil\/procesar_cola\.sh/m);
+ assert.match(read('../docker/tareas.cron'),/buzon_sunafil\/procesar_cola\.sh/);
  assert.match(cola,/\$ahora->format\('H'\)==='02'/);
  assert.doesNotMatch(cola,/ASESCON_SYNC_TOTAL_HOUR/);
 });

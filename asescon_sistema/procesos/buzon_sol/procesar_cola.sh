@@ -29,7 +29,7 @@ fi
 source "$PROYECTO/procesos/entorno_comun.sh" >>"$LOG" 2>&1 || exit 1
                                                                
 RELOJ_LIMA="$(TZ=America/Lima date +%H%M)"
-if [ "$RELOJ_LIMA" -ge 0030 ] && [ "$RELOJ_LIMA" -lt 0200 ]; then exit 0; fi
+# El Buzón SOL no se interrumpe entre medianoche y las 02:00.
 mkdir -p "$ASESCON_STORAGE_ROOT/sincronizacion" || exit 1
 exec 8>"$ASESCON_STORAGE_ROOT/sincronizacion/almacenamiento.lock"
 flock -s -n 8 || exit 0
@@ -43,7 +43,8 @@ while [ "$(date +%s)" -lt "$LIMITE_LOTE" ]; do
 if [ -f "$ASESCON_STORAGE_ROOT/sincronizacion/pausa.flag" ]; then exit 0; fi
 PREPARADO="$("$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/preparar_solicitud.php" 2>>"$LOG")"
 if [ -z "$PREPARADO" ]; then
-    if [ "${ASESCON_WORKER_SOLO_PENDIENTES:-0}" != "1" ] && [ "$PRECARGA_REVISADA" -eq 0 ] && [ "$((10#${RELOJ_LIMA:2:2} % 15))" -eq 0 ]; then
+    # Por defecto no generar PDFs masivos. Las descargas se solicitan desde el buzón.
+    if [ "${ASESCON_PRECARGAR_PDF:-0}" = "1" ] && [ "${ASESCON_WORKER_SOLO_PENDIENTES:-0}" != "1" ] && [ "$PRECARGA_REVISADA" -eq 0 ] && [ "$((10#${RELOJ_LIMA:2:2} % 15))" -eq 0 ]; then
         PRECARGA_REVISADA=1
         "$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/buzon_sol/programar_adjuntos.php" >>"$LOG" 2>&1 || true
         continue

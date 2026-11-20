@@ -92,7 +92,7 @@ final class ServicioArchivosPrivados
         return $base.'/'.$cliente.'/'.$documento.'/'.$nombre;
     }
 
-    public function servir(string $ruta,bool $descargar=false,string $nombre='documento.pdf'):never
+    public function servir(string $ruta,bool $descargar=false,string $nombre='documento.pdf',?Closure $trasDescarga=null):never
     {
         $tamano=filesize($ruta);$inicio=0;$fin=$tamano-1;$rango=(string)($_SERVER['HTTP_RANGE']??'');
         $extension=strtolower(pathinfo($ruta,PATHINFO_EXTENSION));
@@ -111,6 +111,12 @@ final class ServicioArchivosPrivados
         if(($_SERVER['REQUEST_METHOD']??'GET')==='HEAD')exit;
         $f=fopen($ruta,'rb');fseek($f,$inicio);$restante=$fin-$inicio+1;
         while($restante>0&&!feof($f)){$parte=fread($f,min(65536,$restante));if($parte===false||$parte==='')break;echo $parte;flush();$restante-=strlen($parte);if(connection_aborted())break;}
-        fclose($f);exit;
+        fclose($f);
+        // Sólo se libera la copia temporal si se transmitieron TODOS los bytes
+        // en una descarga de archivo completa, no en vistas previas ni rangos.
+        if ($descargar && $trasDescarga && $rango==='' && $restante===0 && !connection_aborted()) {
+            try { $trasDescarga(); } catch(Throwable $error) { error_log('Limpieza posterior a PDF: '.get_class($error)); }
+        }
+        exit;
     }
 }

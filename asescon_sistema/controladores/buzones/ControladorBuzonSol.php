@@ -58,6 +58,14 @@ final class ControladorBuzonSol
                 error_log('Buzón SOL empresa visible: '.get_class($e));
             }
         }
+        $ultimaConsultaExitosa=null;
+        if($clienteListado>0){
+            try{
+                require_once __DIR__.'/../../servicios/buzones/RegistroNovedadesBuzones.php';
+                $ultimaConsultaExitosa=(new RegistroNovedadesBuzones($this->conexion))
+                    ->ultimaConsultaExitosa('SOL',$clienteListado);
+            }catch(Throwable $e){error_log('Última consulta buzón: '.get_class($e));}
+        }
         $totalEmpresa=$clienteListado>0?$m->contarFiltrados($f,$estado,$categoria,$clienteListado,$desde,$hasta):0;
         return [
             'filas' => $clienteListado>0
@@ -71,6 +79,7 @@ final class ControladorBuzonSol
             'cliente_en_vista_id'=>$clienteListado,
             'cliente_en_vista'=>$clienteListado>0?($idCliente===0?$clientePagina:((array_values(array_filter($clientes,static fn(array $c):bool=>(int)$c['id_cliente']===$clienteListado))[0]??null))):null,
             'total_empresa'=>$totalEmpresa,
+            'ultima_consulta_exitosa'=>$ultimaConsultaExitosa,
             'resumen' => $m->resumen($f),
             'clientes_disponibles' => $clientes,
             'sincronizacion' => $sincronizacion,

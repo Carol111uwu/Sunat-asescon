@@ -52,12 +52,16 @@ try {
     $entrada['ruta_progreso']=$cola->rutaProgresoTemporal($idTrabajo);
     if (empty($entrada['documento'])) {
         $entrada['documentos_adjuntos'] = [];
-        try {
-            require_once dirname(__DIR__,2).'/servicios/sunat/ServicioPrecargaAdjuntosSol.php';
-            $entrada['documentos_adjuntos']=(new ServicioPrecargaAdjuntosSol($conexion))->pendientes($idCliente,true,20);
-        } catch (Throwable $errorAdjuntos) {
-            if (!empty($solicitud['solo_adjuntos'])) throw $errorAdjuntos;
-            error_log('Buzón SOL: falló la preparación opcional de PDF (' . get_class($errorAdjuntos) . '). La consulta de notificaciones seguirá.');
+        // Las consultas normales traen SOLO metadatos. No descargar 20 PDF
+        // por empresa en cada ronda; eso ralentizaba la lectura de novedades.
+        if (!empty($solicitud['solo_adjuntos']) || getenv('ASESCON_PRECARGAR_PDF')==='1') {
+            try {
+                require_once dirname(__DIR__,2).'/servicios/sunat/ServicioPrecargaAdjuntosSol.php';
+                $entrada['documentos_adjuntos']=(new ServicioPrecargaAdjuntosSol($conexion))->pendientes($idCliente,true,20);
+            } catch (Throwable $errorAdjuntos) {
+                if (!empty($solicitud['solo_adjuntos'])) throw $errorAdjuntos;
+                error_log('Buzón SOL: preparación opcional de PDF: '.get_class($errorAdjuntos));
+            }
         }
         foreach ($entrada['documentos_adjuntos'] as &$adjunto) {
             $adjunto['directorio_adjuntos']=asesconRutaAlmacenamiento().'/sunat/buzon_sol/adjuntos/'.$idCliente.'/'.$adjunto['id_documento'];

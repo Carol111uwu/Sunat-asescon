@@ -44,5 +44,5 @@ if [ "$RELOJ_LIMA" -ge 0030 ] && [ "$RELOJ_LIMA" -lt 0200 ]; then exit 0; fi
   timeout -k 5s 900s "$PHP_BIN" -d session.gc_divisor=1000 "$PROYECTO/procesos/sincronizacion/procesar.php"
                                                                            
                                                            
-  /bin/bash "$PROYECTO/procesos/buzon_sunafil/procesar_cola.sh"
+  # SUNAFIL tiene su propio procesador Cron para evitar esperas detrás de SIRE.
 ) 8>"$RUNTIME/coordinador.lock" >>"$RUNTIME/cron.log" 2>&1

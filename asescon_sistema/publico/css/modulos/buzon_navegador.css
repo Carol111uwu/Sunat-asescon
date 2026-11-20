@@ -1,0 +1,7 @@
+
+.buzon-navegador-busqueda{max-width:570px;margin:10px 0;padding:12px;border:1px solid #d7e1f0;border-radius:12px}
+.buzon-navegador-input{display:flex;gap:8px;margin:6px 0}
+.buzon-navegador-input input{flex:1;min-width:0;padding:9px 11px;border:1px solid #cfdaea;border-radius:8px}
+.buzon-navegador-busqueda small{display:block;color:#566982}
+@media(max-width:600px){.buzon-navegador-input{flex-wrap:wrap}.buzon-navegador-input button{width:100%}}
+.buzon-fecha-exito{color:#345070;font-size:.89rem;margin:9px 0}
