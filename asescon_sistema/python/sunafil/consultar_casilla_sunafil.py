@@ -83,14 +83,18 @@ def folded(value: str) -> str:
 
 
 def is_sunafil_session(page) -> bool:
-                                                                              
     url = urlparse(page.url)
     text = folded(body_text(page))
-    return (url.scheme == "https" and url.hostname == HOST
-            and find_input(page, ["input[type=password]"]) is None
-            and bool(re.search(r"cerrar sesion|salir|logout", text))
-            and bool(re.search(r"bandeja|notificaciones|comunicaciones", text)))
 
+    return (
+        url.scheme == "https"
+        and url.hostname == HOST
+        and url.path.lower().startswith("/si.inbox/")
+        and find_input(page, ["input[type=password]"]) is None
+        and (("bienvenido" in text and "notificaciones de fiscalizacion" in text)
+             or (re.search(r"cerrar sesion|salir|logout", text)
+                 and re.search(r"bandeja|notificaciones|comunicaciones|orientacion", text)))
+    )
 
 def navigation_failure(exc: Exception) -> str:
                                                                             
@@ -227,19 +231,32 @@ def safe_internal_links(page) -> list[tuple[str, str]]:
             p = urlparse(href)
             if p.scheme != "https" or p.hostname != HOST:
                 continue
-            key = (text + " " + href).lower()
-            if not re.fullmatch(r"(?:bandeja(?: de entrada)?|notificaciones|comunicaciones|mensajes|alertas)(?:\s*\(\d+\))?", text, re.I):
+            if p.netloc != HOST or not p.path.lower().startswith("/si.inbox/"):
                 continue
-                                                                            
-            if any(k in key for k in ("detalle", "verdocumento", "archivo", ".pdf", "acuse", "confirm")):
+            if not p.path.rstrip("/").split("/")[-1] or href.split("#")[0] == page.url.split("#")[0]:
                 continue
-            if href in seen:
+            if re.search(r"detalle|acuse|confirm|aceptar|marcar|descarga|verdocumento", folded(href)):
+                continue
+            label = re.sub(r"\s*\(?\d+\)?$", "", folded(text)).strip()
+            categories = {
+                "notificaciones de fiscalizacion": "FISCALIZACION",
+                "notificaciones de cobranza": "COBRANZA",
+                "acciones previas": "ACCIONES PREVIAS",
+                "formalizacion": "FORMALIZACION",
+                "seguridad y salud en el trabajo": "SEGURIDAD Y SALUD EN EL TRABAJO",
+                "sunafil te orienta": "ORIENTACION",
+                "orientacion": "ORIENTACION",
+            }
+            section = categories.get(label)
+            if not section and label in ("notificaciones", "bandeja de entrada", "mensajes", "comunicaciones", "alertas"):
+                section = label.upper()
+            if not section or href in seen or href.endswith("#"):
                 continue
             seen.add(href)
-            links.append((text, href))
-    return links[:4]
+            links.append((section, href))
+    return links
 
-def table_records(page, section: str) -> list[dict[str, Any]]:
+def table_records(page, section: str, requested: str = "", download=None) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for f in frames(page):
         try:
@@ -255,11 +272,11 @@ def table_records(page, section: str) -> list[dict[str, Any]]:
         except Exception:
             continue
 
-        for table in tables:
+        for table_index, table in enumerate(tables):
             headers = [folded(x) for x in table.get("headers", [])]
-            if not any(any(k in h for k in ("asunto", "documento", "descripcion", "materia")) for h in headers):
+            if not any(any(k in h for k in ("asunto", "documento", "descripcion", "materia", "expediente", "mensaje", "orden de inspeccion")) for h in headers):
                 continue
-            for row in table.get("rows", []):
+            for row_index, row in enumerate(table.get("rows", [])):
                 cells = [clean(x) for x in row.get("cells", [])]
                 if not cells or all(not x for x in cells):
                     continue
@@ -292,7 +309,14 @@ def table_records(page, section: str) -> list[dict[str, Any]]:
                         if is_official_pdf_link(href):
                             pdf = href
 
+                if section in {"FISCALIZACION", "COBRANZA", "ACCIONES PREVIAS", "FORMALIZACION", "SEGURIDAD Y SALUD EN EL TRABAJO"}:
+                    identifier_seed = "|".join((section, identifier_seed, asunto, fecha_iso))
                 ident = hashlib.sha256(identifier_seed.encode("utf-8", "ignore")).hexdigest()[:40]
+                if requested == "SUNAFIL-" + ident and download is not None and not pdf:
+                    tr = f.locator("table").nth(table_index).locator("tbody tr").nth(row_index)
+                    current = [clean(cell) for cell in tr.locator("td").all_inner_texts()]
+                    if current == cells:
+                        download(tr)
                 records.append({
                     "identificador_externo": "SUNAFIL-" + ident,
                     "asunto": asunto[:255],
@@ -335,8 +359,10 @@ def generic_records(page, section: str) -> list[dict[str, Any]]:
             })
     return records
 
-def read_inbox(page) -> list[dict[str, Any]]:
-    pages = [("SUNAFIL", page.url)] + safe_internal_links(page)
+def read_inbox(page, requested: str = "", download=None) -> list[dict[str, Any]]:
+    pages = safe_internal_links(page)
+    if not any(section == "ORIENTACION" for section, _ in pages):
+        pages.append(("ORIENTACION", urljoin(SUNAFIL_PORTADA, "Orientacion/ListadoOrientacionEmpleador")))
     records = []
     recognized = False
     for section, url in pages:
@@ -350,7 +376,7 @@ def read_inbox(page) -> list[dict[str, Any]]:
             deadline = time.monotonic() + 10
             while True:
                 text = folded(body_text(page))
-                batch = table_records(page, section)
+                batch = table_records(page, section, requested, download)
                 if not batch:
                     batch = generic_records(page, section)
                 empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
@@ -449,21 +475,315 @@ def guardar_adjuntos(page, records: list[dict[str, Any]], carpeta: str, cliente:
                 temporal.unlink(missing_ok=True)
     return descargados
 
-
 def descargar_pdf_solicitado(page, req: dict[str, Any]) -> dict[str, Any]:
     identificador = clean(req.get("identificador_externo", ""))
     id_documento = int(req.get("id_documento", 0))
-    if id_documento < 1 or not re.fullmatch(r"SUNAFIL-[a-f0-9]{40}", identificador):
-        raise RuntimeError("La notificación SUNAFIL no está identificada.")
-    coincidencias = [r for r in read_inbox(page) if r["identificador_externo"] == identificador]
-    if len(coincidencias) != 1:
-        raise RuntimeError("La notificación ya no aparece en la casilla o no pudo identificarse.")
-    guardar_adjuntos(page, coincidencias, str(req.get("raiz_archivos", "")), int(req.get("id_cliente", 0)))
-    archivo = coincidencias[0].get("archivo", "")
-    if not archivo:
-        raise RuntimeError("SUNAFIL no entregó un PDF directo para esta notificación. Puedes vincular el archivo oficial manualmente.")
-    return {"id_documento": id_documento, "identificador_externo": identificador, "archivo": archivo}
+    cliente = int(req.get("id_cliente", 0))
+    raiz = str(req.get("raiz_archivos", ""))
 
+    if (
+        id_documento < 1
+        or cliente < 1
+        or not raiz
+        or not re.fullmatch(r"SUNAFIL-[a-f0-9]{40}", identificador)
+    ):
+        raise RuntimeError("Documento SUNAFIL no válido.")
+
+    # Keep the downloaded file private until the matching document is unique.
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as temp:
+        pending = Path(temp) / "adjunto.pdf"
+
+        def download_row(row):
+            controls = row.locator("a,button,input[type=button],input[type=submit]").all()
+            matches = []
+            for control in controls:
+                label = folded(control.evaluate("""el => [el.innerText, el.title,
+                    el.getAttribute('aria-label'), el.value,
+                    el.querySelector('img')?.alt].filter(Boolean).join(' ')"""))
+                if re.search(r"descargar|download", label) and not re.search(r"acuse|constancia|confirm|excel|zip", label):
+                    matches.append(control)
+            if len(matches) != 1 or not matches[0].is_visible():
+                return
+            try:
+                with page.expect_download(timeout=7000) as event:
+                    matches[0].click(timeout=5000)
+                item = event.value
+                source = item.url.removeprefix("blob:")
+                if urlparse(source).netloc == HOST and urlparse(source).scheme == "https":
+                    item.save_as(pending)
+                item.delete()
+            except Exception:
+                pending.unlink(missing_ok=True)
+
+        coincidencias = [r for r in read_inbox(page, identificador, download_row)
+                         if r["identificador_externo"] == identificador]
+        if len(coincidencias) == 1 and pending.is_file() and pending.stat().st_size <= 16 * 1024 * 1024:
+            pdf = pending.read_bytes()
+            if pdf.startswith(b"%PDF-"):
+                relative = Path("almacenamiento/sunafil/buzon_sunafil/adjuntos") / str(cliente) / "oficial" / (identificador + ".pdf")
+                target = Path(raiz) / relative
+                target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                with NamedTemporaryFile(dir=target.parent, delete=False) as handle:
+                    handle.write(pdf)
+                Path(handle.name).replace(target)
+                return {"id_documento": id_documento, "identificador_externo": identificador, "archivo": relative.as_posix()}
+
+    if len(coincidencias) != 1:
+        raise RuntimeError("No se identificó la notificación.")
+
+    guardar_adjuntos(page, coincidencias, raiz, cliente)
+
+    archivo = coincidencias[0].get("archivo", "")
+
+    if archivo:
+        return {
+            "id_documento": id_documento,
+            "identificador_externo": identificador,
+            "archivo": archivo
+        }
+
+    if coincidencias[0].get("categoria") != "ORIENTACION":
+        raise RuntimeError("No se encontró un PDF oficial.")
+
+    url = (
+        "https://casillaelectronica.sunafil.gob.pe"
+        "/si.inbox/Orientacion/ListadoOrientacionEmpleador"
+    )
+
+    goto_retry(page, url)
+    page.locator(
+    'button[type="submit"][id*=":dtAlertas:"]'
+).first.wait_for(state="visible", timeout=20000)
+    primera = page.locator(
+        '.dataTables_paginate a'
+    ).filter(has_text=re.compile(r'^1$'))
+
+    if primera.count() == 1:
+        primera.click()
+        page.wait_for_timeout(1500)
+
+    encontrado = False
+
+    for _ in range(30):
+        filas = page.locator(
+    'tr:has(button[type="submit"][id*=":dtAlertas:"])'
+).all()
+        candidatas = []
+
+        for fila in filas:
+            celdas = fila.locator(":scope > td").all_inner_texts()
+
+            if len(celdas) < 5:
+                continue
+
+            asunto = clean(celdas[2])
+            fecha = parse_date(celdas[1])
+
+            if not fecha:
+                continue
+
+            semilla = "|".join((asunto, "", fecha))
+            clave = "SUNAFIL-" + hashlib.sha256(
+                semilla.encode("utf-8", "ignore")
+            ).hexdigest()[:40]
+
+            if (
+                clave == identificador
+                or (
+                    asunto == coincidencias[0]["asunto"]
+                    and fecha == coincidencias[0]["fecha_recepcion"]
+                )
+            ):
+                candidatas.append(fila)
+
+        if len(candidatas) > 1:
+            raise RuntimeError("Documento duplicado en la bandeja.")
+
+        if len(candidatas) == 1:
+            boton = candidatas[0].locator(
+                'button[type="submit"][id*=":dtAlertas:"]'
+            )
+
+            if boton.count() != 1:
+                raise RuntimeError("No se reconoció el botón del documento.")
+
+            boton.click()
+
+            page.wait_for_url(
+                "**/Orientacion/DetallePlantillaOrientacionEmpleador",
+                timeout=20000
+            )
+
+            encontrado = True
+            break
+
+        siguiente = page.locator(
+            "li.paginate_button.next:not(.disabled) a"
+        )
+
+        if siguiente.count() != 1:
+            break
+
+        siguiente.click()
+        page.wait_for_timeout(1000)
+
+    if not encontrado:
+        raise RuntimeError("No se encontró el documento solicitado.")
+
+    if not is_sunafil_session(page):
+        raise RuntimeError("La sesión SUNAFIL se perdió.")
+
+    ruc = re.sub(r"\D", "", str(req.get("ruc", "")))
+
+    if not ruc or ruc not in body_text(page):
+        raise RuntimeError("No se pudo verificar el RUC del documento.")
+
+    page.wait_for_load_state("domcontentloaded")
+
+    page.wait_for_function(
+        """() => Array.from(document.images).every(
+            img => img.complete
+        )""",
+        timeout=15000
+    )
+
+    page.evaluate("""
+        () => {
+            const contenedor = Array.from(
+                document.querySelectorAll('.table-responsive')
+            ).find(el =>
+                el.innerText.includes('Estimado empleador')
+            );
+
+            if (!contenedor) {
+                throw new Error('No se encontró el contenido SUNAFIL');
+            }
+
+            const contenido = contenedor.cloneNode(true);
+
+            document.body.replaceChildren(contenido);
+            document.body.className = '';
+
+            contenido.id = 'documento-sunafil';
+        }
+    """)
+
+    page.add_style_tag(content="""
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 760px !important;
+            height: auto !important;
+            background: white !important;
+            overflow: visible !important;
+        }
+
+        #documento-sunafil {
+            width: 760px !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+
+        #documento-sunafil > table {
+            width: 760px !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+        }
+
+        table {
+            max-width: 100% !important;
+        }
+
+        td, tr {
+            height: auto !important;
+            max-width: 100% !important;
+        }
+
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
+        button, input, .btn {
+            display: none !important;
+        }
+    """)
+
+    relativo = (
+        Path("almacenamiento/sunafil/buzon_sunafil/adjuntos")
+        / str(cliente)
+        / "oficial"
+        / (identificador + ".pdf")
+    )
+
+    destino = Path(raiz) / relativo
+    destino.parent.mkdir(parents=True, exist_ok=True)
+
+
+    page.emulate_media(media="screen")
+
+    page.wait_for_function("""
+        () => Array.from(document.images).every(
+            img => img.complete && img.naturalWidth > 0
+        )
+    """, timeout=15000)
+
+    medidas = page.locator("#documento-sunafil").evaluate("""
+        el => ({
+            ancho: Math.ceil(Math.max(
+                el.scrollWidth, el.offsetWidth
+            )),
+            alto: Math.ceil(Math.max(
+                el.scrollHeight, el.offsetHeight
+            ))
+        })
+    """)
+
+    pdf = page.pdf(
+        width=f"{medidas['ancho'] + 40}px",
+        height=f"{medidas['alto'] + 100}px",
+        scale=1,
+        print_background=True,
+        prefer_css_page_size=False,
+        display_header_footer=True,
+        header_template="<span></span>",
+        footer_template="""
+            <div style="font-size:9px;width:100%;text-align:center;">
+                Copia del contenido SUNAFIL generada por ASESCON
+            </div>
+        """,
+        margin={
+            "top": "5mm",
+            "bottom": "10mm",
+            "left": "5mm",
+            "right": "5mm"
+        }
+    )
+
+
+
+
+
+    if not pdf.startswith(b"%PDF-") or len(pdf) > 15 * 1024 * 1024:
+        raise RuntimeError("No se generó un PDF válido.")
+
+    with NamedTemporaryFile(
+        dir=destino.parent,
+        delete=False
+    ) as temporal:
+        temporal.write(pdf)
+        ruta_temporal = Path(temporal.name)
+
+    ruta_temporal.replace(destino)
+
+    return {
+        "id_documento": id_documento,
+        "identificador_externo": identificador,
+        "archivo": relativo.as_posix()
+    }
 
 def main() -> None:
     try:

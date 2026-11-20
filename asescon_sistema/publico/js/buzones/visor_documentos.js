@@ -34,12 +34,18 @@
   get('visorDocumentoImprimir').disabled=!archivoUrl;
   const solicitud=d.solicitud_pdf||{};
   const mensaje=archivoUrl?'PDF disponible. Pulsa «Descargar PDF» para guardarlo o «Ver PDF aquí» para previsualizarlo.':
-      (solicitud.mensaje || 'Aún no se ha descargado este documento desde SUNAT.');
+      (solicitud.mensaje || 'Todavía no hay un PDF vinculado a esta notificación.');
   texto('visorDocumentoNota',mensaje);
   get('visorDocumentoNota').dataset.tipo=solicitud.estado==='ERROR'?'error':(['PENDIENTE','PROCESANDO'].includes(solicitud.estado)?'progreso':'info');
   if(archivoUrl){
     const descarga=new URL(archivoUrl);descarga.searchParams.set('descargar','1');get('visorDocumentoDescargar').href=descarga.href;
     get('visorDocumentoAbrir').textContent='Ver PDF aquí';
+    if (modal.dataset.buzon === 'SUNAFIL') {
+      const frame = get('visorDocumentoPdf');
+      frame.src = archivoUrl.href;
+      frame.hidden = false;
+      get('visorDocumentoAbrir').textContent = 'Ocultar PDF';
+    }
   }else{
     get('visorDocumentoPdf').hidden=true;get('visorDocumentoPdf').removeAttribute('src');
   }
