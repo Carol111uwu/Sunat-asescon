@@ -385,7 +385,17 @@ def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
                 if not batch:
                     batch = generic_records(page, section)
                 empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
-                if batch or empty or time.monotonic() >= deadline:
+                signature = tuple(r["identificador_externo"] for r in batch)
+                if batch and signature not in signatures:
+                    break
+                if empty and not batch and not signatures:
+                    break
+                if time.monotonic() >= deadline:
+                    if signatures:
+                        raise RuntimeError(
+                            "La paginación SUNAFIL no mostró filas nuevas en 10 segundos. "
+                            "No se guardaron resultados parciales."
+                        )
                     break
                 page.wait_for_timeout(500)
             if not batch and not empty:
@@ -410,7 +420,7 @@ def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
             if next_button is None:
                 break
             next_button.click()
-            page.wait_for_timeout(900)
+            
         else:
             raise RuntimeError("La bandeja supera el límite de 120 páginas. No se guardaron resultados parciales.")
     if not recognized:
@@ -983,7 +993,17 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
                 if not batch:
                     batch = generic_records(page, section)
                 empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
-                if batch or empty or time.monotonic() >= deadline:
+                              signature = tuple(r["identificador_externo"] for r in batch)
+                if batch and signature not in signatures:
+                    break
+                if empty and not batch and not signatures:
+                    break
+                if time.monotonic() >= deadline:
+                    if signatures:
+                        raise RuntimeError(
+                            "La paginación SUNAFIL no mostró filas nuevas en 10 segundos. "
+                            "No se guardaron resultados parciales."
+                        )
                     break
                 page.wait_for_timeout(500)
             if not batch and not empty:
@@ -1008,7 +1028,7 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
             if next_button is None:
                 break
             next_button.click()
-            page.wait_for_timeout(900)
+            
         else:
             raise RuntimeError("La bandeja supera el límite de 120 páginas. No se guardaron resultados parciales.")
     if not recognized:
