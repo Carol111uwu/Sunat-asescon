@@ -14,8 +14,10 @@ BUZON_URLS=(
 ENTRADAS_SOL=BUZON_URLS+('https://e-menu.sunat.gob.pe/cl-ti-itmenu/MenuInternet.htm',)
 
 class ErrorAccesoSol(RuntimeError):
-    def __init__(self,codigo:str,mensaje:str):
-        super().__init__(mensaje);self.codigo=codigo
+    def __init__(self, codigo: str, mensaje: str, causa: str | None = None):
+        super().__init__(mensaje)
+        self.codigo = codigo
+        self.causa = causa
 
 def clean(v)->str:return re.sub(r'\s+',' ',str(v or '')).strip()
 def frames(page):
@@ -46,29 +48,104 @@ def por_etiqueta(page,patron):
     return None
 def click_text(page,patterns)->bool:
     for f in frames(page):
+        if not origen_sol(f.url):
+            continue
         for patron in patterns:
             for role in ('button','link','tab'):
                 try:
                     for x in f.get_by_role(role,name=re.compile(patron,re.I)).all():
-                        if x.is_visible():x.click();return True
+                        if x.is_visible():
+                            x.click(timeout=2000)
+                            return True
                 except Exception:pass
     return False
 
-def abrir_bandeja_sol(page)->bool:
-                                                                  
+PATRON_BANDEJA = re.compile(
+    r'(?:lista|bandeja|buz[oó]n)\s+(?:de\s+)?(?:notificaciones|comunicaciones)|'
+    r'(?:notificaciones|comunicaciones)\s+recibidas', re.I
+)
+PATRON_VERIFICACION = re.compile(
+    r'no soy un robot|verificaci[oó]n interactiva|resuelve.{0,30}captcha', re.I
+)
+PATRON_CREDENCIALES = re.compile(
+    r'(usuario|clave|credencial).{0,100}(incorrect|inv[aá]lid|no existe)', re.I
+)
 
-                                                                     
-                                                                           
-       
-    texto=clean(body_text(page))
-    if re.search(r'(?:lista|bandeja)\s+de\s+(?:notificaciones|comunicaciones)|notificaciones\s+recibidas',texto,re.I):
-        return True
-    return click_text(page,[
+
+def origen_sol(url: str) -> bool:
+    origen = urlsplit(url)
+    host = origen.hostname or ''
+    return origen.scheme == 'https' and (host == 'sunat.gob.pe' or host.endswith('.sunat.gob.pe'))
+
+
+def bandeja_visible(page) -> bool:
+    for marco in frames(page):
+        if not origen_sol(marco.url):
+            continue
+        try:
+            if marco.locator('#listaMensajes > li:visible').count():
+                return True
+            texto = clean(marco.locator('body').inner_text(timeout=1000))
+            # Algunos módulos no usan encabezados semánticos.
+            if not PATRON_BANDEJA.search(texto):
+                continue
+            if marco.locator(
+                'table:visible tbody tr:visible td, [role=row]:visible, .mat-row:visible, '
+                '.p-datatable-tbody > tr:visible, .list-group-item:visible, [role=listitem]:visible, '
+                '.notification-item:visible, .inbox-item:visible, .mensaje-item:visible'
+            ).count():
+                return True
+            if re.search(
+                r'no\s+(?:hay|tiene)\s+(?:notificaciones|mensajes|documentos)|'
+                r'(?:sin|0)\s+(?:notificaciones|mensajes|documentos)', texto, re.I
+            ):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def abrir_bandeja_sol(page)->bool:
+    return bandeja_visible(page) or abrir_menu_buzon(page)
+
+
+def abrir_menu_buzon(page) -> bool:
+    return click_text(page, [
         r'^buz[oó]n(?:\s+sol|\s+electr[oó]nico)?$',
         r'^mis\s+notificaciones$',
         r'^bandeja(?:\s+de\s+entrada)?$',
         r'^comunicaciones\s+y\s+notificaciones$',
     ])
+
+
+def esperar_bandeja_sol(page, segundos: int, paginas_previas: set, menus_abiertos: set):
+    limite = time.monotonic() + segundos
+    while time.monotonic() < limite:
+        paginas = [p for p in page.context.pages if not p.is_closed()
+                   and (p is page or p not in paginas_previas) and origen_sol(p.url)]
+        for candidata in reversed(paginas):
+            if bandeja_visible(candidata):
+                return candidata
+            texto = body_text(candidata)
+            if PATRON_VERIFICACION.search(texto):
+                raise ErrorAccesoSol('SOL_VERIFICACION_INTERACTIVA',
+                                     'SUNAT solicita una verificación interactiva; complétala en el portal oficial.')
+            if PATRON_CREDENCIALES.search(texto):
+                raise ErrorAccesoSol('SOL_CREDENCIALES_RECHAZADAS',
+                                     'SOL rechazó el RUC, usuario o clave; los datos guardados no se modificaron.')
+            if find_input(candidata, ['input[type="password"]']) is not None:
+                continue
+            if candidata not in menus_abiertos and abrir_menu_buzon(candidata):
+                menus_abiertos.add(candidata)
+        if not page.is_closed():
+            page.wait_for_timeout(300)
+        elif paginas:
+            paginas[-1].wait_for_timeout(300)
+        else:
+            break
+    return None
+
+
 def _codigo_navegacion(error:Exception)->str:
                                                                                
     if isinstance(error,ErrorAccesoSol):return error.codigo
@@ -102,13 +179,13 @@ def goto_retry(page,url:str,attempts:int=2,timeout:int=16000)->None:
     causa=fallos[-1] if fallos else 'SIN_RESPUESTA'
     raise ErrorAccesoSol('SOL_PORTAL_NO_DISPONIBLE',
         'No se pudo cargar la entrada oficial de SOL desde este servidor. '
-        f'Causa de navegación: {causa}. Los registros anteriores se conservan.')
+        f'Causa de navegación: {causa}. Los registros anteriores se conservan.', causa=causa)
 def campos(page):
     ruc=find_input(page,['#txtRuc','#ruc','input[name*="ruc" i]','input[id*="ruc" i]','input[placeholder*="ruc" i]']) or por_etiqueta(page,r'\bruc\b')
     usuario=find_input(page,['#txtUsuario','#txtUser','#usuario','input[name*="usuario" i]','input[id*="usuario" i]','input[autocomplete="username"]']) or por_etiqueta(page,r'usuario|user')
     clave=find_input(page,['input[type="password"]']) or por_etiqueta(page,r'clave|contrase[nñ]a|password')
     return ruc,usuario,clave
-def login(page,ruc:str,usuario:str,clave:str)->None:
+def login(page,ruc:str,usuario:str,clave:str):
     formulario=None;error_carga=None;hubo_pagina=False
     for url in ENTRADAS_SOL:
         try:goto_retry(page,url,1,18000)
@@ -120,7 +197,7 @@ def login(page,ruc:str,usuario:str,clave:str)->None:
             ri,ui,pwd=campos(page)
             if ri is not None and ui is not None and pwd is not None:formulario=(ri,ui,pwd);break
             texto=body_text(page)
-            if re.search(r'no soy un robot|verificaci[oó]n interactiva|resuelve.{0,30}captcha',texto,re.I):
+            if PATRON_VERIFICACION.search(texto):
                 raise ErrorAccesoSol('SOL_VERIFICACION_INTERACTIVA','SUNAT solicita una verificación interactiva; complétala en el portal oficial.')
             page.wait_for_timeout(300)
         if formulario:break
@@ -131,30 +208,39 @@ def login(page,ruc:str,usuario:str,clave:str)->None:
                 'Revisar redirección, cambios de interfaz o verificaciones interactivas.')
         if error_carga:raise error_carga
         raise ErrorAccesoSol('SOL_FORMULARIO_NO_DISPONIBLE','SOL no mostró un formulario reconocible de RUC, usuario y clave. Puede haber una redirección o carga incompleta; esto no indica que tus credenciales hayan cambiado.')
-    u=urlsplit(page.url)
-    if not (u.scheme=='https' and (u.hostname=='sunat.gob.pe' or (u.hostname or '').endswith('.sunat.gob.pe'))):
+    if not origen_sol(page.url):
         raise ErrorAccesoSol('SOL_ORIGEN_INVALIDO','El formulario no pertenece a un dominio HTTPS oficial de SUNAT.')
     ri,ui,pwd=formulario
     for elemento in formulario:
-        origen=urlsplit(elemento.evaluate('(e)=>e.ownerDocument.location.href'))
-        if origen.scheme!='https' or not (origen.hostname=='sunat.gob.pe' or (origen.hostname or '').endswith('.sunat.gob.pe')):
+        if not origen_sol(elemento.evaluate('(e)=>e.ownerDocument.location.href')):
             raise ErrorAccesoSol('SOL_ORIGEN_INVALIDO','El campo de acceso no pertenece a un dominio HTTPS oficial de SUNAT.')
+    paginas_previas = set(page.context.pages)
+    menus_abiertos = set()
     ri.fill(ruc);ui.fill(usuario);pwd.fill(clave)
     if not click_text(page,[r'iniciar\s*sesi[oó]n',r'^ingresar$',r'^entrar$']):pwd.press('Enter')
-    try:page.wait_for_load_state('domcontentloaded',timeout=15000)
-    except Exception:pass
-    page.wait_for_timeout(1800)
-    texto=body_text(page)
-    if re.search(r'(usuario|clave|credencial).{0,100}(incorrect|inv[aá]lid|no existe)',texto,re.I):
-        raise ErrorAccesoSol('SOL_CREDENCIALES_RECHAZADAS','SOL rechazó el RUC, usuario o clave; los datos guardados no se modificaron.')
-    if find_input(page,['input[type="password"]']) is not None:
-        raise ErrorAccesoSol('SOL_AUTENTICACION_INCOMPLETA','El acceso SOL no terminó. Revisa el portal por si requiere una verificación o aviso adicional.')
-    if re.search(r'buz[oó]n.{0,30}electr[oó]nico|bandeja|notificaciones|comunicaciones',texto,re.I):
-        return
+
+    bandeja = esperar_bandeja_sol(page, 20, paginas_previas, menus_abiertos)
+    if bandeja is not None:
+        return bandeja
+
+    candidatas = [p for p in page.context.pages if not p.is_closed()
+                  and (p is page or p not in paginas_previas) and origen_sol(p.url)]
+    sesion = next((p for p in reversed(candidatas)
+                   if find_input(p, ['input[type="password"]']) is None), None)
+    if sesion is None:
+        raise ErrorAccesoSol('SOL_AUTENTICACION_INCOMPLETA',
+                             'SUNAT no terminó el acceso. Revisa si el portal solicita una verificación o muestra un aviso.')
+
+    causas = []
     for url in BUZON_URLS:
         try:
-            goto_retry(page,url,1,15000);page.wait_for_timeout(1500)
-            if find_input(page,['input[type="password"]']) is None and re.search(r'buz[oó]n|bandeja|notificaciones|comunicaciones',body_text(page),re.I):
-                return
-        except ErrorAccesoSol:pass
-    raise ErrorAccesoSol('SOL_BANDEJA_NO_DISPONIBLE','El acceso no mostró una bandeja SOL reconocible. Se conservan los documentos anteriores.')
+            goto_retry(sesion, url, 1, 15000)
+        except ErrorAccesoSol as error:
+            causas.append(error.causa or error.codigo)
+            continue
+        bandeja = esperar_bandeja_sol(sesion, 6, paginas_previas, set())
+        if bandeja is not None:
+            return bandeja
+    detalle = ' Último error de navegación: '+causas[-1]+'.' if causas else ''
+    raise ErrorAccesoSol('SOL_BANDEJA_NO_DISPONIBLE',
+        'SUNAT no mostró una bandeja reconocible después de iniciar el acceso.'+detalle+' Se conservan los documentos anteriores.')

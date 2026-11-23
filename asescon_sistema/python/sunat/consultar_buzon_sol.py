@@ -41,8 +41,8 @@ def abrir_sol_compatible(browser, ruc: str, usuario: str, clave: str):
         pagina = contexto.new_page()
         pagina.set_default_timeout(12000)
         try:
-            login(pagina, ruc, usuario, clave)
-            return contexto, pagina
+            pagina_bandeja = login(pagina, ruc, usuario, clave)
+            return contexto, pagina_bandeja
         except ErrorAccesoSol as error:
             contexto.close()
             if intento > 0 or error.codigo != 'SOL_PORTAL_NO_DISPONIBLE':
