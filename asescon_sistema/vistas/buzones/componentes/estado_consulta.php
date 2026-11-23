@@ -33,9 +33,9 @@ $documentoProceso=(int)($sincronizacion['id_documento']??0);
       <div><dt>Cola de espera</dt><dd data-detalle-cola><?=isset($colaProceso['posicion'])?'Turno '.(int)$colaProceso['posicion'].' de '.(int)$colaProceso['pendientes']:(int)($colaProceso['pendientes']??0).' solicitud(es) pendientes'?></dd></div>
       <div><dt>Espera en cola</dt><dd data-detalle-espera><?=isset($colaProceso['espera_segundos'])?(int)floor((int)$colaProceso['espera_segundos']/60).' min':'—'?></dd></div>
       <div><dt>Procesador Cron</dt><dd data-detalle-cron><?=$eProceso($cronProceso['mensaje']??'Sin datos del procesador.')?></dd></div>
-      <div><dt>Última planificación automática</dt><dd><?=!empty($cronProceso['ultima_planificacion'])?$eProceso(date('d/m/Y H:i:s',(int)$cronProceso['ultima_planificacion'])):'Sin registro'?></dd></div>
+      <div><dt>Última planificación automática</dt><dd data-detalle-cron-planificacion><?=!empty($cronProceso['ultima_planificacion'])?$eProceso(date('d/m/Y H:i:s',(int)$cronProceso['ultima_planificacion'])):'Sin registro'?></dd></div>
       <div><dt>Última actividad del procesador</dt><dd data-detalle-cron-ultima><?=!empty($cronProceso['ultima'])?$eProceso(date('d/m/Y H:i:s',(int)$cronProceso['ultima'])):'No registrada'?></dd></div>
-      <div><dt>Último trabajo terminado</dt><dd><?=$fechaProceso($sincronizacion['finalizado_en']??null)?></dd></div>
+      <div><dt>Último trabajo terminado</dt><dd data-detalle-finalizado><?=$fechaProceso($sincronizacion['finalizado_en']??null)?></dd></div>
       <div><dt>Registros consultados / nuevos</dt><dd data-detalle-resultados><?=(int)($sincronizacion['total']??0)?> / <?=(int)($sincronizacion['nuevos']??0)?></dd></div>
     </dl>
     <?php if($documentoProceso===0):?><button type="button" class="reference-btn" data-actualizar-consulta>Comprobar estado ahora</button><?php endif;?>

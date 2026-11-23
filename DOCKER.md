@@ -43,13 +43,14 @@ Antes del primer commit ejecuta `git status --short --ignored` y confirma que `a
 
 ## Tareas automáticas (antes Cron de cPanel)
 
-El servicio `tareas` usa la misma imagen y los mismos datos que la web. Ejecuta cada 5 minutos las 3 tareas
-que estaban en cPanel. Los horarios reales los controla cada script:
+El servicio `tareas` usa la misma imagen y los mismos datos que la web. Revisa cada minuto las colas de los buzones. El planificador de rondas, la sincronización general y la limpieza se comprueban cada cinco minutos.
 
 | Tarea | Script | Horario de trabajo |
 |---|---|---|
 | Sincronización nocturna (SUNAT, SIRE, SUNAFIL) | `procesos/sincronizacion/cron_nocturno.sh` | 2:00–3:00 a. m. |
-| Buzón SOL | `procesos/buzon_sol/procesar_cola.sh 0` | Continuo |
+| Procesador SOL | `procesos/buzon_sol/procesar_cola.sh 0` | Cada minuto |
+| Procesador SUNAFIL | `procesos/buzon_sunafil/procesar_cola.sh` | Cada minuto |
+| Rondas SOL y SUNAFIL | `procesos/buzones/planificar_rondas.php` | Cada cinco minutos; intervalo por empresa configurable |
 | Limpieza de almacenamiento | `procesos/almacenamiento/cron_limpieza.sh` | 12:40–1:50 a. m. |
 
 **Primera vez (una sola vez por servidor):** instalar el entorno privado (Python 3.13.18, Playwright y Chromium)
@@ -95,3 +96,11 @@ docker compose exec -T tareas tail -n 40 /var/www/html/asescon_datos_privados/al
 ```
 
 Esta actualización usa las tablas de la migración existente `2026_11_20_novedades_buzones.sql`. Verifica que esté aplicada en la base principal del servidor. En cada buzón, abre **Ver detalles** para revisar por separado la última planificación automática, la actividad del procesador y el último trabajo de la empresa. Para validar la ronda desde medianoche, compara el inicio y resultado en hora de Lima. Prueba primero una empresa conocida en SOL y SUNAFIL, y verifica su siguiente documento en la campana.
+
+Para distinguir un fallo de DNS, TCP, TLS o HTTP al abrir SUNAFIL, ejecuta desde la VPS:
+
+```bash
+docker compose exec -T -u www-data tareas python /var/www/html/asescon_sistema/python/sunafil/diagnosticar_red.py --sondear SUNAFIL
+```
+
+Cada procesador mantiene su bloqueo. Revisar la cola cada minuto reduce la espera de trabajos encolados. La frecuencia por empresa depende de `ASESCON_INTERVALO_BUZONES` y del tiempo que responda cada portal.

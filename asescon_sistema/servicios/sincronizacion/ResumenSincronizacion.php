@@ -18,6 +18,7 @@ final class ResumenSincronizacion
         'TICKET_SUNAT_SIN_RESPUESTA'=>'SUNAT no finalizó la consulta en dos horas. Mes pendiente de verificar; nunca se presume que tenga cero comprobantes.',
         'BUZON_SIN_RESPUESTA'=>'El trabajador del buzón no terminó en dos horas. Revisa su cron y los permisos de almacenamiento privado.',
         'BUZON_SOL_FALLIDO'=>'El conector SOL no terminó. Abre Buzón SOL para ver el diagnóstico del cliente.',
+        'BUZON_SUNAFIL_PARCIAL'=>'SUNAFIL guardó datos parciales. Abre la casilla para ver qué categorías quedaron pendientes.',
         'BUZON_SUNAFIL_FALLIDO'=>'El conector SUNAFIL no terminó. Abre SUNAFIL para ver el diagnóstico del cliente.',
         'CLIENTE_INACTIVO'=>'La empresa ya no está activa. No se realizó la consulta.',
     ];

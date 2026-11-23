@@ -19,7 +19,8 @@ try {
   'mensaje'=>(string)($estado['mensaje']??'No hay consultas activas.'),
   'total'=>(int)($estado['total']??0),'nuevos'=>(int)($estado['nuevos']??0),
   'cron_reciente'=>$cron['reciente'],'mensaje_cron'=>$cron['mensaje'],
-  'cron_ultima'=>$cron['ultima'],'solicitado_en'=>$estado['solicitado_en']??null,
+  'cron_ultima'=>$cron['ultima'],'cron_planificacion'=>$cron['ultima_planificacion'],
+        'finalizado_en'=>$estado['finalizado_en']??null,'solicitado_en'=>$estado['solicitado_en']??null,
   'actualizado_en'=>$estado['actualizado_en']??null,'cola'=>$detalleCola],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
 }catch(DomainException $e){if(http_response_code()<400)http_response_code(400);echo json_encode(['ok'=>false,'mensaje'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}
 catch(Throwable $e){error_log('Estado consulta SOL: '.get_class($e));http_response_code(500);echo json_encode(['ok'=>false,'mensaje'=>'No se pudo consultar el estado de SUNAT.'],JSON_UNESCAPED_UNICODE);}
