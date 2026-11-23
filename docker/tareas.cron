@@ -9,6 +9,6 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 */5 * * * * www-data . /etc/asescon-entorno.sh && /bin/bash /var/www/html/asescon_sistema/procesos/almacenamiento/cron_limpieza.sh >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1
 
 # Rondas SOL + SUNAFIL desde las 00:00 y revisiones escalonadas de novedades.
-*/5 * * * * www-data . /etc/asescon-entorno.sh && /usr/bin/php -d session.gc_divisor=1000 /var/www/html/asescon_sistema/procesos/buzones/planificar_rondas.php >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1
+*/5 * * * * www-data . /etc/asescon-entorno.sh && /usr/local/bin/php -d session.gc_divisor=1000 /var/www/html/asescon_sistema/procesos/buzones/planificar_rondas.php >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1
 # Procesar SUNAFIL de forma independiente del lote SIRE (incluida medianoche).
 */5 * * * * www-data . /etc/asescon-entorno.sh && /bin/bash /var/www/html/asescon_sistema/procesos/buzon_sunafil/procesar_cola.sh >> /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log 2>&1
