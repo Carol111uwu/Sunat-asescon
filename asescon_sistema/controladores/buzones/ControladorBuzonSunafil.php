@@ -29,14 +29,14 @@ final class ControladorBuzonSunafil
         }
     }
 
-    public function datos(string $estado = '', int $idCliente = 0,string $tipo='',string $desde='',string $hasta='',int $pagina=1,string $categoria=''): array
+    public function datos(string $estado = '', int $idCliente = 0,string $tipo='',string $desde='',string $hasta='',int $pagina=1,string $categoria='',int $empresa=0,int $paginaDocumentos=1): array
     {
         asesconExigirPermiso($this->conexion, 'BUZON_SUNAFIL', 'ver');
 
         $m = new BuzonSunafil($this->conexion);
         $f = asesconFiltroClientesSql($this->conexion, 'c');
         $clientes = [];
-        $r = $this->conexion->query("SELECT c.id_cliente,c.ruc,c.razon_social FROM clientes c WHERE {$f} AND c.estado='ACTIVO' ORDER BY c.razon_social");
+        $r = $this->conexion->query("SELECT c.id_cliente,c.ruc,c.razon_social FROM clientes c WHERE {$f} AND c.estado='ACTIVO' ORDER BY c.razon_social,c.id_cliente");
         if ($r) {
             while ($x = $r->fetch_assoc()) {
                 $clientes[] = $x;
@@ -65,8 +65,20 @@ final class ControladorBuzonSunafil
         $clientesPaginados=$idCliente===0?$clientes:[];
         $paginas=$idCliente===0?max(1,count($clientesPaginados)):($categoria==='FISCALIZACION'?1:max(1,(int)ceil($total/100)));
         $pagina=max(1,min($pagina,$paginas));
+        if ($idCliente === 0 && $empresa > 0) {
+            $indiceEmpresa = array_search($empresa, array_map('intval', array_column($clientesPaginados, 'id_cliente')), true);
+            if ($indiceEmpresa !== false) $pagina = $indiceEmpresa + 1;
+        }
         $clientePagina=$idCliente===0?($clientesPaginados[$pagina-1]??null):null;
         $clienteListado=$idCliente>0?$idCliente:(int)($clientePagina['id_cliente']??0);
+        if ($idCliente === 0 && $clienteListado > 0 && isset($cola)) {
+            try {
+                $sincronizacion = $cola->obtenerEstadoCliente($clienteListado);
+                $detalleCola = EstadoCronBuzon::detalleCola($cola->directorioBase(), $sincronizacion);
+            } catch (Throwable $e) {
+                error_log('Buzón SUNAFIL empresa visible: '.get_class($e));
+            }
+        }
         $ultimaConsultaExitosa=null;
         if($clienteListado>0){
             try{
@@ -75,10 +87,15 @@ final class ControladorBuzonSunafil
                     ->ultimaConsultaExitosa('SUNAFIL',$clienteListado);
             }catch(Throwable $e){error_log('Última consulta buzón: '.get_class($e));}
         }
+        $totalEmpresa=$clienteListado>0?$m->contarFiltrados($f,$estado,$clienteListado,$tipo,$desde,$hasta):0;
+        $paginasDocumentos=$categoria==='FISCALIZACION'?1:max(1,(int)ceil($totalEmpresa/100));
+        $paginaDocumentos=$idCliente===0?max(1,min($paginaDocumentos,$paginasDocumentos)):$pagina;
         return [
-            'filas' => $clienteListado>0?$m->listar($f,$estado,$clienteListado,$tipo,$desde,$hasta,$categoria==='FISCALIZACION'?0:100,$idCliente>0?($pagina-1)*100:0):[],
+            'filas' => $clienteListado>0?$m->listar($f,$estado,$clienteListado,$tipo,$desde,$hasta,$categoria==='FISCALIZACION'?0:100,($paginaDocumentos-1)*100):[],
             'total_filtrado'=>$total,'pagina_actual'=>$pagina,'total_paginas'=>$paginas,
             'cliente_pagina'=>$clientePagina,
+            'pagina_documentos'=>$paginaDocumentos,
+            'paginas_documentos'=>$paginasDocumentos,
             'tipos_disponibles'=>$m->tiposDisponibles($f),
             'resumen' => $resumen,
             'clientes_disponibles' => $clientes,

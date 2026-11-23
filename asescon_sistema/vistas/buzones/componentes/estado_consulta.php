@@ -7,7 +7,8 @@ $etiquetasProceso = [
     'ADJUNTOS_PENDIENTES'=>'Bandeja guardada; PDF pendientes', 'ERROR'=>'Error',
     'SIN_SOLICITUD'=>'Sin consulta anterior',
 ];
-$etiquetaProceso=$etiquetasProceso[$estadoProceso]??'Estado de consulta';
+$esParcial = !empty($sincronizacion['consulta_parcial']);
+$etiquetaProceso = $esParcial ? 'Consulta parcial' : ($etiquetasProceso[$estadoProceso] ?? 'Estado de consulta');
 $eProceso=static fn($valor):string=>htmlspecialchars((string)$valor,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 $fechaProceso=static function($valor)use($eProceso):string{
     $hora=strtotime((string)$valor);
@@ -26,13 +27,15 @@ $documentoProceso=(int)($sincronizacion['id_documento']??0);
   <div class="buzon-proceso-contenido">
     <p data-detalle-mensaje><?=$eProceso($sincronizacion['mensaje']??'No se ha solicitado ninguna consulta para esta empresa.')?></p>
     <dl>
-      <div><dt>Empresa / buzón</dt><dd><?=$eProceso($clientes[$idCliente]['razon_social']??'Cliente seleccionado')?> · <?=$eProceso($buzonCodigo??'')?></dd></div>
+      <div><dt>Empresa / buzón</dt><dd><?=$eProceso($clientes[$idCliente ?: ($empresaGuardada ?? 0)]['razon_social']??'Cliente seleccionado')?> · <?=$eProceso($buzonCodigo??'')?></dd></div>
       <div><dt>Solicitado</dt><dd data-detalle-solicitado><?=$fechaProceso($sincronizacion['solicitado_en']??null)?></dd></div>
       <div><dt>Última actualización</dt><dd data-detalle-actualizado><?=$fechaProceso($sincronizacion['actualizado_en']??null)?></dd></div>
       <div><dt>Cola de espera</dt><dd data-detalle-cola><?=isset($colaProceso['posicion'])?'Turno '.(int)$colaProceso['posicion'].' de '.(int)$colaProceso['pendientes']:(int)($colaProceso['pendientes']??0).' solicitud(es) pendientes'?></dd></div>
-      <div><dt>Tiempo desde la solicitud</dt><dd data-detalle-espera><?=isset($colaProceso['espera_segundos'])?(int)floor((int)$colaProceso['espera_segundos']/60).' min':'—'?></dd></div>
+      <div><dt>Espera en cola</dt><dd data-detalle-espera><?=isset($colaProceso['espera_segundos'])?(int)floor((int)$colaProceso['espera_segundos']/60).' min':'—'?></dd></div>
       <div><dt>Procesador Cron</dt><dd data-detalle-cron><?=$eProceso($cronProceso['mensaje']??'Sin datos del procesador.')?></dd></div>
-      <div><dt>Última ejecución de Cron</dt><dd data-detalle-cron-ultima><?=!empty($cronProceso['ultima'])?$eProceso(date('d/m/Y H:i:s',(int)$cronProceso['ultima'])):'No registrada'?></dd></div>
+      <div><dt>Última planificación automática</dt><dd><?=!empty($cronProceso['ultima_planificacion'])?$eProceso(date('d/m/Y H:i:s',(int)$cronProceso['ultima_planificacion'])):'Sin registro'?></dd></div>
+      <div><dt>Última actividad del procesador</dt><dd data-detalle-cron-ultima><?=!empty($cronProceso['ultima'])?$eProceso(date('d/m/Y H:i:s',(int)$cronProceso['ultima'])):'No registrada'?></dd></div>
+      <div><dt>Último trabajo terminado</dt><dd><?=$fechaProceso($sincronizacion['finalizado_en']??null)?></dd></div>
       <div><dt>Registros consultados / nuevos</dt><dd data-detalle-resultados><?=(int)($sincronizacion['total']??0)?> / <?=(int)($sincronizacion['nuevos']??0)?></dd></div>
     </dl>
     <?php if($documentoProceso===0):?><button type="button" class="reference-btn" data-actualizar-consulta>Comprobar estado ahora</button><?php endif;?>

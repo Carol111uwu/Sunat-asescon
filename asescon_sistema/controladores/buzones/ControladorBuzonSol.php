@@ -13,14 +13,14 @@ final class ControladorBuzonSol
     {
     }
 
-    public function datos(string $estado = '', string $categoria = '', int $idCliente = 0, string $desde='',string $hasta='',int $pagina=1): array
+    public function datos(string $estado = '', string $categoria = '', int $idCliente = 0, string $desde='',string $hasta='',int $pagina=1,int $empresa=0,int $paginaDocumentos=1): array
     {
         asesconExigirPermiso($this->conexion, 'BUZON_SOL', 'ver');
 
         $m = new BuzonSol($this->conexion);
         $f = asesconFiltroClientesSql($this->conexion, 'c');
         $clientes = [];
-        $r = $this->conexion->query("SELECT c.id_cliente,c.ruc,c.razon_social FROM clientes c WHERE {$f} AND c.estado='ACTIVO' ORDER BY c.razon_social");
+        $r = $this->conexion->query("SELECT c.id_cliente,c.ruc,c.razon_social FROM clientes c WHERE {$f} AND c.estado='ACTIVO' ORDER BY c.razon_social,c.id_cliente");
         if ($r) {
             while ($x = $r->fetch_assoc()) {
                 $clientes[] = $x;
@@ -35,7 +35,7 @@ final class ControladorBuzonSol
             $cron=EstadoCronBuzon::consultar($cola->directorioBase());
             if ($idCliente > 0 && asesconPuedeVerCliente($this->conexion, $idCliente)) {
                 $sincronizacion = $cola->obtenerEstadoCliente($idCliente);
-                $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$sincronizacion);
+                $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$sincronizacion,true);
             }
         } catch (Throwable $e) {
             error_log('Buzón SOL estado de servidor: '.get_class($e));
@@ -47,13 +47,17 @@ final class ControladorBuzonSol
         $clientesPaginados=$idCliente===0?$clientes:[];
         $totalPaginas=$idCliente===0?max(1,count($clientesPaginados)):max(1,(int)ceil($totalFiltrado/$porPagina));
         $pagina=max(1,min($pagina,$totalPaginas));
+        if ($idCliente === 0 && $empresa > 0) {
+            $indiceEmpresa = array_search($empresa, array_map('intval', array_column($clientesPaginados, 'id_cliente')), true);
+            if ($indiceEmpresa !== false) $pagina = $indiceEmpresa + 1;
+        }
         $clientePagina=$idCliente===0?($clientesPaginados[$pagina-1]??null):null;
         $clienteListado=$idCliente>0?$idCliente:(int)($clientePagina['id_cliente']??0);
         if ($idCliente===0 && $clienteListado>0) {
             try {
                 $cola = new ServicioColaBuzonSol();
                 $sincronizacion=$cola->obtenerEstadoCliente($clienteListado);
-                $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$sincronizacion);
+                $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$sincronizacion,true);
             } catch (Throwable $e) {
                 error_log('Buzón SOL empresa visible: '.get_class($e));
             }
@@ -67,15 +71,19 @@ final class ControladorBuzonSol
             }catch(Throwable $e){error_log('Última consulta buzón: '.get_class($e));}
         }
         $totalEmpresa=$clienteListado>0?$m->contarFiltrados($f,$estado,$categoria,$clienteListado,$desde,$hasta):0;
+        $paginasDocumentos=max(1,(int)ceil($totalEmpresa/$porPagina));
+        $paginaDocumentos=$idCliente===0?max(1,min($paginaDocumentos,$paginasDocumentos)):$pagina;
         return [
             'filas' => $clienteListado>0
                 ? $m->listar($f,$estado,$categoria,$clienteListado,$desde,$hasta,$porPagina,
-                    $idCliente===0?0:($pagina-1)*$porPagina,$idCliente===0)
+                    ($paginaDocumentos-1)*$porPagina,$idCliente===0)
                 : [],
             'total_filtrado'=>$totalFiltrado,
             'pagina_actual'=>$pagina,
             'total_paginas'=>$totalPaginas,
             'cliente_pagina'=>$clientePagina,
+            'pagina_documentos'=>$paginaDocumentos,
+            'paginas_documentos'=>$paginasDocumentos,
             'cliente_en_vista_id'=>$clienteListado,
             'cliente_en_vista'=>$clienteListado>0?($idCliente===0?$clientePagina:((array_values(array_filter($clientes,static fn(array $c):bool=>(int)$c['id_cliente']===$clienteListado))[0]??null))):null,
             'total_empresa'=>$totalEmpresa,

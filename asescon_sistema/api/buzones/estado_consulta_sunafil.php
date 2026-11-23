@@ -20,6 +20,7 @@ try {
     $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$estado);
     echo json_encode([
         'ok'=>true,'estado'=>(string)($estado['estado']??'SIN_SOLICITUD'),
+        'consulta_parcial'=>!empty($estado['consulta_parcial']),
         'mensaje'=>(string)($estado['mensaje']??'No hay consultas anteriores.'),
         'total'=>(int)($estado['total']??0),'nuevos'=>(int)($estado['nuevos']??0),
         'cron_reciente'=>$cron['reciente'],'mensaje_cron'=>$cron['mensaje'],

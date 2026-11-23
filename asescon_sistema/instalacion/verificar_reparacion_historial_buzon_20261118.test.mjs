@@ -20,8 +20,9 @@ test('Buzón SOL permite navegar por empresas autorizadas y separa totales',()=>
   assert.match(controlador,/\$clientesPaginados=\$idCliente===0\?\$clientes:/);
   assert.match(controlador,/cliente_en_vista_id/);
   const vista=ver('vistas/buzones/buzon_sol_sunat.php');
-  assert.match(vista,/aria-label="Empresa anterior"/);
-  assert.match(vista,/aria-label="Empresa siguiente"/);
+  const navegador=ver('vistas/buzones/componentes/navegador_empresas.php');
+  assert.match(navegador,/aria-label="Empresa anterior"/);
+  assert.match(navegador,/aria-label="Empresa siguiente"/);
   assert.match(vista,/Notificaciones de esta empresa/);
   assert.match(vista,/Notificaciones globales/);
   assert.match(vista,/Ver todas/);

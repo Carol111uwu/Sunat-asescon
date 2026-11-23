@@ -28,7 +28,7 @@ test('Ambos buzones permiten saltar a cualquier empresa autorizada en Ver todas'
   for(const vista of ['vistas/buzones/buzon_sol_sunat.php','vistas/buzones/buzon_sunafil.php'])
     assert.match(ver(vista),/componentes\/navegador_empresas\.php/);
   assert.match(nav,/clientes_disponibles/);
-  assert.match(js,/searchParams\.set\('pagina'/);
+  assert.match(js,/searchParams\.set\('empresa'/);
   assert.match(js,/searchParams\.set\('id_cliente','0'\)/);
 });
 test('Avisos nuevos: primera lectura = historial, después sólo identificadores nuevos',()=>{

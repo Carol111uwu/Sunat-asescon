@@ -87,12 +87,9 @@ try {
             $documentos=$datos['notificaciones'];
             require_once dirname(__DIR__,2).'/servicios/buzones/RegistroNovedadesBuzones.php';
             $avisadorBuzones=new RegistroNovedadesBuzones($conexion);
-            $marcadorAnterior=$avisadorBuzones->marcadorAnterior('SOL',$idCliente);
-            $conexion->begin_transaction();
-            try{$nuevos=(new BuzonSol($conexion))->guardarSincronizados($idCliente,$documentos);$conexion->commit();}
-            catch(Throwable $errorGuardado){$conexion->rollback();throw $errorGuardado;}
-            try { $avisadorBuzones->registrarExito('SOL',$idCliente,$marcadorAnterior); }
-            catch(Throwable $errorAvisos) { error_log('Avisos nuevos SOL: '.get_class($errorAvisos)); }
+            $nuevos = $avisadorBuzones->registrarExito('SOL', $idCliente,
+                fn (): int => (new BuzonSol($conexion))->guardarSincronizados($idCliente, $documentos)
+            );
             $totalDocumentos=count($documentos);
             if(!empty($solicitud['solo_adjuntos'])){$s=$conexion->prepare('SELECT COUNT(*) n FROM buzon_sol_sunat WHERE id_cliente=?');$s->bind_param('i',$idCliente);$s->execute();$totalDocumentos=(int)$s->get_result()->fetch_assoc()['n'];$s->close();}
             $pdfGuardados=0;

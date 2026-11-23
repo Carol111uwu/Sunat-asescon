@@ -12,6 +12,7 @@
   boton.addEventListener('click',()=>{
     const filas=[columnas.map(escapar).join(';')];
     for(const fila of tabla.querySelectorAll('tbody tr')){
+      if(fila.hidden)continue;
       const celdas=columnas.map(c=>Array.from(fila.cells).find(td=>td.dataset.label===c));
       if(celdas.some(c=>!c))continue;
       filas.push(celdas.map(c=>escapar(c.innerText)).join(';'));

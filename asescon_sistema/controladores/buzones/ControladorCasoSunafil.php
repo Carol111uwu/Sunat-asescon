@@ -57,7 +57,7 @@ final class ControladorCasoSunafil
         $avances = $seguimientoDisponible && $verAvances ? $this->seguimiento->avances($id, $cliente) : [];
         $estadoPdf = [];
         try {
-            $estadoPdf = (new ServicioColaBuzonSunafil())->obtenerEstadoCliente($cliente);
+            $estadoPdf = (new ServicioColaBuzonSunafil())->obtenerEstadoDocumento($cliente, $id);
         } catch (Throwable $error) {
             error_log('Estado SUNAFIL: '.get_class($error));
         }

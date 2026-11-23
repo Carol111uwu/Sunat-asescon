@@ -44,7 +44,7 @@ test('SUNAFIL: filtros del servidor, consulta separada y detalle de requerimient
   assert.match(controlador,/contarFiltrados\(/);
   assert.match(modelo,/clientesConNotificaciones\(/);
   assert.match(controlador,/\$clienteListado>0\?\$m->listar\(/);
-  assert.match(vista,/Siguiente empresa/);
+  assert.match(ver('vistas/buzones/componentes/navegador_empresas.php'),/Siguiente ›/);
   assert.match(modelo,/b\.tipo_documento=/);
   assert.match(modelo,/DATE\(COALESCE\(b\.fecha_recepcion,b\.fecha_documento\)\)/);
   assert.match(ver('procesos/buzon_sunafil/preparar_solicitud.php'),/obtenerSolPorCliente\(\$idCliente\)/);

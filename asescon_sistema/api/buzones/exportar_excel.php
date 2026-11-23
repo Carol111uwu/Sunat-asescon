@@ -24,6 +24,10 @@ if ($buzon === 'SOL') {
     $filtro = AccesoCasosSol::filtro($conexion, $filtro, 'b', false);
     $documentos = (new BuzonSol($conexion))->listar('('.$filtro.')', $estado, $tipo, $cliente, $desde, $hasta, 50, 0, true);
 } else {
+    $categoria = (string)($_GET['categoria'] ?? '');
+    if (in_array($categoria, ['FISCALIZACION','COBRANZA','ACCIONES_PREVIAS','FORMALIZACION','SEGURIDAD_SALUD','ORIENTACION'], true)) {
+        $filtro = "({$filtro}) AND b.categoria='".$conexion->real_escape_string($categoria)."'";
+    }
     $documentos = (new BuzonSunafil($conexion))->listar($filtro, $estado, $cliente, $tipo, $desde, $hasta);
 }
 $filas = [];

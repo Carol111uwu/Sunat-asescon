@@ -79,3 +79,19 @@ usuario y no la del proxy. Si el proxy recibió la visita por HTTPS, PHP ve `HTT
 
 Los archivos `configuracion/*.servidor.php` (contraseñas) ya no entran a la imagen. En Docker la configuración llega
 por variables de entorno (`.env`).
+
+## Actualización de buzones en la VPS
+
+Después de fusionar los cambios en GitHub, actualiza la copia de la VPS y reconstruye ambos servicios PHP con la configuración y los volúmenes existentes.
+
+```bash
+git pull --ff-only
+export ASESCON_REVISION="$(git rev-parse HEAD)"
+docker compose config --quiet
+docker compose up -d --build --no-deps app tareas
+docker compose ps
+docker compose exec -T tareas /usr/local/bin/php -l /var/www/html/asescon_sistema/procesos/buzones/planificar_rondas.php
+docker compose exec -T tareas tail -n 40 /var/www/html/asescon_datos_privados/almacenamiento/sincronizacion/cron_docker.log
+```
+
+Esta actualización usa las tablas de la migración existente `2026_11_20_novedades_buzones.sql`. Verifica que esté aplicada en la base principal del servidor. En cada buzón, abre **Ver detalles** para revisar por separado la última planificación automática, la actividad del procesador y el último trabajo de la empresa. Para validar la ronda desde medianoche, compara el inicio y resultado en hora de Lima. Prueba primero una empresa conocida en SOL y SUNAFIL, y verifica su siguiente documento en la campana.

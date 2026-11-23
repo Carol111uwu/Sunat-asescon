@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Un evento se crea por notificación realmente nueva respecto del último inventario.
  * El primer sondeo establece la línea base y NUNCA anuncia el historial.
- * Fallos del subsistema de avisos no abortan el guardado del buzón.
+ * Las novedades y el inventario guardado comparten una transacción.
  */
 final class RegistroNovedadesBuzones
 {
@@ -37,30 +37,45 @@ final class RegistroNovedadesBuzones
         return $max;
     }
 
-    public function registrarExito(string $buzon,int $idCliente,int $mayorAnterior): void
+    public function registrarExito(string $buzon, int $idCliente, callable $guardar, bool $completa = true): int
     {
-        if (!$this->disponible()) return;
-        if (!in_array($buzon,['SOL','SUNAFIL'],true) || $idCliente<1) return;
-        $tabla=$buzon==='SOL'?'buzon_sol_sunat':'buzon_sunafil';
+        if (!in_array($buzon, ['SOL', 'SUNAFIL'], true) || $idCliente < 1) {
+            throw new InvalidArgumentException('Sondeo de buzón no válido.');
+        }
+        $disponible = $this->disponible();
+        $tabla = $buzon === 'SOL' ? 'buzon_sol_sunat' : 'buzon_sunafil';
         $this->db->begin_transaction();
         try {
-            $q=$this->db->prepare("SELECT inicializado FROM buzon_sondeos WHERE id_cliente=? AND buzon=? FOR UPDATE");
-            $q->bind_param('is',$idCliente,$buzon);$q->execute();
-            $yaInicializado=$q->get_result()->fetch_assoc()!==null;$q->close();
+            $yaInicializado = false;
+            $mayorAnterior = 0;
+            if ($disponible) {
+                $q = $this->db->prepare("SELECT inicializado FROM buzon_sondeos WHERE id_cliente=? AND buzon=? FOR UPDATE");
+                $q->bind_param('is', $idCliente, $buzon);
+                $q->execute();
+                $yaInicializado = (int)($q->get_result()->fetch_assoc()['inicializado'] ?? 0) === 1;
+                $q->close();
+                if ($yaInicializado) $mayorAnterior = $this->marcadorAnterior($buzon, $idCliente);
+            }
+            $nuevos = $guardar();
             if($yaInicializado) {
-                // El contador se basa en PK internas, no en asunto, fecha ni posición.
-                $q=$this->db->prepare("INSERT IGNORE INTO buzon_novedades(buzon,id_cliente,id_documento)
+                $q = $this->db->prepare("INSERT IGNORE INTO buzon_novedades(buzon,id_cliente,id_documento)
                     SELECT ?, ?, b.id_documento FROM {$tabla} b
                     WHERE b.id_cliente=? AND b.id_documento > ?");
-                $q->bind_param('siii',$buzon,$idCliente,$idCliente,$mayorAnterior);
-                $q->execute();$q->close();
+                $q->bind_param('siii', $buzon, $idCliente, $idCliente, $mayorAnterior);
+                $q->execute();
+                $q->close();
             }
-            $q=$this->db->prepare("INSERT INTO buzon_sondeos(id_cliente,buzon,ultima_consulta_exitosa,inicializado)
-                VALUES(?,?,NOW(),1)
-                ON DUPLICATE KEY UPDATE ultima_consulta_exitosa=VALUES(ultima_consulta_exitosa),inicializado=1");
-            $q->bind_param('is',$idCliente,$buzon);$q->execute();$q->close();
+            if ($disponible && $completa) {
+                $q = $this->db->prepare("INSERT INTO buzon_sondeos(id_cliente,buzon,ultima_consulta_exitosa,inicializado)
+                    VALUES(?,?,NOW(),1)
+                    ON DUPLICATE KEY UPDATE ultima_consulta_exitosa=VALUES(ultima_consulta_exitosa),inicializado=1");
+                $q->bind_param('is', $idCliente, $buzon);
+                $q->execute();
+                $q->close();
+            }
             $this->db->commit();
-        } catch(Throwable $e) {
+            return $nuevos;
+        } catch (Throwable $e) {
             $this->db->rollback();
             throw $e;
         }

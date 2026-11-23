@@ -5,3 +5,10 @@
 .buzon-navegador-busqueda small{display:block;color:#566982}
 @media(max-width:600px){.buzon-navegador-input{flex-wrap:wrap}.buzon-navegador-input button{width:100%}}
 .buzon-fecha-exito{color:#345070;font-size:.89rem;margin:9px 0}
+.buzon-navegador{margin-bottom:1rem;padding:1rem}
+.buzon-navegador-contexto,.buzon-navegador-flechas{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.buzon-navegador-contexto{justify-content:space-between}
+.buzon-navegador-contexto strong,.buzon-navegador-contexto small{display:block}
+.buzon-navegador .buzon-navegador-busqueda{margin-bottom:0}
+.buzon-navegador input{width:100%}
+.buzon-navegador button:disabled{opacity:.55}
