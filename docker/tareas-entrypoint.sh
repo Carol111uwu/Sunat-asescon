@@ -17,5 +17,5 @@ if [ ! -f /var/www/html/asescon_recursos_privados/RUNTIME_OK ]; then
     echo '  docker compose exec -u www-data tareas asescon-instalar-entorno' >&2
 fi
 
-echo '[tareas] cron iniciado (5 tareas cada 5 minutos).'
+echo '[tareas] cron iniciado; procesadores SOL y SUNAFIL cada minuto.'
 exec cron -f

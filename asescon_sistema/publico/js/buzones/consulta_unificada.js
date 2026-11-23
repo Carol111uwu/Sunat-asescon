@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mensaje=formulario.querySelector('.buzon-consulta-aviso');
   const panel=document.querySelector('.buzon-proceso-detalle[data-buzon-documento="0"]');
   let vigilando=false;
+  let enviando=false;
   let ultimoEstado=panel?.dataset.buzonEstado||'SIN_SOLICITUD';
   const mostrar=(texto,tipo='info')=>{
     if(!mensaje)return;
@@ -52,7 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     texto('[data-detalle-cola]',cola.posicion!==null&&cola.posicion!==undefined?'Turno '+cola.posicion+' de '+(cola.pendientes||1):(cola.pendientes||0)+' solicitud(es) pendientes');
     texto('[data-detalle-espera]',cola.espera_segundos===null||cola.espera_segundos===undefined?'—':Math.floor(cola.espera_segundos/60)+' min');
     texto('[data-detalle-cron]',s.mensaje_cron||'No hay información reciente del procesador.');
-    texto('[data-detalle-cron-ultima]',s.cron_ultima?fecha(s.cron_ultima*1000):'No registrada');
+    if ('cron_ultima' in s) texto('[data-detalle-cron-ultima]',s.cron_ultima?fecha(s.cron_ultima*1000):'No registrada');
+    if ('cron_planificacion' in s) texto('[data-detalle-cron-planificacion]',s.cron_planificacion?fecha(s.cron_planificacion*1000):'Sin registro');
+    if ('finalizado_en' in s) texto('[data-detalle-finalizado]',fecha(s.finalizado_en));
     texto('[data-detalle-resultados]',(s.total||0)+' / '+(s.nuevos||0));
   }
   panel?.addEventListener('toggle',()=>texto('[data-detalles-etiqueta]',panel.open?'Ocultar detalles':'Ver detalles'));
@@ -94,14 +97,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function detener(){
     vigilando=false;
+    if (enviando) return;
     boton.disabled=formulario.dataset.consultaPermitida==='0'||(!Number(cliente?.value||0)&&formulario.dataset.todosPermitidos!=='1');
     boton.textContent=Number(cliente?.value||0)>0?'Consultar empresa':('Consultar / reintentar todas');
   }
   async function vigilar(id){
     if(vigilando||id<1)return;
     vigilando=true;
-    boton.disabled=true;
-    boton.textContent='Consulta en curso';
+    if (Number(cliente?.value||0) === id) {
+      boton.disabled=true;
+      boton.textContent='Consulta en curso';
+    }
     let erroresConsecutivos=0;
                                                                               
     for(let intento=0;intento<18;intento++){
@@ -147,11 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
     finally{b.disabled=false;b.textContent='Comprobar estado ahora';}
   });
   formulario.addEventListener('submit',async event=>{
-    if(vigilando){event.preventDefault();return;}
     const id=Number(cliente?.value||0);
+    if(enviando||(vigilando&&id>0)){event.preventDefault();return;}
     const todos=formulario.dataset.todosPermitidos==='1';
     if(!id&&!todos){event.preventDefault();mostrar('Elige una empresa antes de consultar.','error');return;}
                                                               
+    enviando=true;
     if(buzon!=='SOL'||id<1){boton.disabled=true;boton.textContent='Programando…';return;}
     event.preventDefault();
     boton.disabled=true;boton.textContent='Registrando…';
@@ -162,10 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
       },18);
       actualizarPanel({estado:'PENDIENTE',mensaje:'Solicitud registrada. A la espera del procesador Cron.',cola:{pendientes:1}});
       mostrar('Solicitud registrada. Abre «+» para revisar los detalles.','progreso');
-      boton.disabled=false;
+      enviando=false;
       vigilar(id);
     }catch(error){
       mostrar('No se pudo confirmar la solicitud: '+error.message+' Comprueba el estado antes de volver a enviar.','error');
+      enviando=false;
       detener();
     }
   });

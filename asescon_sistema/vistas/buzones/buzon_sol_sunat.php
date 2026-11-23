@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/../../configuracion/inicializacion.php';
 require_once __DIR__.'/../../controladores/buzones/ControladorBuzonSol.php';
+require_once __DIR__.'/../../servicios/archivos/ServicioArchivosPrivados.php';
 asesconExigirPermiso($conexion,'BUZON_SOL','ver');
 $moduloActivo='BUZON_SOL';
 $estado=trim((string)($_GET['estado']??''));
@@ -29,6 +30,7 @@ $csrfDocumento=asesconCsrf('csrf_buzon_sol');
 $chips=['COACTIVA','ORDEN DE PAGO','ESQUELA','FISCALIZACION','FRACCIONAMIENTO','EMBARGO','INDUCTIVA','MULTA'];
 $mensajeGlobal=$_SESSION['mensaje_buzones_global']??null;
 unset($_SESSION['mensaje_buzones_global']);
+$archivosSol = new ServicioArchivosPrivados();
 $puedeConsultarBuzon=asesconTienePermiso($conexion,'BUZON_SOL','editar');
 $puedeConsultarTodos=asesconEsPrincipal($conexion)&&$puedeConsultarBuzon;
 $urlConsulta=asesconUrl('api/buzones/solicitar_consulta_sol.php');
@@ -42,14 +44,20 @@ $mensajeVacioBuzon = $bandejaVaciaConfirmada
 ?>
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buzón SOL SUNAT - ASESCON</title><link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui3"><link rel="stylesheet" href="../../publico/css/modulos/sunat.css"><link rel="stylesheet" href="../../publico/css/modulos/buzon_sol_responsive.css?v=20261022_3"><link rel="stylesheet" href="<?=htmlspecialchars(asesconRecurso('publico/css/modulos/buzones_ordenados.css'))?>"><link rel="stylesheet" href="<?=htmlspecialchars(asesconRecurso('publico/css/modulos/asescon_sol_ajustes_20261118.css'))?>"></head><body><div class="app"><?php require __DIR__.'/../componentes/menu_lateral.php';?><main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?><section class="content buzon-renovado">
 <?php $estadoSync=strtoupper((string)($sincronizacion['estado']??''));$syncActivo=in_array($estadoSync,['PENDIENTE','PROCESANDO'],true);?>
-<div class="page-header buzon-sol-page-header"><div><h1>✉ Buzón SOL SUNAT</h1><p>Revisa las notificaciones oficiales recuperadas y organiza el trabajo del equipo.</p></div><div class="reference-head-actions buzon-sol-head-actions"><a class="reference-btn" href="?<?=htmlspecialchars(http_build_query(array_replace($parametrosGuardados,['id_cliente'=>0,'empresa'=>$idCliente ?: $empresaGuardada])))?>" title="Ver todas las empresas, una por una">Ver todas</a><button type="button" class="reference-btn" data-refresh title="Actualizar las notificaciones almacenadas">Actualizar lista</button><button type="button" class="reference-btn" id="exportarBuzonSolCsv" title="Descargar las filas visibles como CSV">Exportar página (CSV)</button><?php if ((int)($cliente_en_vista_id) > 0): ?><a class="reference-btn" href="../../api/buzones/exportar_excel.php?<?=htmlspecialchars(http_build_query(['buzon'=>'SOL','id_cliente'=>(int)($cliente_en_vista_id),'tipo'=>$categoria,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta]), ENT_QUOTES)?>">Excel de esta empresa (hasta 50 filas)</a><?php endif; ?></div></div>
+<div class="page-header buzon-sol-page-header">
+    <div><h1>✉ Buzón SOL SUNAT</h1><p>Revisa las notificaciones oficiales recuperadas y organiza el trabajo del equipo.</p></div>
+    <div class="reference-head-actions buzon-sol-head-actions">
+        <a class="reference-btn" href="?<?=htmlspecialchars(http_build_query(array_replace($parametrosGuardados,['id_cliente'=>0,'empresa'=>$idCliente ?: $empresaGuardada])))?>">Ver todas</a>
+        <button type="button" class="reference-btn" data-refresh>Actualizar lista</button>
+    </div>
+</div>
 <?php $buzonCodigo='SOL'; require __DIR__.'/componentes/navegador_empresas.php'; ?>
 <section class="reference-panel buzon-comando" aria-labelledby="tituloConsultarSol">
   <div class="buzon-comando-intro"><span class="buzon-kicker">CONSULTA OFICIAL · SUNAT</span><h2 id="tituloConsultarSol">Consultar Buzón SOL</h2><p>Selecciona una empresa o consulta todas. Cada una mantiene sus propios resultados y estado. No se filtra por mes; se muestran todas las notificaciones guardadas.</p></div>
   <form class="buzon-comando-form buzon-sol-sync-form" method="post" action="../../controladores/buzones/ControladorBuzonSol.php" data-consulta-permitida="<?=$puedeConsultarBuzon?'1':'0'?>" data-buzon-consulta="SOL" data-url-solicitar="<?=htmlspecialchars($urlConsulta)?>" data-url-estado="<?=htmlspecialchars($urlEstado)?>" data-todos-permitidos="<?=$puedeConsultarTodos?'1':'0'?>" data-cliente-visible="<?=(int)($cliente_en_vista_id??0)?>">
     <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>"><input type="hidden" name="accion" value="sincronizar"><input type="hidden" name="alcance" value="todos">
     <label class="reference-field" for="buzonSolCliente">Empresa a consultar<select id="buzonSolCliente" name="id_cliente" data-buzon-cliente><option value="0">Ver todas las empresas · una por una<?php if(!$puedeConsultarTodos):?> (solo visualización)<?php endif;?></option><?php foreach($clientes as $id=>$c):?><option value="<?=$id?>" <?=$idCliente===$id?'selected':''?>><?=htmlspecialchars($c['razon_social'].' · RUC '.$c['ruc'])?></option><?php endforeach;?></select></label>
-    <button type="submit" class="reference-btn primary buzon-boton-consultar" <?=!$puedeConsultarBuzon||($idCliente===0&&!$puedeConsultarTodos)||($idCliente>0&&$syncActivo)?'disabled':''?>><?=$syncActivo?'Consultando…':($idCliente===0?'Consultar / reintentar todas':'Consultar en el portal')?></button>
+    <button type="submit" class="reference-btn primary buzon-boton-consultar" <?=!$puedeConsultarBuzon||($idCliente===0&&!$puedeConsultarTodos)||($idCliente>0&&$syncActivo)?'disabled':''?>><?=($idCliente>0&&$syncActivo)?'Consultando…':($idCliente===0?'Consultar / reintentar todas':'Consultar en el portal')?></button>
     <span class="buzon-consulta-aviso" id="buzonSolMensajeConsulta" role="status" aria-live="polite" hidden></span>
   </form>
   <div class="buzon-estado-servicio" data-cron-reciente="<?=!empty($estado_cron['reciente'])?'1':'0'?>"><span class="buzon-punto" aria-hidden="true"></span><span><?=htmlspecialchars((string)$estado_cron['mensaje'])?></span></div>
@@ -98,7 +106,7 @@ $mensajeVacioBuzon = $bandejaVaciaConfirmada
                     <td colspan="8"><div class="reference-empty"><?=htmlspecialchars($mensajeVacioBuzon,ENT_QUOTES,'UTF-8')?></div></td>
                 </tr>
             <?php else:foreach($filas as $d):$f=$d['fecha_recepcion']?:$d['fecha_documento'];?>
-                <?php $idNota=(int)$d['id_documento'];$tienePdf=trim((string)($d['archivo']??''))!==''; ?>
+                <?php $idNota=(int)$d['id_documento'];$referenciaPdf=(string)($d['archivo']??'');$tienePdf=$referenciaPdf!==''&&$archivosSol->resolver($referenciaPdf,'SOL')!==null; ?>
                 <tr data-id-notificacion="<?php echo $idNota;?>">
                     <td data-label="F. notificación"><?php echo $f?htmlspecialchars(date('d/m/Y H:i',strtotime($f))):'—';?></td>
                     <td data-label="Cliente"><strong class="buzon-sol-cliente-nombre"><?php echo htmlspecialchars((string)($d['razon_social']?:'Sin cliente'));?></strong><span class="buzon-sol-cliente-ruc">RUC <?php echo htmlspecialchars((string)($d['ruc']?:'—'));?></span></td>
@@ -109,7 +117,11 @@ $mensajeVacioBuzon = $bandejaVaciaConfirmada
                     <td data-label="Prioridad"><?php echo htmlspecialchars((string)($d['prioridad']?:'NORMAL'));?></td>
                     <td data-label="Acciones"><div class="buzon-barra-acciones" role="group" aria-label="Acciones de la notificación">
                         <button type="button" class="buzon-icono" data-buzon-detalle="SOL" data-accion-inicial="ver" data-id-documento="<?= $idNota ?>" <?= etiquetaAccionBuzon('Ver detalle') ?>><?= iconoAccionBuzonSol('ver') ?></button>
-                        <button type="button" class="buzon-icono" data-buzon-pdf="<?= $idNota ?>" <?= (!$tienePdf && !$permisoEditarBuzon) ? 'disabled' : '' ?> <?= etiquetaAccionBuzon($tienePdf ? 'Descargar PDF guardado' : 'Solicitar PDF oficial a SUNAT (puede marcar la notificación como leída)') ?>><?= iconoAccionBuzonSol('descargar') ?></button>
+                        <?php if ($tienePdf): ?>
+                            <a class="reference-btn buzon-sol-pdf" href="<?=htmlspecialchars(asesconUrl('api/buzones/archivo_documento.php').'?'.http_build_query(['buzon'=>'SOL','id_documento'=>$idNota,'descargar'=>1]), ENT_QUOTES, 'UTF-8')?>">Descargar PDF</a>
+                        <?php elseif ($permisoEditarBuzon): ?>
+                            <button type="button" class="reference-btn buzon-sol-pdf" data-buzon-pdf="<?=$idNota?>" title="Solicitar a SUNAT puede marcar la notificación como leída en el portal">Solicitar PDF</button>
+                        <?php endif; ?>
                         <button type="button" class="buzon-icono" data-accion-buzon="notas" data-id-documento="<?= $idNota ?>" <?= etiquetaAccionBuzon('Añadir nota') ?>><?= iconoAccionBuzonSol('notas') ?></button>
                         <?php if ($permisoEditarBuzon): $pendiente = $d['estado'] === 'NO_REVISADO'; ?>
                             <form method="post" action="../../controladores/buzones/ControladorBuzonSol.php">
@@ -141,4 +153,4 @@ $mensajeVacioBuzon = $bandejaVaciaConfirmada
 <?php if($puedeAsignarCaso):?><script defer src="<?=htmlspecialchars(asesconUrl('publico/js/buzones/ventanas/asignacion.js'))?>?v=20261023_1"></script><?php endif;?>
 <footer>© <?= (int)(new DateTimeImmutable("now", new DateTimeZone("America/Lima")))->format("Y") ?> ASESCON - Todos los derechos reservados.</footer></section></main></div><script src="../../publico/js/navegacion/menu_lateral.js"></script><script src="../../publico/js/navegacion/busqueda_clientes.js?v=20261014_1"></script><script src="../../publico/js/navegacion/menu_movil.js"></script><script src="../../publico/js/interfaz/componentes_interfaz.js?v=20260915_3"></script><link rel="stylesheet" href="<?=htmlspecialchars(asesconUrl('publico/css/modulos/buzon_navegador.css'))?>?v=<?=(int)@filemtime(__DIR__.'/../../publico/css/modulos/buzon_navegador.css')?>">
 <script defer src="<?=htmlspecialchars(asesconUrl('publico/js/buzones/navegador_empresas.js'))?>?v=<?=(int)@filemtime(__DIR__.'/../../publico/js/buzones/navegador_empresas.js')?>"></script>
-<script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/consulta_unificada.js'))?>"></script><script defer src="../../publico/js/buzones/exportar_notificaciones_sol.js?v=20261022_3"></script><script defer src="../../publico/js/buzones/estado_operaciones_sol.js?v=20261022_4"></script><script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/seguimiento_notificaciones_sol.js'))?>"></script><script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js'); ?>"></script></body></html>
+<script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/consulta_unificada.js'))?>"></script><script defer src="../../publico/js/buzones/estado_operaciones_sol.js?v=20261022_4"></script><script defer src="<?=htmlspecialchars(asesconRecurso('publico/js/buzones/seguimiento_notificaciones_sol.js'))?>"></script><script src="../../publico/js/interfaz/tablas_adaptables.js?v=<?php echo (int)@filemtime(__DIR__.'/../../publico/js/interfaz/tablas_adaptables.js'); ?>"></script></body></html>

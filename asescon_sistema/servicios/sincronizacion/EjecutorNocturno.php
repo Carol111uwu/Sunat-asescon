@@ -22,7 +22,20 @@ final class EjecutorNocturno
                     'mensaje'=>'El trabajador del buzón no terminó dentro de dos horas. Revisa su cron y permisos; los documentos anteriores se conservaron.'];
             }
                                                                                          
-            if(in_array($estado['estado']??'',['COMPLETADO','ADJUNTOS_PENDIENTES'],true)&&substr($estado['finalizado_en']??'',0,10)>=$t['fecha']&&empty($estado['id_documento']))return ['estado'=>'COMPLETADO','registros'=>max(0,(int)($estado['total']??0)),'pdf_pendientes'=>max(0,(int)($estado['pdf_pendientes']??0)), 'codigo'=>($estado['estado']??'')==='ADJUNTOS_PENDIENTES'?'PDF_PENDIENTES':'','mensaje'=>($estado['estado']??'')==='ADJUNTOS_PENDIENTES'?'Bandeja guardada; quedan PDF pendientes.':'Bandeja guardada.'];
+            $terminado = in_array($estado['estado'] ?? '', ['COMPLETADO','ADJUNTOS_PENDIENTES'], true)
+                && substr($estado['finalizado_en'] ?? '', 0, 10) >= $t['fecha'] && empty($estado['id_documento']);
+            if ($terminado) {
+                $registros = max(0, (int)($estado['total'] ?? 0));
+                if (!empty($estado['consulta_parcial'])) {
+                    return ['estado'=>'ERROR','registros'=>$registros,'codigo'=>'BUZON_SUNAFIL_PARCIAL',
+                        'mensaje'=>(string)($estado['mensaje'] ?? 'SUNAFIL solo verificó parte de la casilla.')];
+                }
+                $adjuntosPendientes = ($estado['estado'] ?? '') === 'ADJUNTOS_PENDIENTES';
+                return ['estado'=>'COMPLETADO','registros'=>$registros,
+                    'pdf_pendientes'=>max(0,(int)($estado['pdf_pendientes'] ?? 0)),
+                    'codigo'=>$adjuntosPendientes?'PDF_PENDIENTES':'',
+                    'mensaje'=>$adjuntosPendientes?'Bandeja guardada; quedan PDF pendientes.':'Bandeja guardada.'];
+            }
             if ($modulo === 'SUNAFIL' && !empty($estado['id_documento'])
                 && in_array($estado['estado'] ?? '', ['PENDIENTE', 'PROCESANDO'], true)) {
                 return ['estado'=>'PENDIENTE', 'buzon_iniciado'=>$inicioBuzon, 'espera_buzon'=>true];

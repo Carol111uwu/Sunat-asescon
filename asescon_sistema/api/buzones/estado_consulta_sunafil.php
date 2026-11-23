@@ -24,7 +24,8 @@ try {
         'mensaje'=>(string)($estado['mensaje']??'No hay consultas anteriores.'),
         'total'=>(int)($estado['total']??0),'nuevos'=>(int)($estado['nuevos']??0),
         'cron_reciente'=>$cron['reciente'],'mensaje_cron'=>$cron['mensaje'],
-        'cron_ultima'=>$cron['ultima'],'solicitado_en'=>$estado['solicitado_en']??null,
+        'cron_ultima'=>$cron['ultima'],'cron_planificacion'=>$cron['ultima_planificacion'],
+        'finalizado_en'=>$estado['finalizado_en']??null,'solicitado_en'=>$estado['solicitado_en']??null,
         'actualizado_en'=>$estado['actualizado_en']??null,'cola'=>$detalleCola,
     ],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
 } catch (DomainException $e) {
