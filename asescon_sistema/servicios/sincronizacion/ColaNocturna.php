@@ -21,6 +21,14 @@ final class ColaNocturna
     }
 
                                                                                   
+    public static function esHistoricoSire(array $trabajo):bool
+    {
+        $periodo=(string)($trabajo['periodo']??'');
+        $mesTrabajo=str_replace('-', '', substr((string)($trabajo['fecha']??''),0,7));
+        return in_array($trabajo['modulo']??'',['RVIE','RCE'],true)
+            && $periodo!=='' && $mesTrabajo!=='' && $periodo<$mesTrabajo;
+    }
+
     public function estaPausada(): bool
     {
         return is_file($this->base.'/pausa.flag');
@@ -71,7 +79,8 @@ final class ColaNocturna
                 $x=$a['trabajo'];$y=$b['trabajo'];
                 $xGlobal=(int)($x['id_cliente']??0)===0?0:1;
                 $yGlobal=(int)($y['id_cliente']??0)===0?0:1;
-                return ($xGlobal<=>$yGlobal)
+                return (self::esHistoricoSire($x)<=>self::esHistoricoSire($y))
+                    ?: ($xGlobal<=>$yGlobal)
                     ?: (int)($x['intentos']??0)<=>(int)($y['intentos']??0)
                     ?: (int)($x['id_cliente']??0)<=>(int)($y['id_cliente']??0)
                     ?: (self::ORDEN_MODULOS[$x['modulo']??'']??99)<=>(self::ORDEN_MODULOS[$y['modulo']??'']??99)

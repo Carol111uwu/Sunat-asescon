@@ -25,7 +25,7 @@ test('Historial 2021–actual tiene filtro independiente del cron del año vigen
   assert.match(api,/\$anioConsulta/);
   assert.match(estado,/public static function periodosAnio\(int \$anio/);
   assert.match(estado,/\$limite=\$anio===\(int\)\$ahora->format\('Y'\)\?\(int\)\$ahora->format\('n'\):12/);
-  assert.match(plan,/return \[EstadoSireGuardado::periodoActual\(\)\]/);
+  assert.match(plan,/EstadoSireGuardado::periodosActuales\(\$ahora\)/);
 });
 
 test('Una sola familia tipográfica se aplica también al logotipo, controles y tarjetas',()=>{

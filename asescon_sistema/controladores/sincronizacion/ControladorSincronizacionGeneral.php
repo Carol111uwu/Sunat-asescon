@@ -26,7 +26,7 @@ try{
                                                                 
         $resultado=(new PlanificadorSincronizacion($conexion))->programar(true);
         ftruncate($f,0);rewind($f);fwrite($f,(string)time());fflush($f);
-        $_SESSION['mensaje_sync_general']=['tipo'=>'ok','texto'=>'Se prepararon '.$resultado['trabajos'].' trabajos nuevos para '.$resultado['clientes'].' clientes. Los libros SIRE usarán solo el mes actual.'];
+        $_SESSION['mensaje_sync_general']=['tipo'=>'ok','texto'=>'Se prepararon '.$resultado['trabajos'].' trabajos nuevos para '.$resultado['clientes'].' clientes. Esta solicitud consulta el mes actual de SIRE. El cron programa los meses faltantes del año.'];
     }finally{flock($f,LOCK_UN);fclose($f);}
 }catch(DomainException $e){$_SESSION['mensaje_sync_general']=['tipo'=>'aviso','texto'=>$e->getMessage()];}
 catch(Throwable $e){error_log('Sincronizacion manual: '.get_class($e));$_SESSION['mensaje_sync_general']=['tipo'=>'error','texto'=>'No se pudo preparar el lote. Revisa el registro de errores del sistema.'];}

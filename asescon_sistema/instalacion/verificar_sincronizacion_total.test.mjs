@@ -10,13 +10,17 @@ test('Cola nocturna prioriza padrones y buzones sin bloquear otros módulos',()=
  assert.match(cola,/\(int\)\(\$t\['reintentar'\]\?\?0\)>time\(\)\)continue/);
 });
 
-test('El planificador nocturno consulta solo el mes calendario actual',()=>{
+test('El cron completa los meses anteriores de ambos libros y conserva los períodos guardados',()=>{
  const plan=read('servicios/sincronizacion/PlanificadorSincronizacion.php');
  const estado=read('servicios/sincronizacion/EstadoSireGuardado.php');
  assert.match(estado,/periodosActuales/);
- assert.match(plan,/return \[EstadoSireGuardado::periodoActual\(\)\]/);
+ assert.match(plan,/EstadoSireGuardado::periodosActuales\(\$ahora\)/);
  assert.match(plan,/!empty\(\$previo\['guardado'\]\)/);
- assert.doesNotMatch(plan,/periodosActuales\(\)/);
+ assert.match(plan,/!empty\(\$inventario\[\$id\]\[\$libro\]\[\$periodo\]\['guardado'\]\)/);
+ assert.match(plan,/MAX_HISTORICOS_ACTIVOS = 8/);
+ assert.match(plan,/if\(\$activa\)\$cuposHistoricos--/);
+ assert.match(read('procesos/sincronizacion/planificar.php'),/programar\(soloHistorico:!ColaNocturna::enHorario/);
+ assert.match(read('servicios/sincronizacion/ColaNocturna.php'),/return \(self::esHistoricoSire\(\$x\)<=>self::esHistoricoSire\(\$y\)\)/);
  assert.match(estado,/\$fecha===\$ahora->format\('Y-m-d'\)/);
  assert.match(plan,/foreach\(\['RVIE','RCE'\] as \$libro\)/);
 });
