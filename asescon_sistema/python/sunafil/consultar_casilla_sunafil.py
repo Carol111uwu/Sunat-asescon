@@ -993,7 +993,7 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
                 if not batch:
                     batch = generic_records(page, section)
                 empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
-                              signature = tuple(r["identificador_externo"] for r in batch)
+                signature = tuple(r["identificador_externo"] for r in batch)
                 if batch and signature not in signatures:
                     break
                 if empty and not batch and not signatures:
