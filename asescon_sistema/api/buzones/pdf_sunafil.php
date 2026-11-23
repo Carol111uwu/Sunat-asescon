@@ -61,7 +61,7 @@ try {
             $id
         );
     } else {
-        $estado = $cola->obtenerEstadoCliente((int)$d['id_cliente']);
+        $estado = $cola->obtenerEstadoDocumento((int)$d['id_cliente'], $id);
 
         if ((int)($estado['id_documento'] ?? 0) !== $id) {
             throw new DomainException('No hay solicitud para este documento.');

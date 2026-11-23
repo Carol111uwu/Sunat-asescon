@@ -50,8 +50,16 @@ try {
             $ultimo=(int)($anterior['solicitado_en']??0);
             // Ronda de las 00:00 (por etapas), más repasos espaciados durante el día.
             $necesario=$fechaAnterior!==$fecha || $segundos-$ultimo>=$intervalo;
-            if (!$necesario) continue;
-            $actual=$cola->obtenerEstadoCliente($id);
+            if (!$necesario && $segundos-$ultimo<900) continue;
+            try {
+                $actual=$cola->obtenerEstadoCliente($id);
+            } catch (Throwable $error) {
+                error_log('Estado de ronda '.$tipo.' id_cliente='.$id.': '.get_class($error));
+                continue;
+            }
+            $errorTemporal = ($actual['estado'] ?? '') === 'ERROR' && empty($actual['id_documento'])
+                && preg_match('/TIEMPO_AGOTADO|ERR_CONNECTION|ERR_TIMED_OUT|HTTP 5[0-9]{2}|tiempo permitido/i', (string)($actual['mensaje'] ?? ''));
+            if (!$necesario && !$errorTemporal) continue;
             $enCurso=in_array(strtoupper((string)($actual['estado']??'')),['PENDIENTE','PROCESANDO','EN_COLA'],true);
             if ($enCurso) {
                 // No crear solicitudes duplicadas ni repetir en bucle un cliente ocupado.
@@ -72,6 +80,7 @@ try {
         }
         echo $ahora->format(DATE_ATOM).' '.$tipo.': '.$programados.' consultas programadas; '.count($clientes)." clientes activos.\n";
     }
+    $estado['ultima_planificacion']=$segundos;
     $tmp=$rutaEstado.'.'.bin2hex(random_bytes(5)).'.tmp';
     $ok=file_put_contents($tmp,json_encode($estado,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),LOCK_EX);
     if($ok===false || !rename($tmp,$rutaEstado)) throw new RuntimeException('No se pudo guardar el control de rondas.');

@@ -10,7 +10,7 @@ foreach($filas as $fila){
     if(isset($c['Número de documento']))$ordenes[$clave]['docs'][]=[$fila,$c];
 }
 $seleccion=(string)($_GET['orden_detalle']??'');
-$baseFiscal=['categoria'=>'FISCALIZACION','id_cliente'=>$idCliente,'pagina'=>$pagina_actual];
+$baseFiscal=$parametrosGuardados;
 $columnasFiscal=['Tipo de documento','Número de documento','Fecha de depósito','Fecha de notificación','Fecha de comparecencia','Fecha límite de respuesta','Envío de respuesta'];
 ?>
 <section class="reference-panel buzon-tabla-panel">

@@ -14,7 +14,7 @@ try {
  $estado=$cola->obtenerEstadoCliente($idCliente);
  $cron=EstadoCronBuzon::consultar($cola->directorioBase());
  if(!empty($estado['id_documento'])){$estado=[];}
- $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$estado);
+ $detalleCola=EstadoCronBuzon::detalleCola($cola->directorioBase(),$estado,true);
  echo json_encode(['ok'=>true,'estado'=>(string)($estado['estado']??'SIN_SOLICITUD'),
   'mensaje'=>(string)($estado['mensaje']??'No hay consultas activas.'),
   'total'=>(int)($estado['total']??0),'nuevos'=>(int)($estado['nuevos']??0),

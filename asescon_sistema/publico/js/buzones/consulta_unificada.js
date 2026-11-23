@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ultimoEstado=String(s.estado||'SIN_SOLICITUD').toUpperCase();
     if(!panel)return;
     panel.dataset.buzonEstado=ultimoEstado;
-    texto('[data-resumen-estado]',etiquetas[ultimoEstado]||'Estado de consulta');
+    texto('[data-resumen-estado]',s.consulta_parcial?'Consulta parcial':(etiquetas[ultimoEstado]||'Estado de consulta'));
     const resumen=ultimoEstado==='PENDIENTE'?'Esperando turno del procesador':ultimoEstado==='PROCESANDO'?'Conectando con el portal oficial':ultimoEstado==='ERROR'?'La última consulta necesita atención':ultimoEstado==='COMPLETADO'?'Datos recibidos; puedes actualizar la lista':'Estado de la última consulta';
     texto('[data-resumen-proceso]',resumen);
     texto('[data-detalle-mensaje]',s.mensaje||'Sin información adicional.');
@@ -60,7 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const urlActual=new URL(window.location.href);
   cliente?.addEventListener('change',()=>{
     const id=Number(cliente.value)||0;
-    if(id===(Number(urlActual.searchParams.get('id_cliente'))||0))return;
+    const anterior=Number(urlActual.searchParams.get('id_cliente'))||0;
+    if(id===anterior)return;
+    if(!id && anterior)urlActual.searchParams.set('empresa',String(anterior));
+    urlActual.searchParams.delete('pagina_documentos');
+    urlActual.searchParams.delete('ver_documento');
+    urlActual.searchParams.delete('orden_detalle');
     urlActual.searchParams.set('id_cliente',String(id));
     urlActual.searchParams.delete('pagina');
     window.location.assign(urlActual.href);
@@ -89,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function detener(){
     vigilando=false;
-    boton.disabled=false;
+    boton.disabled=formulario.dataset.consultaPermitida==='0'||(!Number(cliente?.value||0)&&formulario.dataset.todosPermitidos!=='1');
     boton.textContent=Number(cliente?.value||0)>0?'Consultar empresa':('Consultar / reintentar todas');
   }
   async function vigilar(id){
@@ -105,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         erroresConsecutivos=0;
         actualizarPanel(s);
         if(['COMPLETADO','ADJUNTOS_PENDIENTES'].includes(s.estado)){
-          mostrar('Consulta finalizada: '+s.total+' registros leídos y '+s.nuevos+' nuevos. Actualizando la lista…','exito');
+          mostrar(s.consulta_parcial?s.mensaje:('Consulta finalizada: '+s.total+' registros leídos y '+s.nuevos+' nuevos. Actualizando la lista…'),s.consulta_parcial?'info':'exito');
           window.setTimeout(()=>window.location.reload(),1500);
           return;
         }
@@ -164,5 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
       detener();
     }
   });
-  if(cliente&&Number(cliente.value)>0&&panel&&['PENDIENTE','PROCESANDO'].includes(ultimoEstado))vigilar(Number(cliente.value));
+  const empresaVisible=Number(formulario.dataset.clienteVisible||cliente?.value||0);
+  if(empresaVisible>0&&panel&&['PENDIENTE','PROCESANDO'].includes(ultimoEstado))vigilar(empresaVisible);
 });

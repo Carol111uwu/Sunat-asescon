@@ -109,22 +109,23 @@ def navigation_failure(exc: Exception) -> str:
 
 
 def goto_retry(page, url: str, attempts: int = 2, timeout: int = 30000) -> None:
+    etapa = "portada oficial" if url.rstrip("/") == SUNAFIL_PORTADA.rstrip("/") else "listado del buzón"
     for attempt in range(attempts):
         try:
                                                                                
                                                                             
             response = page.goto(url, wait_until="commit", timeout=timeout)
             if response and response.status >= 400:
-                raise RuntimeError("SUNAFIL rechazó el acceso (HTTP %s)." % response.status)
+                raise RuntimeError("SUNAFIL rechazó el acceso a %s (HTTP %s)." % (etapa, response.status))
             if response:
-                sys.stderr.write("SUNAFIL: documento recibido, HTTP %s.\n" % response.status)
+                sys.stderr.write("SUNAFIL: %s recibida, HTTP %s.\n" % (etapa, response.status))
             return
         except RuntimeError:
             raise
         except Exception as exc:
             sys.stderr.write("SUNAFIL: navegación, intento %s/%s, %s.\n" % (attempt + 1, attempts, navigation_failure(exc)))
             if attempt + 1 == attempts:
-                raise RuntimeError("No se pudo conectar con la entrada oficial de SUNAFIL (%s)." % navigation_failure(exc)) from None
+                raise RuntimeError("Tiempo o error de conexión en %s de SUNAFIL (%s)." % (etapa, navigation_failure(exc))) from None
             page.wait_for_timeout(800)
 
 
@@ -370,6 +371,7 @@ def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
 ]
     records = []
     recognized = False
+    descarga_intentada = False
     for section, url in pages:
         if page.url != url:
             goto_retry(page, url, attempts=1)
@@ -381,7 +383,7 @@ def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
             deadline = time.monotonic() + 10
             while True:
                 text = folded(body_text(page))
-                batch = table_records(page, section, requested, download)
+                batch = table_records(page, section)
                 if not batch:
                     batch = generic_records(page, section)
                 empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
@@ -405,6 +407,11 @@ def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
             signature = tuple(r["identificador_externo"] for r in batch)
             if signature in signatures and batch:
                 raise RuntimeError("La paginación SUNAFIL no avanzó. No se guardaron resultados parciales.")
+            if download is not None and not descarga_intentada and any(
+                r["identificador_externo"] == requested for r in batch
+            ):
+                descarga_intentada = True
+                table_records(page, section, requested, download)
             signatures.add(signature)
             records.extend(batch)
                                                                                   
@@ -420,7 +427,6 @@ def read_orientation(page, requested='', download=None) -> list[dict[str, Any]]:
             if next_button is None:
                 break
             next_button.click()
-            
         else:
             raise RuntimeError("La bandeja supera el límite de 120 páginas. No se guardaron resultados parciales.")
     if not recognized:
@@ -978,6 +984,7 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
         pages.append(("ORIENTACION", urljoin(SUNAFIL_PORTADA, "Orientacion/ListadoOrientacionEmpleador")))
     records = []
     recognized = False
+    descarga_intentada = False
     for section, url in pages:
         if page.url != url:
             goto_retry(page, url, attempts=1)
@@ -989,7 +996,7 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
             deadline = time.monotonic() + 10
             while True:
                 text = folded(body_text(page))
-                batch = table_records(page, section, requested, download)
+                batch = table_records(page, section)
                 if not batch:
                     batch = generic_records(page, section)
                 empty = bool(re.search(r"sin (?:notificaciones|registros|comunicaciones)|no (?:hay|tiene|existen) (?:notificaciones|registros|comunicaciones)|ningun registro|no data available|no se encontraron registros", text))
@@ -1013,6 +1020,11 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
             signature = tuple(r["identificador_externo"] for r in batch)
             if signature in signatures and batch:
                 raise RuntimeError("La paginación SUNAFIL no avanzó. No se guardaron resultados parciales.")
+            if download is not None and not descarga_intentada and any(
+                r["identificador_externo"] == requested for r in batch
+            ):
+                descarga_intentada = True
+                table_records(page, section, requested, download)
             signatures.add(signature)
             records.extend(batch)
 
@@ -1028,7 +1040,6 @@ def read_legacy_inbox(page, requested: str = "", download=None) -> list[dict[str
             if next_button is None:
                 break
             next_button.click()
-            
         else:
             raise RuntimeError("La bandeja supera el límite de 120 páginas. No se guardaron resultados parciales.")
     if not recognized:

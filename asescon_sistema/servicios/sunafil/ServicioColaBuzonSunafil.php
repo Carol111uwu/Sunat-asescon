@@ -3,6 +3,8 @@
 declare(strict_types=1);
 require_once dirname(__DIR__,2).'/configuracion/rutas_privadas.php';
 
+require_once dirname(__DIR__).'/buzones/EstadoCronBuzon.php';
+
 final class ServicioColaBuzonSunafil
 {
     private string $directorioBase;
@@ -42,16 +44,22 @@ final class ServicioColaBuzonSunafil
 
             $estadoActual = $this->leerEstadoCliente($idCliente);
             if ($this->estadoSigueActivo($estadoActual)) {
-                if ((int)($estadoActual['id_documento'] ?? 0) !== $idDocumento) {
-                    throw new DomainException('Esta empresa ya tiene una consulta en curso. Espera a que termine y vuelve a solicitar el documento.');
+                if ((int)($estadoActual['id_documento'] ?? 0) === $idDocumento) {
+                    return $estadoActual + ['reutilizada' => true];
                 }
-                return $estadoActual + ['reutilizada' => true];
+                if ($idDocumento === 0) {
+                    throw new DomainException('Hay un PDF de esta empresa en curso. Vuelve a solicitar la bandeja al terminar.');
+                }
             }
 
-            if (!empty($estadoActual['id_trabajo'])) {
+            if ($idDocumento > 0 && ($pendiente = $this->pdfPendiente($idCliente, $idDocumento))) {
+                return $pendiente + ['reutilizada' => true];
+            }
+            $diferir = $idDocumento > 0 && $this->estadoSigueActivo($estadoActual);
+            if (!$diferir && !empty($estadoActual['id_trabajo'])) {
                 $this->limpiarTrabajo((string)$estadoActual['id_trabajo']);
             }
-            $this->descartarPendientesAntiguas($idCliente);
+            if ($idDocumento === 0) $this->descartarPendientesAntiguas($idCliente);
 
             $idTrabajo = date('YmdHis') . '-' . bin2hex(random_bytes(6));
             $ahora = date(DATE_ATOM);
@@ -63,21 +71,15 @@ final class ServicioColaBuzonSunafil
                 'solicitado_en' => $ahora,
             ];
 
-            $rutaSolicitud = $this->rutaSolicitudPendiente($idTrabajo);
-            $this->escribirJsonAtomico($rutaSolicitud, $solicitud);
-
-            $estado = [
-                'id_trabajo' => $idTrabajo,
-                'id_cliente' => $idCliente,
-                'id_documento' => $idDocumento,
+            $estado = $solicitud + [
                 'estado' => 'PENDIENTE',
                 'mensaje' => $idDocumento > 0 ? 'PDF solicitado. Está en cola.' : 'La sincronización quedó en cola y será procesada automáticamente.',
-                'solicitado_en' => $ahora,
                 'actualizado_en' => $ahora,
                 'total' => 0,
                 'nuevos' => 0,
             ];
-            $this->escribirEstadoCliente($idCliente, $estado);
+            $this->escribirJsonAtomico($this->rutaSolicitudPendiente($idTrabajo), $estado);
+            if (!$diferir) $this->escribirEstadoCliente($idCliente, $estado);
 
             return $estado + ['reutilizada' => false];
         } finally {
@@ -105,6 +107,25 @@ final class ServicioColaBuzonSunafil
         return $estado;
     }
 
+    public function obtenerEstadoDocumento(int $idCliente, int $idDocumento): array
+    {
+        $estado = $this->obtenerEstadoCliente($idCliente);
+        if ((int)($estado['id_documento'] ?? 0) === $idDocumento) return $estado;
+        return $this->pdfPendiente($idCliente, $idDocumento);
+    }
+
+    private function pdfPendiente(int $idCliente, int $idDocumento): array
+    {
+        foreach (glob($this->directorioSolicitudes . '/pendiente_*.json') ?: [] as $ruta) {
+            $solicitud = $this->leerJson($ruta);
+            if ((int)($solicitud['id_cliente'] ?? 0) === $idCliente
+                && (int)($solicitud['id_documento'] ?? 0) === $idDocumento) {
+                return $solicitud + ['estado'=>'PENDIENTE', 'mensaje'=>'PDF solicitado. Está en cola.'];
+            }
+        }
+        return [];
+    }
+
     public function tomarSiguienteSolicitud(): ?array
     {
         $bloqueo = fopen($this->archivoBloqueo, 'c+');
@@ -123,8 +144,7 @@ final class ServicioColaBuzonSunafil
 
     private function tomarSolicitudBloqueada(): ?array
     {
-        $archivos = glob($this->directorioSolicitudes . DIRECTORY_SEPARATOR . 'pendiente_*.json') ?: [];
-        usort($archivos, static fn(string $a, string $b): int => (filemtime($a) ?: 0) <=> (filemtime($b) ?: 0));
+        $archivos = EstadoCronBuzon::pendientesOrdenados($this->directorioBase);
 
         foreach ($archivos as $rutaPendiente) {
             $nombre = basename($rutaPendiente);
@@ -134,25 +154,28 @@ final class ServicioColaBuzonSunafil
                 continue;
             }
 
-            $rutaProcesando = $this->rutaSolicitudProcesando($idTrabajo);
-            if (!@rename($rutaPendiente, $rutaProcesando)) {
-                continue;
-            }
-
-            $solicitud = $this->leerJson($rutaProcesando);
+            $solicitud = $this->leerJson($rutaPendiente);
             $idCliente = (int)($solicitud['id_cliente'] ?? 0);
             if ($idCliente <= 0 || (string)($solicitud['id_trabajo'] ?? '') !== $idTrabajo) {
-                @unlink($rutaProcesando);
+                @unlink($rutaPendiente);
                 continue;
             }
 
             $estadoActual = $this->leerEstadoCliente($idCliente);
-            if (($estadoActual['id_trabajo'] ?? '') !== $idTrabajo || ($estadoActual['estado'] ?? '') !== 'PENDIENTE') {
-                @unlink($rutaProcesando);
+            $esPDF = (int)($solicitud['id_documento'] ?? 0) > 0;
+            $esTrabajoActual = ($estadoActual['id_trabajo'] ?? '') === $idTrabajo
+                && ($estadoActual['estado'] ?? '') === 'PENDIENTE';
+            if (!$esTrabajoActual && !$esPDF) {
+                @unlink($rutaPendiente);
                 continue;
             }
+            if (!$esTrabajoActual && $this->estadoSigueActivo($estadoActual)) continue;
 
-            $this->actualizarEstado($idCliente, $idTrabajo, 'PROCESANDO', 'ASESCON está consultando el Buzón SUNAFIL en segundo plano.');
+            $rutaProcesando = $this->rutaSolicitudProcesando($idTrabajo);
+            if (!@rename($rutaPendiente, $rutaProcesando)) continue;
+            if (!$esTrabajoActual) $this->escribirEstadoCliente($idCliente, $solicitud);
+
+            $this->actualizarEstado($idCliente, $idTrabajo, 'PROCESANDO', 'ASESCON está consultando el Buzón SUNAFIL en segundo plano.', ['iniciado_en'=>date(DATE_ATOM)]);
             $solicitud['ruta_procesando'] = $rutaProcesando;
             return $solicitud;
         }
@@ -167,7 +190,7 @@ final class ServicioColaBuzonSunafil
             $idTrabajo,
             'COMPLETADO',
             $avisos ? 'Consulta parcial; categorías no verificadas: '.implode(', ', $avisos).'. Se conserva el historial.' : 'Buzón SUNAFIL sincronizado correctamente.',
-            ['total' => max(0, $total), 'nuevos' => max(0, $nuevos), 'finalizado_en' => date(DATE_ATOM)]
+            ['total' => max(0, $total), 'nuevos' => max(0, $nuevos), 'consulta_parcial' => (bool)$avisos, 'finalizado_en' => date(DATE_ATOM)]
         );
     }
 
@@ -284,7 +307,7 @@ final class ServicioColaBuzonSunafil
     {
         foreach (glob($this->directorioSolicitudes . DIRECTORY_SEPARATOR . 'pendiente_*.json') ?: [] as $ruta) {
             $datos = $this->leerJson($ruta);
-            if ((int)($datos['id_cliente'] ?? 0) === $idCliente) {
+            if ((int)($datos['id_cliente'] ?? 0) === $idCliente && empty($datos['id_documento'])) {
                 @unlink($ruta);
             }
         }

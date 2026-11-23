@@ -10,8 +10,12 @@ $idCliente=(int)($_GET['id_cliente']??0);
 $desde=trim((string)($_GET['desde']??''));
 $hasta=trim((string)($_GET['hasta']??''));
 $pagina=max(1,(int)($_GET['pagina']??1));
-$datos=(new ControladorBuzonSol($conexion))->datos($estado,$categoria,$idCliente,$desde,$hasta,$pagina);
+$datos=(new ControladorBuzonSol($conexion))->datos($estado,$categoria,$idCliente,$desde,$hasta,$pagina,max(0,(int)($_GET['empresa']??0)),max(1,(int)($_GET['pagina_documentos']??1)));
 extract($datos);
+$empresaGuardada = $idCliente === 0 ? (int)($cliente_pagina['id_cliente'] ?? 0) : 0;
+$parametrosGuardados = ['id_cliente'=>$idCliente, 'empresa'=>$empresaGuardada, 'categoria'=>$categoria,
+    'estado'=>$estado, 'desde'=>$desde, 'hasta'=>$hasta];
+
 $csrf=asesconCsrf('csrf_buzon_sol');
 $clientes=[];
 foreach(($clientes_disponibles??[]) as $c){$clientes[(int)$c['id_cliente']]=['razon_social'=>(string)$c['razon_social'],'ruc'=>(string)$c['ruc']];}
@@ -29,16 +33,23 @@ $puedeConsultarBuzon=asesconTienePermiso($conexion,'BUZON_SOL','editar');
 $puedeConsultarTodos=asesconEsPrincipal($conexion)&&$puedeConsultarBuzon;
 $urlConsulta=asesconUrl('api/buzones/solicitar_consulta_sol.php');
 $urlEstado=asesconUrl('api/buzones/estado_consulta_sol.php');
+$bandejaVaciaConfirmada = $ultima_consulta_exitosa && ($estado==='' && $categoria==='' && $desde==='' && $hasta==='')
+    && ($sincronizacion['estado'] ?? '') === 'COMPLETADO' && empty($sincronizacion['id_documento'])
+    && empty($sincronizacion['consulta_parcial']) && ($sincronizacion['total'] ?? null) === 0;
+$mensajeVacioBuzon = $bandejaVaciaConfirmada
+    ? 'La última consulta completa confirmó que la bandeja estaba vacía.'
+    : 'No hay documentos guardados para esta empresa y filtros.';
 ?>
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buzón SOL SUNAT - ASESCON</title><link rel="stylesheet" href="../../publico/css/base/estructura_panel.css?v=20261028_ui3"><link rel="stylesheet" href="../../publico/css/modulos/sunat.css"><link rel="stylesheet" href="../../publico/css/modulos/buzon_sol_responsive.css?v=20261022_3"><link rel="stylesheet" href="<?=htmlspecialchars(asesconRecurso('publico/css/modulos/buzones_ordenados.css'))?>"><link rel="stylesheet" href="<?=htmlspecialchars(asesconRecurso('publico/css/modulos/asescon_sol_ajustes_20261118.css'))?>"></head><body><div class="app"><?php require __DIR__.'/../componentes/menu_lateral.php';?><main class="main-content"><?php require __DIR__.'/../componentes/barra_superior.php';?><section class="content buzon-renovado">
 <?php $estadoSync=strtoupper((string)($sincronizacion['estado']??''));$syncActivo=in_array($estadoSync,['PENDIENTE','PROCESANDO'],true);?>
-<div class="page-header buzon-sol-page-header"><div><h1>✉ Buzón SOL SUNAT</h1><p>Revisa las notificaciones oficiales recuperadas y organiza el trabajo del equipo.</p></div><div class="reference-head-actions buzon-sol-head-actions"><a class="reference-btn" href="buzon_sol_sunat.php?id_cliente=0" title="Ver todas las empresas, una por una">Ver todas</a><button type="button" class="reference-btn" data-refresh title="Actualizar las notificaciones almacenadas">Actualizar lista</button><button type="button" class="reference-btn" id="exportarBuzonSolCsv" title="Descargar las filas visibles como CSV">Exportar CSV</button><?php if ((int)($cliente_en_vista_id) > 0): ?><a class="reference-btn" href="../../api/buzones/exportar_excel.php?<?=htmlspecialchars(http_build_query(['buzon'=>'SOL','id_cliente'=>(int)($cliente_en_vista_id),'tipo'=>$categoria,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta]), ENT_QUOTES)?>">Excel de esta empresa</a><?php endif; ?></div></div>
+<div class="page-header buzon-sol-page-header"><div><h1>✉ Buzón SOL SUNAT</h1><p>Revisa las notificaciones oficiales recuperadas y organiza el trabajo del equipo.</p></div><div class="reference-head-actions buzon-sol-head-actions"><a class="reference-btn" href="?<?=htmlspecialchars(http_build_query(array_replace($parametrosGuardados,['id_cliente'=>0,'empresa'=>$idCliente ?: $empresaGuardada])))?>" title="Ver todas las empresas, una por una">Ver todas</a><button type="button" class="reference-btn" data-refresh title="Actualizar las notificaciones almacenadas">Actualizar lista</button><button type="button" class="reference-btn" id="exportarBuzonSolCsv" title="Descargar las filas visibles como CSV">Exportar página (CSV)</button><?php if ((int)($cliente_en_vista_id) > 0): ?><a class="reference-btn" href="../../api/buzones/exportar_excel.php?<?=htmlspecialchars(http_build_query(['buzon'=>'SOL','id_cliente'=>(int)($cliente_en_vista_id),'tipo'=>$categoria,'estado'=>$estado,'desde'=>$desde,'hasta'=>$hasta]), ENT_QUOTES)?>">Excel de esta empresa (hasta 50 filas)</a><?php endif; ?></div></div>
+<?php $buzonCodigo='SOL'; require __DIR__.'/componentes/navegador_empresas.php'; ?>
 <section class="reference-panel buzon-comando" aria-labelledby="tituloConsultarSol">
   <div class="buzon-comando-intro"><span class="buzon-kicker">CONSULTA OFICIAL · SUNAT</span><h2 id="tituloConsultarSol">Consultar Buzón SOL</h2><p>Selecciona una empresa o consulta todas. Cada una mantiene sus propios resultados y estado. No se filtra por mes; se muestran todas las notificaciones guardadas.</p></div>
-  <form class="buzon-comando-form buzon-sol-sync-form" method="post" action="../../controladores/buzones/ControladorBuzonSol.php" data-buzon-consulta="SOL" data-url-solicitar="<?=htmlspecialchars($urlConsulta)?>" data-url-estado="<?=htmlspecialchars($urlEstado)?>" data-todos-permitidos="<?=$puedeConsultarTodos?'1':'0'?>" data-cliente-visible="<?=(int)($cliente_en_vista_id??0)?>">
+  <form class="buzon-comando-form buzon-sol-sync-form" method="post" action="../../controladores/buzones/ControladorBuzonSol.php" data-consulta-permitida="<?=$puedeConsultarBuzon?'1':'0'?>" data-buzon-consulta="SOL" data-url-solicitar="<?=htmlspecialchars($urlConsulta)?>" data-url-estado="<?=htmlspecialchars($urlEstado)?>" data-todos-permitidos="<?=$puedeConsultarTodos?'1':'0'?>" data-cliente-visible="<?=(int)($cliente_en_vista_id??0)?>">
     <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>"><input type="hidden" name="accion" value="sincronizar"><input type="hidden" name="alcance" value="todos">
     <label class="reference-field" for="buzonSolCliente">Empresa a consultar<select id="buzonSolCliente" name="id_cliente" data-buzon-cliente><option value="0">Ver todas las empresas · una por una<?php if(!$puedeConsultarTodos):?> (solo visualización)<?php endif;?></option><?php foreach($clientes as $id=>$c):?><option value="<?=$id?>" <?=$idCliente===$id?'selected':''?>><?=htmlspecialchars($c['razon_social'].' · RUC '.$c['ruc'])?></option><?php endforeach;?></select></label>
-    <button type="submit" class="reference-btn primary buzon-boton-consultar" <?=!$puedeConsultarBuzon||($idCliente===0&&!$puedeConsultarTodos)||($idCliente>0&&$syncActivo)?'disabled':''?>><?=$syncActivo?'Consultando…':($idCliente===0?'Consultar / reintentar todas':'Consultar empresa')?></button>
+    <button type="submit" class="reference-btn primary buzon-boton-consultar" <?=!$puedeConsultarBuzon||($idCliente===0&&!$puedeConsultarTodos)||($idCliente>0&&$syncActivo)?'disabled':''?>><?=$syncActivo?'Consultando…':($idCliente===0?'Consultar / reintentar todas':'Consultar en el portal')?></button>
     <span class="buzon-consulta-aviso" id="buzonSolMensajeConsulta" role="status" aria-live="polite" hidden></span>
   </form>
   <div class="buzon-estado-servicio" data-cron-reciente="<?=!empty($estado_cron['reciente'])?'1':'0'?>"><span class="buzon-punto" aria-hidden="true"></span><span><?=htmlspecialchars((string)$estado_cron['mensaje'])?></span></div>
@@ -51,13 +62,9 @@ $urlEstado=asesconUrl('api/buzones/estado_consulta_sol.php');
 <?php if(isset($_GET['solicitud'])):?><div class="notice ok">Consulta solicitada. Los resultados se actualizarán cuando termine.</div><?php elseif(($_GET['error']??'')==='sol_sync'):?><div class="notice bad">No se pudo iniciar la consulta: <?php echo htmlspecialchars((string)($_GET['detalle']??'Error de acceso.'));?></div><?php endif;?>
 <?php if(is_array($mensajeGlobal)):?><div class="notice <?php echo $mensajeGlobal['tipo']==='ok'?'ok':($mensajeGlobal['tipo']==='error'?'bad':'');?>" role="status"><?php echo htmlspecialchars((string)$mensajeGlobal['texto']);?></div><?php endif;?>
 <?php if(($cliente_en_vista_id??0)>0):?><?php $buzonCodigo='SOL';require __DIR__.'/componentes/estado_consulta.php';?><?php endif;?>
-<?php if(($cliente_en_vista_id??0)>0):?>
-<p class="buzon-fecha-exito">Última consulta exitosa de esta empresa:
-<strong><?=!empty($ultima_consulta_exitosa)?htmlspecialchars(date('d/m/Y H:i',strtotime($ultima_consulta_exitosa))):'Primera consulta pendiente'?></strong></p>
-<?php endif;?>
 <div class="reference-metrics buzon-sol-metricas"><div class="reference-metric"><span>Notificaciones de esta empresa</span><strong><?= (int)$total_empresa ?></strong><small><?= htmlspecialchars((string)($cliente_en_vista['razon_social']??'Sin empresa seleccionada')) ?></small></div><div class="reference-metric"><span>Notificaciones globales</span><strong><?= (int)$resumen['total'] ?></strong><small>Sumadas entre todas las empresas autorizadas</small></div><div class="reference-metric"><span>Pendientes globales</span><strong><?= (int)$resumen['sin_leer'] ?></strong><small>Seguimiento interno</small></div><div class="reference-metric"><span>Empresas con notificaciones</span><strong><?= (int)$resumen['clientes'] ?></strong><small>De las autorizadas</small></div></div>
-<section class="reference-panel buzon-filtros"><h2 class="reference-section-title">Filtrar notificaciones guardadas</h2><form method="get" class="reference-filter-grid"><input type="hidden" name="id_cliente" value="<?=$idCliente?>"><label class="reference-field">Fecha desde<input type="date" name="desde" value="<?php echo htmlspecialchars($desde);?>"></label><label class="reference-field">Fecha hasta<input type="date" name="hasta" value="<?php echo htmlspecialchars($hasta);?>"></label><label class="reference-field">Estado<select name="estado"><option value="">Todos</option><option value="NO_REVISADO" <?php echo $estado==='NO_REVISADO'?'selected':'';?>>Pendientes</option><option value="REVISADO" <?php echo $estado==='REVISADO'?'selected':'';?>>Revisadas</option></select></label><label class="reference-field">Categoría<input name="categoria" value="<?php echo htmlspecialchars($categoria);?>" placeholder="Coactiva, esquela..."></label><div class="reference-actions"><button class="reference-btn primary">Aplicar filtros</button><a class="reference-btn" href="buzon_sol_sunat.php?<?=htmlspecialchars(http_build_query(['id_cliente'=>$idCliente]))?>">Limpiar filtros</a></div></form>
-<div class="reference-chip-row" style="margin-top:14px"><?php foreach($chips as $ch):?><a class="reference-chip <?php echo strtoupper($categoria)===$ch?'active':'';?>" href="?<?php echo htmlspecialchars(http_build_query(['categoria'=>$ch,'id_cliente'=>$idCliente,'desde'=>$desde,'hasta'=>$hasta,'estado'=>$estado]));?>"><?php echo htmlspecialchars(ucwords(strtolower($ch)));?></a><?php endforeach;?></div></section>
+<section class="reference-panel buzon-filtros"><h2 class="reference-section-title">Filtrar notificaciones guardadas</h2><form method="get" class="reference-filter-grid"><input type="hidden" name="id_cliente" value="<?=$idCliente?>"><input type="hidden" name="empresa" value="<?=$empresaGuardada?>"><label class="reference-field">Fecha desde<input type="date" name="desde" value="<?php echo htmlspecialchars($desde);?>"></label><label class="reference-field">Fecha hasta<input type="date" name="hasta" value="<?php echo htmlspecialchars($hasta);?>"></label><label class="reference-field">Estado<select name="estado"><option value="">Todos</option><option value="NO_REVISADO" <?php echo $estado==='NO_REVISADO'?'selected':'';?>>Pendientes</option><option value="REVISADO" <?php echo $estado==='REVISADO'?'selected':'';?>>Revisadas</option></select></label><label class="reference-field">Categoría<input name="categoria" value="<?php echo htmlspecialchars($categoria);?>" placeholder="Coactiva, esquela..."></label><div class="reference-actions"><button class="reference-btn primary">Aplicar filtros</button><a class="reference-btn" href="buzon_sol_sunat.php?<?=htmlspecialchars(http_build_query(['id_cliente'=>$idCliente,'empresa'=>$empresaGuardada]))?>">Limpiar filtros</a></div></form>
+<div class="reference-chip-row" style="margin-top:14px"><?php foreach($chips as $ch):?><a class="reference-chip <?php echo strtoupper($categoria)===$ch?'active':'';?>" href="?<?php echo htmlspecialchars(http_build_query(array_replace($parametrosGuardados,['categoria'=>$ch])));?>"><?php echo htmlspecialchars(ucwords(strtolower($ch)));?></a><?php endforeach;?></div></section>
 <div class="buzon-sol-avisos-globales" id="buzonSolAvisoGlobal" hidden role="status" aria-live="polite"></div>
 <div class="buzon-sol-avisos-flotantes" data-avisos-operaciones-sol hidden role="status" aria-live="polite"><span class="buzon-sol-avisos-animacion" aria-hidden="true"></span><span data-avisos-texto></span><button type="button" data-avisos-cerrar aria-label="Ocultar aviso" title="Ocultar aviso">×</button></div>
 <section class="reference-panel buzon-sol-notificaciones-panel">
@@ -70,15 +77,7 @@ $urlEstado=asesconUrl('api/buzones/estado_consulta_sol.php');
               <?php else: ?>Ninguna empresa seleccionada.<?php endif; ?></p>
             <?php if($idCliente===0): ?><small>Empresa <?= (int)$pagina_actual ?> de <?= (int)$total_paginas ?> · <?= (int)$total_filtrado ?> notificaciones globales según filtros</small><?php endif; ?>
         </div>
-        <?php if($idCliente===0 && $total_paginas>1): ?>
-        <nav class="buzon-sol-navegacion-empresa" aria-label="Navegar entre empresas">
-          <?php if($pagina_actual>1): ?><a class="reference-btn" aria-label="Empresa anterior" title="Empresa anterior" href="?<?=htmlspecialchars(http_build_query(['id_cliente'=>0,'desde'=>$desde,'hasta'=>$hasta,'estado'=>$estado,'categoria'=>$categoria,'pagina'=>$pagina_actual-1]))?>">&lt;</a><?php else: ?><span class="reference-btn inactivo" aria-hidden="true">&lt;</span><?php endif; ?>
-          <span class="buzon-sol-orden-empresa"><?= (int)$pagina_actual ?> / <?= (int)$total_paginas ?></span>
-          <?php if($pagina_actual<$total_paginas): ?><a class="reference-btn" aria-label="Empresa siguiente" title="Empresa siguiente" href="?<?=htmlspecialchars(http_build_query(['id_cliente'=>0,'desde'=>$desde,'hasta'=>$hasta,'estado'=>$estado,'categoria'=>$categoria,'pagina'=>$pagina_actual+1]))?>">&gt;</a><?php else: ?><span class="reference-btn inactivo" aria-hidden="true">&gt;</span><?php endif; ?>
-        </nav>
-        <?php endif; ?>
     </div>
-    <?php $buzonCodigo='SOL';require __DIR__.'/componentes/navegador_empresas.php';?>
     <div class="table-container buzon-sol-table-container">
         <table id="tablaBuzonSol" class="buzon-sol-responsive-table">
             <thead>
@@ -96,7 +95,7 @@ $urlEstado=asesconUrl('api/buzones/estado_consulta_sol.php');
             <tbody>
             <?php if($filas===[]):?>
                 <tr class="buzon-sol-empty-row">
-                    <td colspan="8"><div class="reference-empty">Esta empresa todavía no tiene notificaciones guardadas que coincidan con los filtros. Las notificaciones de otras empresas permanecen disponibles; usa las flechas para verlas.</div></td>
+                    <td colspan="8"><div class="reference-empty"><?=htmlspecialchars($mensajeVacioBuzon,ENT_QUOTES,'UTF-8')?></div></td>
                 </tr>
             <?php else:foreach($filas as $d):$f=$d['fecha_recepcion']?:$d['fecha_documento'];?>
                 <?php $idNota=(int)$d['id_documento'];$tienePdf=trim((string)($d['archivo']??''))!==''; ?>
@@ -132,13 +131,7 @@ $urlEstado=asesconUrl('api/buzones/estado_consulta_sol.php');
             </tbody>
         </table>
     </div>
-    <?php if($total_paginas>1):?>
-    <nav class="buzon-sol-paginacion" aria-label="Páginas de notificaciones">
-      <?php if($pagina_actual>1):?><a class="reference-btn" href="?<?php echo htmlspecialchars(http_build_query(['id_cliente'=>$idCliente,'desde'=>$desde,'hasta'=>$hasta,'estado'=>$estado,'categoria'=>$categoria,'pagina'=>$pagina_actual-1]));?>"><?= $idCliente===0?'Anterior empresa':'Anterior' ?></a><?php endif;?>
-      <span><?= $idCliente===0?'Empresa':'Página' ?> <?php echo (int)$pagina_actual;?> de <?php echo (int)$total_paginas;?></span>
-      <?php if($pagina_actual<$total_paginas):?><a class="reference-btn" href="?<?php echo htmlspecialchars(http_build_query(['id_cliente'=>$idCliente,'desde'=>$desde,'hasta'=>$hasta,'estado'=>$estado,'categoria'=>$categoria,'pagina'=>$pagina_actual+1]));?>"><?= $idCliente===0?'Siguiente empresa':'Siguiente' ?></a><?php endif;?>
-    </nav>
-    <?php endif;?>
+    <?php require __DIR__.'/componentes/paginacion_documentos.php'; ?>
 </section>
 <?php $buzonCodigo='SOL';require __DIR__.'/componentes/detalle_documento.php';?>
 <?php require __DIR__.'/ventanas/notas.php'; if($puedeAsignarCaso)require __DIR__.'/ventanas/asignacion.php'; ?>

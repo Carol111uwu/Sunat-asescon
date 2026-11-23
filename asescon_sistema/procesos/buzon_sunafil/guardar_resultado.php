@@ -33,6 +33,7 @@ if ($idCliente <= 0) {
     exit(3);
 }
 
+$idDocumento = (int)($solicitud['id_documento'] ?? 0);
 $codigoSalida = 0;
 try {
     $contenido = is_file($rutaResultado) ? (string)file_get_contents($rutaResultado) : '';
@@ -52,7 +53,7 @@ try {
         $codigoSalida = 5;
     } else {
         $datos = $respuesta['data'] ?? null;
-        if (!is_array($datos) || !($datos['sunafil_validado'] ?? false) || !is_array($datos['notificaciones'] ?? null) || $codigoProceso !== 0) {
+        if (!is_array($datos) || !($datos['sunafil_validado'] ?? false) || ($idDocumento === 0 && !is_array($datos['notificaciones'] ?? null)) || $codigoProceso !== 0) {
             $cola->fallar($idCliente, $idTrabajo, 'SUNAFIL devolvió un formato inesperado para el Buzón SUNAFIL.');
             $codigoSalida = 6;
         } else {
@@ -65,7 +66,6 @@ try {
             if (!$cliente || (string)($datos['ruc'] ?? '') !== (string)$cliente['ruc']) {
                 throw new RuntimeException('La respuesta no corresponde al cliente solicitado.');
             }
-            $idDocumento = (int)($solicitud['id_documento'] ?? 0);
             if ($idDocumento > 0) {
                 $documento = $datos['documento'] ?? null;
                 if (!is_array($documento) || (int)($documento['id_documento'] ?? 0) !== $idDocumento) {
@@ -94,19 +94,10 @@ try {
                 unset($documento);
                 require_once dirname(__DIR__, 2) . '/servicios/buzones/RegistroNovedadesBuzones.php';
                 $avisadorBuzones = new RegistroNovedadesBuzones($conexion);
-                $marcadorAnterior = $avisadorBuzones->marcadorAnterior('SUNAFIL',$idCliente);
-                $conexion->begin_transaction();
-                try {
-                    $nuevos = (new BuzonSunafil($conexion))->guardarSincronizados($idCliente, $documentos);
-                    $conexion->commit();
-                } catch (Throwable $e) {
-                    $conexion->rollback();
-                    throw $e;
-                }
-                if (empty($datos['categorias_no_verificadas'])) {
-                    try { $avisadorBuzones->registrarExito('SUNAFIL',$idCliente,$marcadorAnterior); }
-                    catch(Throwable $errorAvisos) { error_log('Avisos nuevos SUNAFIL: '.get_class($errorAvisos)); }
-                }
+                $nuevos = $avisadorBuzones->registrarExito('SUNAFIL', $idCliente,
+                    fn (): int => (new BuzonSunafil($conexion))->guardarSincronizados($idCliente, $documentos),
+                    empty($datos['categorias_no_verificadas'])
+                );
                 $cola->completar($idCliente, $idTrabajo, count($documentos), $nuevos, (array)($datos['categorias_no_verificadas'] ?? []));
                 try {
                     require_once dirname(__DIR__, 2) . '/modelos/comunicaciones/ColaAvisosBuzones.php';

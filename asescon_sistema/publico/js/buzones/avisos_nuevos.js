@@ -7,11 +7,12 @@
   if(!area||!lista||!insignia) return;
   let ultimaClave='',actualizando=false;
   const base=area.dataset.url;
-  const construir=(tipo,id)=>{
+  const construir=(tipo,id,idDocumento)=>{
     const ruta=tipo==='SUNAFIL'?'vistas/buzones/buzon_sunafil.php':'vistas/buzones/buzon_sol_sunat.php';
     // Derivar desde /api/buzones/... evitando construir una URL externa.
     const u=new URL('../../'+ruta,new URL(base,window.location.href));
     u.searchParams.set('id_cliente',String(id));
+    u.searchParams.set('ver_documento',String(idDocumento));
     return u.href;
   };
   function pintar(datos){
@@ -40,8 +41,8 @@
       const descripcion=document.createElement('p');
       descripcion.textContent=`RUC ${a.ruc} · Detectada ${a.fecha}`;
       const enlace=document.createElement('a');
-      enlace.href=construir(a.buzon,a.id_cliente);
-      enlace.textContent='Ver buzón';
+      enlace.href=construir(a.buzon,a.id_cliente,a.id_documento);
+      enlace.textContent='Ver notificación';
       cuerpo.append(titulo,descripcion,enlace);
       const visto=document.createElement('button');
       visto.type='button';visto.className='reference-btn';

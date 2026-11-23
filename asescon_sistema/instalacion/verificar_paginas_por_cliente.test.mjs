@@ -39,14 +39,14 @@ test('Dashboard y Buzón permiten navegar todas las empresas sin cargar miles de
   assert.match(buzon, /function clientesConNotificaciones\(/);
   assert.match(buzon, /\$limiteSql=" LIMIT \{\$limite\} OFFSET \{\$offset\}"/);
   assert.match(controladorBuzon, /\$idCliente===0\?max\(1,count\(\$clientesPaginados\)\)/);
-  assert.match(controladorBuzon, /\$idCliente===0\?0:\(\$pagina-1\)\*\$porPagina,\$idCliente===0/);
+  assert.match(controladorBuzon, /\(\$paginaDocumentos-1\)\*\$porPagina,\$idCliente===0/);
   const sunafil = leer('modelos/buzones/BuzonSunafil.php');
   const controladorSunafil = leer('controladores/buzones/ControladorBuzonSunafil.php');
   assert.match(sunafil, /function clientesConNotificaciones\(/);
   assert.match(sunafil, /function condicionListado\(/);
   assert.doesNotMatch(sunafil.split('function listar(')[1].split('function clientesConNotificaciones(')[0], /LIMIT\s+1000/);
   assert.match(controladorSunafil, /\$clienteListado>0\?\$m->listar\(/);
-  assert.match(leer('vistas/buzones/buzon_sunafil.php'), /Siguiente empresa/);
+  assert.match(leer('vistas/buzones/componentes/navegador_empresas.php'), /Siguiente ›/);
   const comprobantes = leer('modelos/sunat/ComprobanteSunat.php');
   const controladorComprobantes = leer('controladores/sunat/ControladorComprobanteSunat.php');
   assert.match(comprobantes, /function clientesConComprobantes\(/);

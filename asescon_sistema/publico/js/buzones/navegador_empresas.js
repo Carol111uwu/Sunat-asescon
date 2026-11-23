@@ -19,7 +19,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(parecidas.length>1){mensaje.textContent=`Encontré ${parecidas.length} empresas. Elige una opción completa de la lista.`;return;}
       const url=new URL(window.location.href);
       url.searchParams.set('id_cliente','0');
-      url.searchParams.set('pagina',String(parecidas[0].pagina));
+      url.searchParams.set('empresa',String(parecidas[0].id));
+      url.searchParams.delete('pagina');
+      url.searchParams.delete('pagina_documentos');
+      url.searchParams.delete('ver_documento');
       url.searchParams.delete('orden_detalle');
       // Al navegar conserva el filtro; no consulta los portales oficiales.
       window.location.assign(url.href);

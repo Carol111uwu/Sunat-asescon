@@ -3,6 +3,8 @@
 declare(strict_types=1);
 require_once dirname(__DIR__,2).'/configuracion/rutas_privadas.php';
 
+require_once dirname(__DIR__).'/buzones/EstadoCronBuzon.php';
+
 final class ServicioColaBuzonSol
 {
     private string $directorioBase;
@@ -230,18 +232,7 @@ final class ServicioColaBuzonSol
         // Al concluir la consulta activa, un documento diferido pasa a la cola normal.
         // Nunca se interrumpe una sesión SOL ni se reemplaza su estado a mitad de trabajo.
         $this->promoverDocumentosDiferidos();
-        $archivos = glob($this->directorioSolicitudes . DIRECTORY_SEPARATOR . 'pendiente_*.json') ?: [];
-        $prioridades = [];
-        foreach ($archivos as $archivo) {
-            $solicitud = $this->leerJson($archivo);
-            $prioridades[$archivo] = [
-                !empty($solicitud['solo_adjuntos']),
-                (int)($solicitud['id_usuario'] ?? 0) === 0,
-                strtotime((string)($solicitud['solicitado_en'] ?? '')) ?: 0,
-                $archivo,
-            ];
-        }
-        usort($archivos, static fn(string $a, string $b): int => $prioridades[$a] <=> $prioridades[$b]);
+        $archivos = EstadoCronBuzon::pendientesOrdenados($this->directorioBase, true);
 
         foreach ($archivos as $rutaPendiente) {
             $nombre = basename($rutaPendiente);
@@ -269,7 +260,7 @@ final class ServicioColaBuzonSol
                 continue;
             }
 
-            $this->actualizarEstado($idCliente, $idTrabajo, 'PROCESANDO', 'Consultando SUNAT…');
+            $this->actualizarEstado($idCliente, $idTrabajo, 'PROCESANDO', 'Consultando SUNAT…', ['iniciado_en'=>date(DATE_ATOM)]);
             $solicitud['ruta_procesando'] = $rutaProcesando;
             return $solicitud;
         }
