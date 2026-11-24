@@ -10,11 +10,11 @@ $mensajeSync=$_SESSION['mensaje_sync_general']??null;unset($_SESSION['mensaje_sy
 <?php if(is_array($mensajeSync)):?><div class="notice <?=$mensajeSync['tipo']==='ok'?'good':($mensajeSync['tipo']==='error'?'bad':'')?>" role="status"><?=$esc($mensajeSync['texto']??'')?></div><?php endif;?>
 <section class="reference-panel compact sync-programacion" aria-label="Sincronización programada" style="margin:14px 0;padding:20px">
  <h2 style="margin-top:0">Sincronización programada</h2>
- <p><strong>Horario Perú:</strong> limpieza de copias de ayer entre 00:40 y 01:50; sincronización diaria desde las 02:00 (ventana de planificación hasta las 03:00). Una consulta remota puede demorar más.</p>
+ <p><strong>Horario Perú:</strong> limpieza de copias de ayer entre 00:40 y 01:50; el lote diario del mes actual empieza a las 02:00 (se programa hasta las 03:00). Los meses faltantes del año vigente se programan por tandas desde las 02:00.</p>
  <ol class="sync-orden">
   <li><strong>Padrones:</strong> intentar actualización de Padrón RUC y SSCO; no marcar éxito sin datos oficiales.</li>
   <li><strong>Buzones SOL y SUNAFIL:</strong> atender los clientes con credenciales habilitadas, respetando los errores y sin inventar documentos.</li>
-  <li><strong>Ventas RVIE y Compras RCE:</strong> consultar exclusivamente el <strong>mes calendario actual</strong> de las empresas habilitadas, todos los días.</li>
+  <li><strong>Ventas RVIE y Compras RCE:</strong> actualizar el mes actual y completar los meses faltantes del año vigente para las empresas habilitadas.</li>
   <li><strong>Declaraciones:</strong> continúan en la cola existente. <strong>Detracciones SPOT:</strong> aún falta un conector autenticado; no se presenta como sincronización exitosa.</li>
  </ol>
  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">

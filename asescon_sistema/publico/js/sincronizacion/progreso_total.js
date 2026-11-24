@@ -126,7 +126,7 @@
     f.detalle=(tiene?'Hay un resultado temporal disponible. ':'')+f.detalle;
     return f;
    }
-   if(tiene)return {periodo:p,periodo_texto:mesTexto(p),etiqueta:completo?'Consultado':'Consultar nuevamente mes actual',
+   if(tiene)return {periodo:p,periodo_texto:mesTexto(p),etiqueta:completo?(numero(guardado.registros)===0?'Consultado · sin comprobantes':'Consultado'):'Consultar nuevamente mes actual',
     clase:completo?'ok':'aviso',registros:guardado.registros,actualizado_en:actualizado.replace(' ',' · '),
     detalle:numero(guardado.registros)===0?'Consulta realizada: SUNAT devolvió 0 comprobantes.':(completo?'Consulta del período completada.':'Falta una consulta confirmada de hoy.')};
    return {periodo:p,periodo_texto:mesTexto(p),etiqueta:'Sin resultado',clase:'pendiente',registros:null,actualizado_en:'—',

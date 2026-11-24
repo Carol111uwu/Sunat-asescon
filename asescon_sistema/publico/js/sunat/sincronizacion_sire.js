@@ -138,6 +138,8 @@
       }
       if (!solicitud) throw pendiente(`${libro}: SUNAT o el servidor no confirmaron el ticket de ${periodo}. Este mes queda pendiente; no se volverá a solicitar ese mismo mes automáticamente. El lote puede continuar con los demás meses.`);
     }
+    if (libro === 'RVIE' && solicitud?.procesado === true && solicitud?.sin_comprobantes === true
+        && solicitud?.cantidad_registros === 0) return solicitud;
     const ticket = solicitud.num_ticket;
     if (solicitud.reutilizado) onStatus && onStatus(`${libro}: reutilizando ticket ${ticket} de este mes; no se solicitó otro...`);
     if (!ticket) throw new Error('SUNAT no devolvió ticket para ' + libro + '.');
