@@ -52,9 +52,10 @@ if ($esCorreo) {
     }
 }
 
+$esPdf = ($formato ?? 'pdf') === 'pdf';
 session_write_close();
 try {
-    $registro = (new RepositorioLecturaSire($conexion))->obtenerComprobanteRvie($idCliente, $idDetalle);
+    $registro = (new RepositorioLecturaSire($conexion))->obtenerComprobanteRvie($idCliente, $idDetalle, $esPdf || $esCorreo);
     if (!$registro) {
         $fallar(404, 'El comprobante ya no está disponible. Vuelve a abrir el detalle de RVIE.');
     }
@@ -77,7 +78,6 @@ try {
         exit;
     }
 
-    $esPdf = $formato === 'pdf';
     $bytes = $esPdf ? $documento->pdf() : $documento->excel();
     $disposicion = $esPdf && ($_GET['vista'] ?? '') === 'previa' ? 'inline' : 'attachment';
     header('Content-Type: ' . ($esPdf ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));

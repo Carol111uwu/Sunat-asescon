@@ -315,10 +315,11 @@ final class RepositorioLecturaSire
         return $filas;
     }
 
-    public function obtenerComprobanteRce(int $idCliente, int $idDetalle): ?array
+    public function obtenerComprobanteRce(int $idCliente, int $idDetalle, bool $incluirXml = true): ?array
     {
         $stmt = $this->conexion->prepare(
-            'SELECT d.*, h.periodo, c.ruc AS ruc_empresa, c.razon_social AS empresa_asescon
+            'SELECT d.*, h.periodo, c.ruc AS ruc_empresa, c.razon_social AS empresa_asescon,
+                    c.nombre_comercial AS nombre_comercial_empresa, c.domicilio_fiscal AS domicilio_empresa
              FROM rce_detalle d
              JOIN rce h ON h.id_rce = d.id_rce
              JOIN clientes c ON c.id_cliente = h.id_cliente
@@ -328,13 +329,17 @@ final class RepositorioLecturaSire
         $stmt->execute();
         $fila = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+        if ($fila && $incluirXml) {
+            $fila['datos_xml'] = $this->leerXmlComprobante($idCliente, $fila, true);
+        }
         return $fila ?: null;
     }
 
-    public function obtenerComprobanteRvie(int $idCliente, int $idDetalle): ?array
+    public function obtenerComprobanteRvie(int $idCliente, int $idDetalle, bool $incluirXml = true): ?array
     {
         $stmt = $this->conexion->prepare(
-            'SELECT d.*, h.periodo, c.ruc AS ruc_empresa, c.razon_social AS empresa_asescon
+            'SELECT d.*, h.periodo, c.ruc AS ruc_empresa, c.razon_social AS empresa_asescon,
+                    c.nombre_comercial AS nombre_comercial_empresa, c.domicilio_fiscal AS domicilio_empresa
              FROM rvie_detalle d
              JOIN rvie h ON h.id_rvie = d.id_rvie
              JOIN clientes c ON c.id_cliente = h.id_cliente
@@ -344,7 +349,45 @@ final class RepositorioLecturaSire
         $stmt->execute();
         $fila = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+        if ($fila && $incluirXml) {
+            $fila['datos_xml'] = $this->leerXmlComprobante($idCliente, $fila, false);
+        }
         return $fila ?: null;
+    }
+
+    private function leerXmlComprobante(int $idCliente, array $registro, bool $esCompra): array
+    {
+        require_once __DIR__ . '/ArchivoComprobante.php';
+        require_once __DIR__ . '/ComprobanteSunat.php';
+        require_once __DIR__ . '/../../servicios/archivos/ServicioArchivosPrivados.php';
+        require_once __DIR__ . '/../../servicios/sunat/LectorXmlImpresionSire.php';
+
+        try {
+            $clave = ClaveComprobante::normalizar([
+                'id_cliente' => $idCliente,
+                'ruc_emisor' => $registro[$esCompra ? 'ruc_proveedor' : 'ruc_empresa'],
+                'tipo_documento' => $registro['tipo_comprobante'],
+                'serie' => $registro['serie'],
+                'numero' => $registro['numero'],
+            ]);
+            if ($clave['tipo_documento'] !== '01') return [];
+            $referencia = (new ArchivoComprobante($this->conexion))->obtener($clave)['archivo_xml'] ?? '';
+            if ($referencia === '') {
+                $referencia = (new ComprobanteSunat($this->conexion))->buscarArchivo(
+                    $idCliente, $clave['ruc_emisor'], $clave['tipo_documento'], $clave['serie'], $clave['numero'], 'XML'
+                )['ruta'] ?? '';
+            }
+            if ($referencia === '') return [];
+            $ruta = (new ServicioArchivosPrivados())->resolver($referencia, 'COMPROBANTES');
+            return $ruta ? (new LectorXmlImpresionSire())->leer(
+                $ruta, $clave, trim((string)$registro[$esCompra ? 'ruc_empresa' : 'documento_cliente'])
+            ) : [];
+        } catch (DomainException) {
+            return [];
+        } catch (mysqli_sql_exception $e) {
+            error_log('No se pudo consultar el XML vinculado para impresión SIRE: ' . $e->getCode());
+            return [];
+        }
     }
 
     public function obtenerDetallesNormalizados(string $libro, int $idCliente, string $periodo): array
