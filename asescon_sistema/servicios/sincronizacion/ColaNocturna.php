@@ -46,17 +46,17 @@ final class ColaNocturna
             }
         });
     }
-    public function programar(int $cliente,string $modulo,string $periodo='',?string $fecha=null,bool $forzar=false):bool
+    public function programar(int $cliente,string $modulo,string $periodo='',?string $fecha=null,bool $forzar=false,bool $soloError=false):bool
     {
         if($cliente<0||!in_array($modulo,['SOL','SUNAFIL','RVIE','RCE','DECLARACIONES','PADRON_RUC','SSCO'],true))throw new InvalidArgumentException('Trabajo no permitido.');
         $fecha??=(new DateTimeImmutable('now',new DateTimeZone('America/Lima')))->format('Y-m-d');
         $id=hash('sha256',$fecha.'|'.$cliente.'|'.$modulo.'|'.$periodo);
-        return $this->bloquear(function()use($id,$cliente,$modulo,$periodo,$fecha,$forzar):bool{
+        return $this->bloquear(function()use($id,$cliente,$modulo,$periodo,$fecha,$forzar,$soloError):bool{
             $ruta=$this->ruta($id);
-            if(is_file($ruta)){
-                $anterior=$this->leer($ruta);
-                if(!$forzar||in_array(($anterior['estado']??''),['PENDIENTE','PROCESANDO'],true))return false;
-            }
+            $anterior=$this->leer($ruta);
+            $estado=$anterior['estado']??'';
+            if($soloError&&$estado!=='ERROR')return false;
+            if(is_file($ruta)&&(!$forzar||in_array($estado,['PENDIENTE','PROCESANDO'],true)))return false;
             $this->guardar($ruta,['id'=>$id,'id_cliente'=>$cliente,'modulo'=>$modulo,'periodo'=>$periodo,'fecha'=>$fecha,'estado'=>'PENDIENTE','intentos'=>0,'reintentar'=>0,'actualizado_en'=>date(DATE_ATOM)]);
             return true;
         });

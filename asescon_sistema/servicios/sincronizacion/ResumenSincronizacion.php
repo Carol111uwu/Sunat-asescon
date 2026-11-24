@@ -13,6 +13,10 @@ final class ResumenSincronizacion
         'SUNAT_SOL_NO_DISPONIBLE'=>'La entrada a SUNAT SOL no respondió correctamente. Se conservan los datos anteriores.',
         'ERROR_MYSQL'=>'No se completó una operación de base de datos. Revisa el registro privado del servidor.',
         'CONSULTA_SUNAT_FALLIDA'=>'SUNAT rechazó o no completó la consulta. Se conservan los datos anteriores.',
+        'TICKET_SUNAT_RECHAZADO'=>'SUNAT terminó el ticket con error. Se conservan los datos anteriores.',
+        'SIRE_ACCESO_RECHAZADO'=>'SUNAT rechazó el acceso a SIRE. Revisa las credenciales y los permisos del libro.',
+        'SIRE_LIMITE_TEMPORAL'=>'SUNAT limitó temporalmente las consultas. Se conservan los datos anteriores.',
+        'SIRE_RESPUESTA_SERVIDOR'=>'El servidor de SUNAT devolvió un error. Se conservan los datos anteriores.',
         'SIRE_CERO_CON_HISTORIAL'=>'La propuesta descargada contiene cero comprobantes y ya existían movimientos para ese período. No se eliminaron: revisa la discrepancia en SUNAT.',
         'SIRE_CERO_NO_CONFIRMADO'=>'No fue posible comprobar que la propuesta oficial esté vacía. Se conservaron los datos y el archivo para revisión manual.',
         'TICKET_SUNAT_SIN_RESPUESTA'=>'SUNAT no finalizó la consulta en dos horas. Mes pendiente de verificar; nunca se presume que tenga cero comprobantes.',
@@ -68,6 +72,21 @@ final class ResumenSincronizacion
             elseif($estado==='ERROR'){$codigo='CONSULTA_FALLIDA';$detalle=self::ERRORES[$codigo];}
             elseif($codigo==='TICKET_EN_PROCESO')$detalle='SUNAT está preparando el archivo. El trabajador consultará el ticket nuevamente.';
             else{$codigo='';$detalle=$estado==='PROCESANDO'?'Consulta en proceso.':'Pendiente de ejecución por Cron.';}
+            if(in_array($modulo,['RVIE','RCE'],true)&&in_array($codigo,[
+                'CONSULTA_SUNAT_FALLIDA','TICKET_SUNAT_RECHAZADO','SIRE_ACCESO_RECHAZADO',
+                'SIRE_LIMITE_TEMPORAL','SIRE_RESPUESTA_SERVIDOR',
+            ],true)){
+                $fase=match($t['fase_sire']??''){
+                    'solicitar'=>'Al solicitar la propuesta',
+                    'consultar_descargar'=>'Al consultar el ticket o descargar el archivo',
+                    default=>'',
+                };
+                $http=(int)($t['http_sire']??0);
+                $codigoSunat=(string)($t['codigo_sunat']??'');
+                if($fase!=='')$detalle.=' '.$fase.'.';
+                if($http>=100&&$http<=599)$detalle.=' HTTP '.$http.'.';
+                if(preg_match('/^[0-9]{3,8}$/D',$codigoSunat))$detalle.=' Código SUNAT '.$codigoSunat.'.';
+            }
             $periodo=(string)($t['periodo']??'');
             $grupos[$id]['modulos'][$modulo]['trabajos'][]=[
                 'periodo'=>$periodo,'periodo_texto'=>self::periodo($periodo),'estado'=>$estado,'intentos'=>max(0,(int)($t['intentos']??0)),

@@ -255,7 +255,8 @@
           const resultado = await AsesconSireSync.sincronizarLibro(Number(tarea.opcion.value), 'RVIE', tarea.mesConsulta, paso => {
             estado.textContent = etiqueta + ' · ' + paso;
           });
-          if (resultado?.descargado !== true || resultado?.procesado !== true
+          const vacioConfirmado = resultado?.sin_comprobantes === true && resultado?.cantidad_registros === 0;
+          if ((!vacioConfirmado && resultado?.descargado !== true) || resultado?.procesado !== true
               || !Number.isInteger(Number(resultado.cantidad_registros)) || Number(resultado.cantidad_registros) < 0
               || (Number(resultado.cantidad_registros) === 0 && resultado.sin_comprobantes !== true)) {
             throw new Error('El servidor no confirmó una importación válida de RVIE. No se marcará la empresa como procesada.');

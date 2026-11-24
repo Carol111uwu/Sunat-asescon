@@ -30,6 +30,8 @@ do{
         $codigo='CONSULTA_FALLIDA';
         $detalle='La consulta no terminó. Los datos anteriores se conservaron; revisa el registro del módulo.';
         $terminal=false;
+        $datos=array_intersect_key($t,array_flip(['ticket','ticket_iniciado']));
+        $diagnostico='';
         if(in_array((string)$t['modulo'],['RVIE','RCE'],true)&&str_contains($texto,'YA TIENE COMPROBANTES GUARDADOS')){
             $codigo='SIRE_CERO_CON_HISTORIAL';
             $detalle='La propuesta descargada contiene cero comprobantes, pero hay movimientos anteriores guardados. No se borraron; revisa la discrepancia manualmente.';
@@ -53,9 +55,30 @@ do{
             $detalle='Error de acceso a la base de datos durante la consulta; revisa el registro del servidor.';
         }elseif($e instanceof ExcepcionSunat){
             $codigo='CONSULTA_SUNAT_FALLIDA';
-            $detalle='SUNAT rechazó o no completó la consulta; los datos anteriores se conservaron.';
+            $detalle='No se pudo completar la comunicación o procesar la respuesta de SUNAT.';
+            if(in_array($t['modulo'],['RVIE','RCE'],true)){
+                $http=$e->getHttpStatus();
+                $codigoSunat=$e->getCodigoSunat();
+                if($codigoSunat==='TICKET_SUNAT_RECHAZADO'){
+                    $codigo='TICKET_SUNAT_RECHAZADO';
+                    $terminal=true;
+                }elseif(in_array($http,[401,403],true)){
+                    $codigo='SIRE_ACCESO_RECHAZADO';
+                    $terminal=true;
+                }elseif($http===429){
+                    $codigo='SIRE_LIMITE_TEMPORAL';
+                }elseif($http!==null&&$http>=500&&$http<=599){
+                    $codigo='SIRE_RESPUESTA_SERVIDOR';
+                }
+                $datos['fase_sire']=$t['fase_sire']??'';
+                $datos['http_sire']=$http;
+                $datos['codigo_sunat']=preg_match('/^[0-9]{3,8}$/D',(string)$codigoSunat)?$codigoSunat:null;
+                $diagnostico=' fase '.$datos['fase_sire'].($http!==null?' HTTP '.$http:'')
+                    .($datos['codigo_sunat']!==null?' SUNAT '.$datos['codigo_sunat']:'');
+            }
         }
-        error_log('Cron nocturno '.$t['modulo'].' empresa '.(int)$t['id_cliente'].' codigo '.$codigo.' tipo '.get_class($e));
-        $cola->terminar($t,$terminal?'ERROR':'PENDIENTE',['codigo'=>$codigo,'mensaje'=>$detalle]);
+        error_log('Cron nocturno '.$t['modulo'].' empresa '.(int)$t['id_cliente'].' periodo '.($t['periodo']??'')
+            .' codigo '.$codigo.' tipo '.get_class($e).$diagnostico);
+        $cola->terminar($t,$terminal?'ERROR':'PENDIENTE',$datos+['codigo'=>$codigo,'mensaje'=>$detalle]);
     }
 }while(time()<$limite);

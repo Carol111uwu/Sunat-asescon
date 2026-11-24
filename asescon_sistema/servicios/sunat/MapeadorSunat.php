@@ -82,34 +82,54 @@ final class MapeadorSunat
             $igv += (float)$d['igv'];
             $total += (float)$d['importe_total'];
         }
+        $obs = $propuestaSinComprobantes
+            ? 'Propuesta SIRE consultada y archivo del ticket validado: 0 comprobantes para el período. No acredita aceptación ni presentación oficial.'
+            : 'Datos reales importados desde la propuesta SIRE descargada por API.';
+        return $this->guardarImportacion($idCliente, $periodo, $codLibro, $detalles, $base, $igv, $total, $omitidas, $obs);
+    }
+
+    public function registrarRvieSinComprobantes(int $idCliente, string $periodo): array
+    {
+        return $this->guardarImportacion(
+            $idCliente, $periodo, ServicioSireSunat::LIBRO_RVIE, [], 0, 0, 0, 0,
+            'SUNAT confirmó 0 comprobantes en la propuesta RVIE del período (HTTP 422, código 1070).'
+        );
+    }
+
+    private function guardarImportacion(
+        int $idCliente, string $periodo, string $codLibro, array $detalles,
+        float $base, float $igv, float $total, int $omitidas, string $obs
+    ): array {
+        $propuestaSinComprobantes = $detalles === [];
         $this->conexion->begin_transaction();
         try {
             if ($propuestaSinComprobantes) {
                                                                                
                                                                                   
                 $tabla = $codLibro === ServicioSireSunat::LIBRO_RVIE ? 'rvie' : 'rce';
-                $anterior = $this->conexion->prepare("SELECT cantidad_registros FROM {$tabla} WHERE id_cliente=? AND periodo=? LIMIT 1 FOR UPDATE");
+                $pk = $codLibro === ServicioSireSunat::LIBRO_RVIE ? 'id_rvie' : 'id_rce';
+                $anterior = $this->conexion->prepare(
+                    "SELECT c.cantidad_registros, EXISTS(SELECT 1 FROM {$tabla}_detalle d WHERE d.{$pk}=c.{$pk}) hay_detalles
+                     FROM {$tabla} c WHERE c.id_cliente=? AND c.periodo=? LIMIT 1 FOR UPDATE"
+                );
                 if (!$anterior) throw new RuntimeException('No se pudo proteger el historial SIRE anterior.');
                 $anterior->bind_param('is', $idCliente, $periodo);
                 $anterior->execute();
                 $filaAnterior = $anterior->get_result()->fetch_assoc();
                 $anterior->close();
-                if ((int)($filaAnterior['cantidad_registros'] ?? 0) > 0) {
+                if ((int)($filaAnterior['cantidad_registros'] ?? 0) > 0 || !empty($filaAnterior['hay_detalles'])) {
                     throw new ExcepcionSunat('La propuesta actual contiene cero comprobantes, pero ASESCON ya tiene comprobantes guardados para este período. Se conservaron; revisar la diferencia antes de reemplazarlos.');
                 }
             }
             if ($codLibro === ServicioSireSunat::LIBRO_RVIE) {
                 $idRegistro = $this->upsertCabecera('rvie', 'id_rvie', $idCliente, $periodo, count($detalles), $base, $igv, $total);
-                $this->reemplazarRvieDetalle($idRegistro, $detalles);
+                if (!$propuestaSinComprobantes) $this->reemplazarRvieDetalle($idRegistro, $detalles);
                 $libro = 'RVIE';
             } else {
                 $idRegistro = $this->upsertCabecera('rce', 'id_rce', $idCliente, $periodo, count($detalles), $base, $igv, $total);
-                $this->reemplazarRceDetalle($idRegistro, $detalles);
+                if (!$propuestaSinComprobantes) $this->reemplazarRceDetalle($idRegistro, $detalles);
                 $libro = 'RCE';
             }
-            $obs = $propuestaSinComprobantes
-                ? 'Propuesta SIRE consultada y archivo del ticket validado: 0 comprobantes para el período. No acredita aceptación ni presentación oficial.'
-                : 'Datos reales importados desde la propuesta SIRE descargada por API.';
             $stmt = $this->conexion->prepare("INSERT INTO sire(id_cliente,periodo,tipo_libro,cantidad_registros,monto_total,estado,fecha_actualizacion,observaciones) VALUES(?,?,?,?,?,'PROCESADO',NOW(),?) ON DUPLICATE KEY UPDATE cantidad_registros=VALUES(cantidad_registros),monto_total=VALUES(monto_total),estado='PROCESADO',fecha_actualizacion=NOW(),observaciones=VALUES(observaciones)");
             if (!$stmt) {
                 throw new RuntimeException('No se pudo actualizar el resumen SIRE.');
@@ -282,8 +302,8 @@ $stmt->close();
                 if (trim($linea) === '') {
                     continue;
                 }
-$delim = $this->detectarDelimitador($linea);
-                $c = str_getcsv($linea, $delim);
+                $delim = $this->detectarDelimitador($linea);
+                $c = str_getcsv($linea, $delim, escape: "\\");
                 $c = array_map(fn($v)=>trim($this->limpiarBom((string)$v)), $c);
                 if ($cabecera === null && $this->pareceCabecera($c)) {
                     $cabecera = $this->crearMapaCabecera($c);

@@ -11,7 +11,8 @@ final class ExcepcionSunat extends RuntimeException
         string $message,
         ?int $httpStatus = null,
         ?string $codigoSunat = null,
-        ?Throwable $previous = null
+        ?Throwable $previous = null,
+        private ?array $codigosValidacion = null
     ) {
         parent::__construct($message, 0, $previous);
         $this->httpStatus = $httpStatus;
@@ -21,6 +22,15 @@ final class ExcepcionSunat extends RuntimeException
     public function getHttpStatus(): ?int
     {
         return $this->httpStatus;
+    }
+
+    public function esAusenciaComprobantesRvie(): bool
+    {
+        if ($this->httpStatus !== 422) {
+            return false;
+        }
+        $codigos = $this->codigosValidacion ?? [$this->codigoSunat];
+        return $codigos !== [] && array_unique($codigos) === ['1070'];
     }
 
     public function getCodigoSunat(): ?string

@@ -137,7 +137,17 @@ return $len;
                 $json = [];
             }
             if ($status < 200 || $status >= 300) {
-                throw new ExcepcionSunat($this->extraerMensajeError($json, $status), $status, $this->extraerCodigoError($json));
+                $codigos = $json['errors'] ?? null;
+                $validaciones = is_array($codigos)
+                    ? array_values(array_map(static function ($error): string {
+                        $codigo = is_array($error) ? ($error['cod'] ?? null) : null;
+                        return is_int($codigo) || is_string($codigo) ? (string)$codigo : '';
+                    }, $codigos))
+                    : null;
+                throw new ExcepcionSunat(
+                    $this->extraerMensajeError($json, $status), $status, $this->extraerCodigoError($json),
+                    codigosValidacion: $validaciones
+                );
             }
 if ($json === [] && $texto !== '' && $texto !== '{}') {
                 throw new ExcepcionSunat('SUNAT respondió con un formato inesperado.', $status);

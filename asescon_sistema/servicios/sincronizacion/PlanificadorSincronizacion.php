@@ -15,6 +15,24 @@ final class PlanificadorSincronizacion
         $this->cola=$cola??new ColaNocturna();
     }
 
+    public function reintentarSire(int $idCliente, string $libro, string $periodo): bool
+    {
+        if ($idCliente<=0 || !in_array($libro,['RVIE','RCE'],true)
+            || !in_array($periodo,EstadoSireGuardado::periodosActuales(),true)) {
+            throw new DomainException('Indica el ID de empresa, RVIE o RCE y un mes transcurrido del año vigente (AAAAMM).');
+        }
+        if ($this->cola->estaPausada()) {
+            throw new DomainException('La sincronización está en pausa.');
+        }
+
+        $guardado=(new EstadoSireGuardado($this->db))->consultar($idCliente,$libro,$periodo);
+        if ($guardado!==null && $guardado['completo']) {
+            return false;
+        }
+
+        return $this->cola->programar($idCliente,$libro,$periodo,forzar:true,soloError:true);
+    }
+
     public function programar(bool $forzar=false, bool $soloHistorico=false):array
     {
         $ahora = new DateTimeImmutable('now', new DateTimeZone('America/Lima'));

@@ -113,7 +113,15 @@ final class ServicioSireSunat
             . rawurlencode($periodo)
             . '/exportapropuesta?codTipoArchivo=0';
 
-        $respuesta = $this->client->getJson($url, $this->headersJson());
+        try {
+            $respuesta = $this->client->getJson($url, $this->headersJson());
+        } catch (ExcepcionSunat $error) {
+            // Manual API SIRE Ventas v32, §5.18: HTTP 422 / 1070 para la propuesta sin comprobantes.
+            if (!$error->esAusenciaComprobantesRvie()) {
+                throw $error;
+            }
+            return ['sin_comprobantes' => true, 'periodo' => $periodo, 'cod_libro' => self::LIBRO_RVIE];
+        }
         $ticket = $this->extraerNumTicket($respuesta);
         if ($ticket === '') {
             throw new ExcepcionSunat('SUNAT no devolvió el número de ticket para la propuesta RVIE.');

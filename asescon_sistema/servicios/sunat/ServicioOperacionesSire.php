@@ -125,6 +125,11 @@ class ServicioOperacionesSire
             }
             throw $error;
         }
+        if ($nombre === 'RVIE' && ($respuesta['sin_comprobantes'] ?? false) === true) {
+            $guardado = (new MapeadorSunat($this->conexion))->registrarRvieSinComprobantes($idCliente, $periodo);
+            $this->auditar('CONFIRMAR_RVIE_SIN_COMPROBANTES', $idCliente, 'rvie', $periodo, 'SUNAT confirmó la propuesta sin comprobantes (1070).');
+            return ['cliente' => $cliente, 'procesado' => true] + $guardado;
+        }
         $ticket = trim((string)($respuesta['num_ticket'] ?? ''));
         if ($ticket === '') {
             throw new RuntimeException('SUNAT no devolvió un ticket válido.');
@@ -182,7 +187,7 @@ class ServicioOperacionesSire
         $this->repositorio->actualizarEstado($idCliente, $periodo, $nombre, $ticket, (string)$respuesta['estado']);
         if (!empty($respuesta['con_error'])) {
             $this->repositorio->marcarTicketError($idCliente, $periodo, $nombre, $ticket, (string)$respuesta['estado']);
-            throw new ExcepcionSunat('SUNAT terminó el ticket con error: ' . (string)$respuesta['estado']);
+            throw new ExcepcionSunat('SUNAT terminó el ticket con error: ' . (string)$respuesta['estado'], null, 'TICKET_SUNAT_RECHAZADO');
         }
         return ['cliente' => $cliente, 'libro' => $nombre] + $respuesta;
     }
@@ -200,7 +205,7 @@ class ServicioOperacionesSire
         $this->repositorio->actualizarEstado($idCliente, $periodo, $nombre, $ticket, (string)$estado['estado']);
         if (!empty($estado['con_error'])) {
             $this->repositorio->marcarTicketError($idCliente, $periodo, $nombre, $ticket, (string)$estado['estado']);
-            throw new ExcepcionSunat('SUNAT terminó el ticket con error: ' . (string)$estado['estado']);
+            throw new ExcepcionSunat('SUNAT terminó el ticket con error: ' . (string)$estado['estado'], null, 'TICKET_SUNAT_RECHAZADO');
         }
         if (!($estado['terminado'] ?? false)) {
             return ['descargado' => false, 'estado' => $estado['estado'], 'ticket' => $ticket];

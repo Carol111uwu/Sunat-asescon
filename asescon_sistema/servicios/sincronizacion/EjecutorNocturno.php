@@ -5,7 +5,7 @@ require_once __DIR__.'/EstadoSireGuardado.php';
 final class EjecutorNocturno
 {
     public function __construct(private mysqli $db){}
-    public function ejecutar(array $t):array
+    public function ejecutar(array &$t):array
     {
         $id=(int)$t['id_cliente'];$modulo=$t['modulo'];
         if($id>0){$s=$this->db->prepare("SELECT id_cliente FROM clientes WHERE id_cliente=? AND estado='ACTIVO'");$s->bind_param('i',$id);$s->execute();if(!$s->get_result()->fetch_assoc())return ['estado'=>'ERROR','codigo'=>'CLIENTE_INACTIVO'];}
@@ -56,27 +56,28 @@ final class EjecutorNocturno
             }
             require_once __DIR__.'/../sunat/ServicioOperacionesSire.php';
             $s=new ServicioOperacionesSire($this->db);
-            $ticket=$t['ticket']??'';
-            $inicioTicket=(int)($t['ticket_iniciado']??0)?:time();
-            if($ticket===''){$sol=$s->solicitar($id,$modulo,$periodo);$ticket=$sol['num_ticket'];$inicioTicket=time();}
-            $estado=$s->estado($id,$modulo,$periodo,$ticket);
-            if(empty($estado['terminado'])){
-                if(time()-$inicioTicket>=7200){
-                    return ['estado'=>'ERROR','ticket'=>$ticket,'codigo'=>'TICKET_SUNAT_SIN_RESPUESTA',
-                        'mensaje'=>'SUNAT no finalizó este ticket después de dos horas. El período no se considera vacío ni completo.'];
+            if (empty($t['ticket'])) {
+                $t['fase_sire']='solicitar';
+                $sol=$s->solicitar($id,$modulo,$periodo);
+                if (($sol['sin_comprobantes']??false)===true && ($sol['procesado']??false)===true) {
+                    return ['estado'=>'COMPLETADO','registros'=>0];
                 }
-                return ['estado'=>'PENDIENTE','ticket'=>$ticket,'ticket_iniciado'=>$inicioTicket,'codigo'=>'TICKET_EN_PROCESO','espera_ticket'=>true];
+                $t['ticket']=$sol['num_ticket'];
             }
+            $ticket=$t['ticket'];
+            $inicioTicket=$t['ticket_iniciado']=(int)($t['ticket_iniciado']??0)?:time();
+            // descargar verifica el estado del ticket antes de obtener sus archivos.
+            $t['fase_sire']='consultar_descargar';
             $r=$s->descargar($id,$modulo,$periodo,$ticket);
             if(empty($r['descargado'])){
                 if(time()-$inicioTicket>=7200){
                     return ['estado'=>'ERROR','ticket'=>$ticket,'codigo'=>'TICKET_SUNAT_SIN_RESPUESTA',
                         'mensaje'=>'SUNAT no entregó el archivo dentro del plazo. No se registraron ventas ni compras ficticias.'];
                 }
-                return ['estado'=>'PENDIENTE','ticket'=>$ticket,'ticket_iniciado'=>$inicioTicket,'espera_ticket'=>true];
+                return ['estado'=>'PENDIENTE','ticket'=>$ticket,'ticket_iniciado'=>$inicioTicket,
+                    'codigo'=>'TICKET_EN_PROCESO','espera_ticket'=>true];
             }
-            try{$inc=$s->inconsistencias($id,$modulo,$periodo);}catch(Throwable){$inc=['disponible'=>false];}
-            return ['estado'=>'COMPLETADO','ticket'=>$ticket,'registros'=>(int)$r['cantidad_registros'],'inconsistencias'=>$inc];
+            return ['estado'=>'COMPLETADO','ticket'=>$ticket,'registros'=>(int)$r['cantidad_registros']];
         }
         if($modulo==='DECLARACIONES'){
             require_once __DIR__.'/../sunat/CargadorCredencialesSunat.php';
