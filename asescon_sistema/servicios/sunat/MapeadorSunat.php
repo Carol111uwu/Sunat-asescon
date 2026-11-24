@@ -428,7 +428,35 @@ return $this->indice($m, ['bi gravada','total cp']) !== null;
             $igv = $this->numero($this->valor($c, $m, ['igv / ipm','igv ipm'])) - $this->numero($this->valor($c, $m, ['dscto igv / ipm','dscto igv ipm']));
         }
         $total = $this->numero($this->valor($c, $m, ['total cp','importe total']));
-        return ['car_sunat' => $car ?: null,'fecha_emision' => $fecha,'tipo_comprobante' => $tipo ?: null,'serie' => $serie ?: null,'numero' => $numero ?: null,'documento' => $doc ?: null,'razon_social' => $razon ?: null,'base_imponible' => $base,'igv' => $igv,'importe_total' => $total,'estado_registro' => $estado ?: null];
+        return ['car_sunat' => $car ?: null,'fecha_emision' => $fecha,'tipo_comprobante' => $tipo ?: null,'serie' => $serie ?: null,'numero' => $numero ?: null,'documento' => $doc ?: null,'razon_social' => $razon ?: null,'base_imponible' => $base,'igv' => $igv,'importe_total' => $total,'estado_registro' => $estado ?: null,
+            'datos_impresion_sire' => $this->datosImpresion($c, $m, $libro)];
+    }
+
+    private function datosImpresion(array $fila, array $cabecera, string $libro): ?string
+    {
+        $alias = [
+            'isc' => ['ISC'], 'icbper' => ['ICBPER'],
+            'tributos' => ['Otros Trib', 'Otros Tributos'],
+            'cargos' => ['Cargos', 'Otros Cargos'],
+        ];
+        if ($libro === ServicioSireSunat::LIBRO_RVIE) {
+            $alias += [
+                'gravado' => ['BI Gravada'],
+                'inafecto' => ['Monto Inafecto', 'Valor Venta Inafecto', 'VV Inaf'],
+                'exonerado' => ['Monto Exonerado', 'Valor Venta Exonerado', 'VV Exo'],
+                'exportacion' => ['Valor Facturado Exportación', 'Valor Facturado Export', 'Valor Fact Export'],
+            ];
+        }
+        $moneda = strtoupper($this->valor($fila, $cabecera, ['Moneda', 'Tipo de Moneda', 'Código de Moneda']));
+        $importes = [];
+        foreach ($alias as $clave => $candidatos) {
+            $monto = $this->valor($fila, $cabecera, $candidatos);
+            if (preg_match('/^[+-]?[0-9][0-9., ]*$/D', $monto)) {
+                $importes[$clave] = $this->numero($monto);
+            }
+        }
+        if ($moneda === '' && $importes === []) return null;
+        return json_encode(['moneda' => $moneda, 'importes' => $importes], JSON_THROW_ON_ERROR);
     }
 
     private function indice(array $m, array $aliases): ?int
@@ -528,11 +556,16 @@ return (int)$r['id'];
         if ($detalles === []) {
             return;
         }
-$s = $this->conexion->prepare('INSERT INTO rvie_detalle(id_rvie,car_sunat,fecha_emision,tipo_comprobante,serie,numero,documento_cliente,razon_social_cliente,base_imponible,igv,importe_total,estado_registro) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
+$imprimir = $this->conexion->query("SHOW COLUMNS FROM rvie_detalle WHERE Field = 'datos_impresion_sire'")->num_rows > 0;
+        $extra = $imprimir ? ',datos_impresion_sire' : '';
+        $parametro = $imprimir ? ',?' : '';
+        $s = $this->conexion->prepare("INSERT INTO rvie_detalle(id_rvie,car_sunat,fecha_emision,tipo_comprobante,serie,numero,documento_cliente,razon_social_cliente,base_imponible,igv,importe_total,estado_registro{$extra}) VALUES(?,?,?,?,?,?,?,?,?,?,?,?{$parametro})");
         if (!$s) {
             throw new RuntimeException('No se pudo preparar el detalle RVIE.');
         }foreach ($detalles as $d) {
-            $s->bind_param('isssssssddds', $id, $d['car_sunat'], $d['fecha_emision'], $d['tipo_comprobante'], $d['serie'], $d['numero'], $d['documento'], $d['razon_social'], $d['base_imponible'], $d['igv'], $d['importe_total'], $d['estado_registro']);
+            $valores = [$id, $d['car_sunat'], $d['fecha_emision'], $d['tipo_comprobante'], $d['serie'], $d['numero'], $d['documento'], $d['razon_social'], $d['base_imponible'], $d['igv'], $d['importe_total'], $d['estado_registro']];
+            if ($imprimir) $valores[] = $d['datos_impresion_sire'] ?? null;
+            $s->bind_param('isssssssddds' . ($imprimir ? 's' : ''), ...$valores);
             if (!$s->execute()) {
                 $e = $s->error;
                 $s->close();
@@ -550,11 +583,16 @@ $s->close();
         if ($detalles === []) {
             return;
         }
-$s = $this->conexion->prepare('INSERT INTO rce_detalle(id_rce,car_sunat,fecha_emision,tipo_comprobante,serie,numero,ruc_proveedor,razon_social_proveedor,base_imponible,igv,importe_total,estado_registro) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)');
+$imprimir = $this->conexion->query("SHOW COLUMNS FROM rce_detalle WHERE Field = 'datos_impresion_sire'")->num_rows > 0;
+        $extra = $imprimir ? ',datos_impresion_sire' : '';
+        $parametro = $imprimir ? ',?' : '';
+        $s = $this->conexion->prepare("INSERT INTO rce_detalle(id_rce,car_sunat,fecha_emision,tipo_comprobante,serie,numero,ruc_proveedor,razon_social_proveedor,base_imponible,igv,importe_total,estado_registro{$extra}) VALUES(?,?,?,?,?,?,?,?,?,?,?,?{$parametro})");
         if (!$s) {
             throw new RuntimeException('No se pudo preparar el detalle RCE.');
         }foreach ($detalles as $d) {
-            $s->bind_param('isssssssddds', $id, $d['car_sunat'], $d['fecha_emision'], $d['tipo_comprobante'], $d['serie'], $d['numero'], $d['documento'], $d['razon_social'], $d['base_imponible'], $d['igv'], $d['importe_total'], $d['estado_registro']);
+            $valores = [$id, $d['car_sunat'], $d['fecha_emision'], $d['tipo_comprobante'], $d['serie'], $d['numero'], $d['documento'], $d['razon_social'], $d['base_imponible'], $d['igv'], $d['importe_total'], $d['estado_registro']];
+            if ($imprimir) $valores[] = $d['datos_impresion_sire'] ?? null;
+            $s->bind_param('isssssssddds' . ($imprimir ? 's' : ''), ...$valores);
             if (!$s->execute()) {
                 $e = $s->error;
                 $s->close();

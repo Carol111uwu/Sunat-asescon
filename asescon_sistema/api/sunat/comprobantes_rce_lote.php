@@ -70,7 +70,7 @@ try {
         if (!$clientesPermitidos[$idCliente]) {
             $responderError(403, 'No tienes acceso a una empresa de la selección.');
         }
-        $registro = $repositorio->obtenerComprobanteRce($idCliente, $idDetalle);
+        $registro = $repositorio->obtenerComprobanteRce($idCliente, $idDetalle, $accion !== 'excel');
         if (!$registro) {
             $responderError(404, 'Un comprobante ya no está disponible. Actualiza RCE y selecciona nuevamente.');
         }
